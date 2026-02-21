@@ -92,13 +92,12 @@ export function showStagePanel(onComplete) {
 }
 
 // Open a single phenomenon by index (used by 3D object interaction)
+// Always shows ONLY that one question, then calls onDone — no chaining.
 export function showQuestionPanel(phenomenonIdx, onDone, onDismiss) {
   const screen = $('stage-screen');
   screen.classList.remove('hidden');
   screen.style.pointerEvents = 'all';
 
-  // Reset wrong-answer counter for this attempt
-  state.wrongAnswers = 0;
   state.phenomenonIndex = phenomenonIdx;
 
   renderPhenomenon(phenomenonIdx, () => {
@@ -109,7 +108,7 @@ export function showQuestionPanel(phenomenonIdx, onDone, onDismiss) {
     screen.classList.add('hidden');
     screen.style.pointerEvents = 'none';
     if (onDismiss) onDismiss();
-  });
+  }, /* standalone= */ true);
 }
 
 // Open a Level 2 (Stage 2) phenomenon by index
@@ -128,7 +127,7 @@ export function showLevel2QuestionPanel(phenomenonIdx, onDone, onDismiss) {
     screen.classList.add('hidden');
     screen.style.pointerEvents = 'none';
     if (onDismiss) onDismiss();
-  });
+  }, /* standalone= */ true);
 }
 
 // ─────────────────────────────────────────────────────
@@ -165,7 +164,7 @@ export function showLevel2QuizComplete(onAdvance) {
   });
 }
 
-function renderPhenomenon(idx, onComplete, onDismiss) {
+function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
   const phenom = stage1.phenomena[idx];
   const screen = $('stage-screen');
 
@@ -176,16 +175,17 @@ function renderPhenomenon(idx, onComplete, onDismiss) {
   const panel = document.createElement('div');
   panel.className = 'stage-panel fade-in';
 
-  // Header
+  // Header — in standalone mode hide the progress counter (it's just 1 question)
   panel.innerHTML = `
     <div class="phenomenon-header">
       <span class="phenomenon-badge">${phenom.title}</span>
-      <span class="question-progress">${idx + 1} / ${stage1.phenomena.length}</span>
+      ${!standalone ? `<span class="question-progress">${idx + 1} / ${stage1.phenomena.length}</span>` : ''}
       ${onDismiss ? `<button class="panel-close-btn" id="panel-close-btn" title="Tutup">✕</button>` : ''}
     </div>
+    ${!standalone ? `
     <div class="progress-bar-wrap">
       ${stage1.phenomena.map((_, i) => `<div class="prog-dot ${i < idx ? 'done' : i === idx ? 'active' : ''}"></div>`).join('')}
-    </div>
+    </div>` : ''}
   `;
 
   // Wire up close button
@@ -273,17 +273,18 @@ function renderPhenomenon(idx, onComplete, onDismiss) {
   // Next button
   const nextBtn = document.createElement('button');
   nextBtn.className = 'next-btn';
-  nextBtn.textContent = idx < stage1.phenomena.length - 1 ? 'Fenomena Berikutnya →' : '✅ Selesai Level 1';
+  // In standalone mode: always "Done" — never chain to next phenomenon
+  nextBtn.textContent = standalone
+    ? '✅ Selesai'
+    : (idx < stage1.phenomena.length - 1 ? 'Fenomena Berikutnya →' : '✅ Selesai Level 1');
   nextBtn.onclick = () => {
-    const isLast = idx >= stage1.phenomena.length - 1;
-    if (isLast) {
-      // Score is tracked externally via showLevelComplete(); just call onComplete
+    if (standalone || idx >= stage1.phenomena.length - 1) {
       screen.classList.add('hidden');
       screen.style.pointerEvents = 'none';
       if (onComplete) onComplete();
     } else {
       state.phenomenonIndex++;
-      renderPhenomenon(state.phenomenonIndex, onComplete, onDismiss);
+      renderPhenomenon(state.phenomenonIndex, onComplete, onDismiss, false);
     }
   };
   panel.appendChild(nextBtn);
@@ -294,7 +295,7 @@ function renderPhenomenon(idx, onComplete, onDismiss) {
 // ─────────────────────────────────────────────────────
 // Level 2 phenomenon renderer
 // ─────────────────────────────────────────────────────
-function renderLevel2Phenomenon(idx, onComplete, onDismiss) {
+function renderLevel2Phenomenon(idx, onComplete, onDismiss, standalone = false) {
   const phenom = stage2.phenomena[idx];
   const screen = $('stage-screen');
 
@@ -309,14 +310,15 @@ function renderLevel2Phenomenon(idx, onComplete, onDismiss) {
       <span class="phenomenon-badge" style="background:rgba(255,140,30,0.18);border-color:#ff8c1e;color:#ff8c1e">
         ${phenom.title}
       </span>
-      <span class="question-progress">${idx + 1} / ${stage2.phenomena.length}</span>
+      ${!standalone ? `<span class="question-progress">${idx + 1} / ${stage2.phenomena.length}</span>` : ''}
       ${onDismiss ? `<button class="panel-close-btn" id="panel-close-btn2" title="Tutup">✕</button>` : ''}
     </div>
+    ${!standalone ? `
     <div class="progress-bar-wrap">
       ${stage2.phenomena.map((_, i) => `
         <div class="prog-dot ${i < idx ? 'done' : i === idx ? 'active' : ''}"></div>
       `).join('')}
-    </div>
+    </div>` : ''}
   `;
 
   if (onDismiss) {
@@ -380,15 +382,17 @@ function renderLevel2Phenomenon(idx, onComplete, onDismiss) {
   const nextBtn = document.createElement('button');
   nextBtn.className = 'next-btn';
   const isLast = idx >= stage2.phenomena.length - 1;
-  nextBtn.textContent = isLast ? '🔬 Lanjut ke Simulasi →' : 'Stasiun Berikutnya →';
+  nextBtn.textContent = standalone
+    ? '✅ Selesai'
+    : (isLast ? '🔬 Lanjut ke Simulasi →' : 'Stasiun Berikutnya →');
   nextBtn.onclick = () => {
-    if (isLast) {
+    if (standalone || isLast) {
       screen.classList.add('hidden');
       screen.style.pointerEvents = 'none';
       if (onComplete) onComplete();
     } else {
       state.phenomenonIndex++;
-      renderLevel2Phenomenon(state.phenomenonIndex, onComplete, onDismiss);
+      renderLevel2Phenomenon(state.phenomenonIndex, onComplete, onDismiss, false);
     }
   };
   panel.appendChild(nextBtn);
