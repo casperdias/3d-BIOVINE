@@ -1,0 +1,19 @@
+// Game State
+export const state = {
+  playerName: '',
+  currentLevel: 1,
+  totalPoints: 0,
+  levelAttempts: 0,       // attempts on current level (max 3)
+  levelPoints: 0,         // points earned this level
+  phenomenonIndex: 0,     // 0, 1, 2 for the 3 phenomena in stage 1
+  answered: false,
+  wrongAnswers: 0,        // wrong answers within current question attempt
+};
+
+export function resetLevelState() {
+  state.levelAttempts = 0;
+  state.levelPoints = 0;
+  state.phenomenonIndex = 0;
+  state.answered = false;
+  state.wrongAnswers = 0;
+}
