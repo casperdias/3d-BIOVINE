@@ -31,6 +31,23 @@ export const state = {
     valveOpened:        false,
     bonusPoints:        0,
   },
+
+  // Level 4 – IPAL builder state
+  stage4: {
+    selectedItems:  [],
+    reactorResult:  null,   // evaluateReactor() output
+    terminalDone:   false,
+  },
+
+  // Level 5 – evaluation state
+  stage5: {
+    scopeDone: false,
+  },
+
+  // Level 6 – presentation state
+  stage6: {
+    podiumDone: false,
+  },
 };
 
 export function resetLevelState() {
@@ -64,4 +81,20 @@ export function resetStage3State() {
     valveOpened:       false,
     bonusPoints:       0,
   };
+}
+
+export function resetStage4State() {
+  state.stage4 = {
+    selectedItems: [],
+    reactorResult: null,
+    terminalDone:  false,
+  };
+}
+
+export function resetStage5State() {
+  state.stage5 = { scopeDone: false };
+}
+
+export function resetStage6State() {
+  state.stage6 = { podiumDone: false };
 }

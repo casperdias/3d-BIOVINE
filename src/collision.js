@@ -108,6 +108,93 @@ export function setLabObstacles() {
   OBSTACLES = LAB_OBSTACLES;
 }
 
+// ─── Static obstacle list – Workshop (Level 4) ────────
+// WORKSHOP_W=56, WORKSHOP_D=44, terminal at (0, 0, -14)
+const WORKSHOP_W4 = 56;
+const WORKSHOP_D4 = 44;
+
+export const WORKSHOP_OBSTACLES = [
+  // Room walls
+  box(  0,               -(WORKSHOP_D4/2),  WORKSHOP_W4/2 + 2, 1.5 ),
+  box(  0,                (WORKSHOP_D4/2),  WORKSHOP_W4/2 + 2, 1.5 ),
+  box( -(WORKSHOP_W4/2),  0,                1.5, WORKSHOP_D4/2 + 2 ),
+  box(  (WORKSHOP_W4/2),  0,                1.5, WORKSHOP_D4/2 + 2 ),
+  // 3 work benches (z ≈ 2)
+  box( -16, 2,  4.5, 2.0 ),
+  box(   0, 2,  4.5, 2.0 ),
+  box(  16, 2,  4.5, 2.0 ),
+  // Terminal pedestal at (0, 0, -14)
+  box(  0, -14,  1.4, 1.4 ),
+  // Equipment shelves on back wall
+  box( -18, -(WORKSHOP_D4/2 - 0.5),  4.5, 0.8 ),
+  box(   0, -(WORKSHOP_D4/2 - 0.5),  4.5, 0.8 ),
+  box(  18, -(WORKSHOP_D4/2 - 0.5),  4.5, 0.8 ),
+  // Cabinets right wall
+  box( (WORKSHOP_W4/2 - 1.5), -10,  1.5, 1.5 ),
+  box( (WORKSHOP_W4/2 - 1.5),  10,  1.5, 1.5 ),
+];
+
+// ─── Static obstacle list – Observation Lab (Level 5) ─
+// OBSLAB_W=52, OBSLAB_D=40, microscope at (~0.8, 0, -12)
+const OBSLAB_W5 = 52;
+const OBSLAB_D5 = 40;
+
+export const OBSLAB_OBSTACLES = [
+  // Room walls
+  box(  0,              -(OBSLAB_D5/2),  OBSLAB_W5/2 + 2, 1.5 ),
+  box(  0,               (OBSLAB_D5/2),  OBSLAB_W5/2 + 2, 1.5 ),
+  box( -(OBSLAB_W5/2),   0,              1.5, OBSLAB_D5/2 + 2 ),
+  box(  (OBSLAB_W5/2),   0,              1.5, OBSLAB_D5/2 + 2 ),
+  // 3 analysis benches (z ≈ 6)
+  box( -14, 6,  4.0, 2.0 ),
+  box(   0, 6,  4.0, 2.0 ),
+  box(  14, 6,  4.0, 2.0 ),
+  // Microscope stand at (0.8, 0, -12)
+  box(  0.8, -12,  1.8, 1.8 ),
+  // Storage cabinets right wall
+  box( (OBSLAB_W5/2 - 1.0), -12,  1.5, 1.5 ),
+  box( (OBSLAB_W5/2 - 1.0),   0,  1.5, 1.5 ),
+  box( (OBSLAB_W5/2 - 1.0),  12,  1.5, 1.5 ),
+];
+
+// ─── Static obstacle list – Classroom (Level 6) ───────
+// HALL_W=60, HALL_D=48, podium at (0, 0, -16)
+const HALL_W6 = 60;
+const HALL_D6 = 48;
+
+export const CLASSROOM_OBSTACLES = [
+  // Room walls
+  box(  0,            -(HALL_D6/2),  HALL_W6/2 + 2, 1.5 ),
+  box(  0,             (HALL_D6/2),  HALL_W6/2 + 2, 1.5 ),
+  box( -(HALL_W6/2),   0,            1.5, HALL_D6/2 + 2 ),
+  box(  (HALL_W6/2),   0,            1.5, HALL_D6/2 + 2 ),
+  // Desk rows (5 rows × approx width)
+  box(  0, 4,   16, 1.5 ),
+  box(  0, 9,   16, 1.5 ),
+  box(  0, 14,  16, 1.5 ),
+  box(  0, 19,  16, 1.5 ),
+  box(  0, 24,  16, 1.5 ),
+  // Podium at (0, 0, -16)
+  box(  0, -16,  1.8, 1.0 ),
+  // Projection screen area (back wall shelf)
+  box(  0, -(HALL_D6/2 - 0.5),  HALL_W6/2 + 1, 0.5 ),
+  // Plants at stage
+  box( -18, -(HALL_D6/2 - 3),  1.2, 1.2 ),
+  box(  18, -(HALL_D6/2 - 3),  1.2, 1.2 ),
+];
+
+export function setWorkshopObstacles() {
+  OBSTACLES = WORKSHOP_OBSTACLES;
+}
+
+export function setObsLabObstacles() {
+  OBSTACLES = OBSLAB_OBSTACLES;
+}
+
+export function setClassroomObstacles() {
+  OBSTACLES = CLASSROOM_OBSTACLES;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // resolveCollision
 //   pos     – THREE.Vector3 (current position, will be mutated)

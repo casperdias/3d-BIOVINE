@@ -2,9 +2,12 @@ import * as THREE from 'three';
 import { createScene, buildWorld, createQuestionObjects, animateQuestionObjects } from './world.js';
 import { createFactoryScene, buildFactory, createFactoryQuestionObjects, animateFactoryObjects } from './world2.js';
 import { createPondScene, buildPond, createValveObject, animateValveObject } from './world3.js';
+import { createWorkshopScene, buildWorkshop, createTerminalObject, animateTerminalObject } from './world4.js';
+import { createObsLabScene, buildObsLab, createScopeObject, animateScopeObject } from './world5.js';
+import { createClassroomScene, buildClassroom, createPodiumObject, animatePodiumObject } from './world6.js';
 import { PlayerCharacter } from './player.js';
 import { state } from './state.js';
-import { setFactoryObstacles, setPondObstacles } from './collision.js';
+import { setFactoryObstacles, setPondObstacles, setWorkshopObstacles, setObsLabObstacles, setClassroomObstacles } from './collision.js';
 import {
   buildUIHTML,
   showProfileScreen,
@@ -19,6 +22,9 @@ import {
 } from './ui.js';
 import { showSimulation } from './simulation.js';
 import { showStage3 } from './stage3UI.js';
+import { showStage4 } from './stage4UI.js';
+import { showStage5 } from './stage5UI.js';
+import { showStage6 } from './stage6UI.js';
 
 // ─────────────────────────────────────────────────────
 // Renderer & Scene Setup
@@ -48,6 +54,18 @@ buildFactory(factoryScene);
 const { scene: pondScene } = createPondScene();
 buildPond(pondScene);
 
+// ── Level 4: IPAL Workshop ──
+const { scene: workshopScene } = createWorkshopScene();
+buildWorkshop(workshopScene);
+
+// ── Level 5: Observation Lab ──
+const { scene: obsLabScene } = createObsLabScene();
+buildObsLab(obsLabScene);
+
+// ── Level 6: Classroom / Presentation Hall ──
+const { scene: classroomScene } = createClassroomScene();
+buildClassroom(classroomScene);
+
 activeScene = labScene;
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -65,6 +83,12 @@ let questionObjects    = createQuestionObjects(labScene);
 let factoryQuestionObjects = null;
 // Level 3 valve object
 let valveObject = null;
+// Level 4 terminal object
+let terminalObject = null;
+// Level 5 scope object
+let scopeObject = null;
+// Level 6 podium object
+let podiumObject = null;
 
 // Which set of question objects is active
 let activeQuestionObjects = questionObjects;
@@ -75,6 +99,9 @@ let activeQuestionObjects = questionObjects;
 const CAM_DIST_L1 = 22;   // lab  – smaller room
 const CAM_DIST_L2 = 26;   // factory – bigger room, pull back a bit
 const CAM_DIST_L3 = 24;   // pond – outdoor, medium distance
+const CAM_DIST_L4 = 22;   // workshop
+const CAM_DIST_L5 = 21;   // observation lab
+const CAM_DIST_L6 = 24;   // classroom hall
 const CAM_HEIGHT  = 14;
 const CAM_LERP    = 0.08;
 let   gameStarted = false;
@@ -119,6 +146,9 @@ function updateCamera(t) {
 
   const camDist = state.currentLevel === 2 ? CAM_DIST_L2
                 : state.currentLevel === 3 ? CAM_DIST_L3
+                : state.currentLevel === 4 ? CAM_DIST_L4
+                : state.currentLevel === 5 ? CAM_DIST_L5
+                : state.currentLevel === 6 ? CAM_DIST_L6
                 : CAM_DIST_L1;
 
   // Desired camera position (behind player)
@@ -178,6 +208,12 @@ function checkProximity() {
       ? `Tekan <kbd>E</kbd> &nbsp;— 🏭 Stasiun ${closest ? closest.idx + 1 : ''}`
       : state.currentLevel === 3
       ? `Tekan <kbd>E</kbd> &nbsp;— 🚰 Buka Kran Vinasse`
+      : state.currentLevel === 4
+      ? `Tekan <kbd>E</kbd> &nbsp;— 💻 IPAL Builder Terminal`
+      : state.currentLevel === 5
+      ? `Tekan <kbd>E</kbd> &nbsp;— 🔬 Analisis Mikroskop`
+      : state.currentLevel === 6
+      ? `Tekan <kbd>E</kbd> &nbsp;— 🎤 Presentasi di Podium`
       : `Tekan <kbd>E</kbd> &nbsp;— ❓ Fenomena ${closest ? closest.idx + 1 : ''}`;
     setInteractPrompt(closest ? label : null);
   }
@@ -203,11 +239,53 @@ function openQuiz(obj) {
       quizOpen   = false;
       nearObject = null;
       state.stage3.valveOpened = true;
-      // Level 3 complete — show final level complete screen
-      setTimeout(() => showLevelComplete(() => {
-        // Future: startLevel4() or game end screen
-        updateHUD();
-      }), 600);
+      setTimeout(() => showLevelComplete(() => startLevel4()), 600);
+    });
+    return;
+  }
+
+  // ── Level 4: terminal triggers Stage 4 UI ──────────────
+  if (state.currentLevel === 4 && obj.isTerminal) {
+    showStage4(() => {
+      obj.done = true;
+      obj.doneSprite.visible = true;
+      obj.glowMat.color.set(0x2ecc71);
+      obj.glowMat.opacity = 0.3;
+      quizOpen   = false;
+      nearObject = null;
+      state.stage4.terminalDone = true;
+      setTimeout(() => showLevelComplete(() => startLevel5()), 600);
+    });
+    return;
+  }
+
+  // ── Level 5: microscope triggers Stage 5 UI ─────────────
+  if (state.currentLevel === 5 && obj.isScope) {
+    showStage5(() => {
+      obj.done = true;
+      obj.doneSprite.visible = true;
+      obj.glowMat.color.set(0x2ecc71);
+      obj.glowMat.opacity = 0.3;
+      quizOpen   = false;
+      nearObject = null;
+      state.stage5.scopeDone = true;
+      setTimeout(() => showLevelComplete(() => startLevel6()), 600);
+    });
+    return;
+  }
+
+  // ── Level 6: podium triggers Stage 6 UI ─────────────────
+  if (state.currentLevel === 6 && obj.isPodium) {
+    showStage6(() => {
+      obj.done = true;
+      obj.doneSprite.visible = true;
+      obj.glowMat.color.set(0x2ecc71);
+      obj.glowMat.opacity = 0.3;
+      quizOpen   = false;
+      nearObject = null;
+      state.stage6.podiumDone = true;
+      // Game complete — show final level complete screen
+      setTimeout(() => showLevelComplete(() => updateHUD()), 600);
     });
     return;
   }
@@ -305,6 +383,78 @@ function startLevel3() {
 }
 
 // ─────────────────────────────────────────────────────
+// Level 4 transition
+// ─────────────────────────────────────────────────────
+function startLevel4() {
+  state.currentLevel = 4;
+
+  activeScene = workshopScene;
+  setWorkshopObstacles();
+
+  // WORKSHOP_W=56, WORKSHOP_D=44
+  camBoundsX = 24;
+  camBoundsZ = 18;
+
+  player.removeFromScene(pondScene);
+  player.addToScene(workshopScene);
+  player.position.set(0, 0, 14);
+
+  terminalObject = createTerminalObject(workshopScene);
+  activeQuestionObjects = [terminalObject];
+
+  nearObject = null;
+  updateHUD();
+}
+
+// ─────────────────────────────────────────────────────
+// Level 5 transition
+// ─────────────────────────────────────────────────────
+function startLevel5() {
+  state.currentLevel = 5;
+
+  activeScene = obsLabScene;
+  setObsLabObstacles();
+
+  // OBSLAB_W=52, OBSLAB_D=40
+  camBoundsX = 22;
+  camBoundsZ = 16;
+
+  player.removeFromScene(workshopScene);
+  player.addToScene(obsLabScene);
+  player.position.set(0, 0, 12);
+
+  scopeObject = createScopeObject(obsLabScene);
+  activeQuestionObjects = [scopeObject];
+
+  nearObject = null;
+  updateHUD();
+}
+
+// ─────────────────────────────────────────────────────
+// Level 6 transition
+// ─────────────────────────────────────────────────────
+function startLevel6() {
+  state.currentLevel = 6;
+
+  activeScene = classroomScene;
+  setClassroomObstacles();
+
+  // HALL_W=60, HALL_D=48
+  camBoundsX = 26;
+  camBoundsZ = 20;
+
+  player.removeFromScene(obsLabScene);
+  player.addToScene(classroomScene);
+  player.position.set(0, 0, 18);
+
+  podiumObject = createPodiumObject(classroomScene);
+  activeQuestionObjects = [podiumObject];
+
+  nearObject = null;
+  updateHUD();
+}
+
+// ─────────────────────────────────────────────────────
 // Resize
 // ─────────────────────────────────────────────────────
 window.addEventListener('resize', () => {
@@ -349,6 +499,12 @@ function animate() {
     animateFactoryObjects(factoryQuestionObjects, t);
   } else if (state.currentLevel === 3 && valveObject) {
     animateValveObject(valveObject, t);
+  } else if (state.currentLevel === 4 && terminalObject) {
+    animateTerminalObject(terminalObject, t);
+  } else if (state.currentLevel === 5 && scopeObject) {
+    animateScopeObject(scopeObject, t);
+  } else if (state.currentLevel === 6 && podiumObject) {
+    animatePodiumObject(podiumObject, t);
   }
 
   renderer.render(activeScene, camera);
