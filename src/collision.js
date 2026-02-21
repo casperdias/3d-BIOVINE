@@ -19,31 +19,67 @@ function box(cx, cz, hw, hd) {
 const LAB_W = 60;
 const LAB_D = 40;
 
-// ─── Static obstacle list ──────────────────────────────
-// All measurements taken directly from world.js geometry positions.
-export const OBSTACLES = [
+// ─── Factory room constants (must match world2.js) ────
+const FAC_W = 70;
+const FAC_D = 50;
 
-  // ── Room walls (thick slabs so the player can't squeeze through) ──
-  //    Each wall is pushed 1 unit into the room so there's no gap.
+// ─── Static obstacle list – Lab (Level 1) ─────────────
+export const LAB_OBSTACLES = [
+
+  // ── Room walls ──
   box(  0,           -(LAB_D/2),  LAB_W/2 + 2, 1.5 ),  // back wall
   box(  0,             LAB_D/2,   LAB_W/2 + 2, 1.5 ),  // front wall
   box( -(LAB_W/2),    0,          1.5,          LAB_D/2 + 2 ), // left wall
   box(   LAB_W/2,     0,          1.5,          LAB_D/2 + 2 ), // right wall
 
-  // ── 3 central lab benches  (BoxGeometry 7 × 3, positioned in world.js) ──
-  box( -16,  5,  3.6, 1.8 ),  // left bench
-  box(   0, -6,  3.6, 1.8 ),  // centre bench
-  box(  16,  5,  3.6, 1.8 ),  // right bench
+  // ── 3 central lab benches ──
+  box( -16,  5,  3.6, 1.8 ),
+  box(   0, -6,  3.6, 1.8 ),
+  box(  16,  5,  3.6, 1.8 ),
 
-  // ── Side bench left wall  (3 × 22, centre at x = -28, z = 0) ──
+  // ── Side benches ──
   box( -(LAB_W/2 - 2), 0,  2.0, 11.5 ),
-
-  // ── Side bench right wall  (3 × 22, centre at x = 28, z = 0) ──
   box(  (LAB_W/2 - 2), 0,  2.0, 11.5 ),
 
-  // ── Fume hood  (6.2 × 2.8 base, centre at x = -20, z = -18) ──
+  // ── Fume hood ──
   box( -20, -(LAB_D/2 - 1.6),  3.5, 1.6 ),
 ];
+
+// ─── Static obstacle list – Factory (Level 2) ─────────
+export const FACTORY_OBSTACLES = [
+
+  // ── Room walls ──
+  box(  0,           -(FAC_D/2),  FAC_W/2 + 2, 1.5 ),  // back wall
+  box(  0,             FAC_D/2,   FAC_W/2 + 2, 1.5 ),  // front wall
+  box( -(FAC_W/2),    0,          1.5,          FAC_D/2 + 2 ), // left wall
+  box(   FAC_W/2,     0,          1.5,          FAC_D/2 + 2 ), // right wall
+
+  // ── Fermentor drum (cylinder r=2, centre at -18, 6) ──
+  box( -18, 6,  2.8, 2.8 ),
+
+  // ── Destilator column (cylinder r=1, centre at 0, -12) ──
+  box(   0, -12, 2.0, 2.5 ),
+
+  // ── Kompor Pemanas (box 3.5×3, centre at 18, 6) ──
+  box( 18,  6,  2.5, 2.5 ),
+
+  // ── Molasses barrel area ──
+  box( -26, -12, 4.0, 6.0 ),
+
+  // ── NPK/Ragi storage area ──
+  box(  28, -13, 3.0, 6.0 ),
+];
+
+// Active obstacle set – switched at level transition
+export let OBSTACLES = LAB_OBSTACLES;
+
+export function setFactoryObstacles() {
+  OBSTACLES = FACTORY_OBSTACLES;
+}
+
+export function setLabObstacles() {
+  OBSTACLES = LAB_OBSTACLES;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // resolveCollision

@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { resolveCollision } from './collision.js';
+import { state } from './state.js';
 
 export class PlayerCharacter {
   constructor(scene) {
@@ -146,7 +147,8 @@ export class PlayerCharacter {
       this.group.position.z += dz;
 
       // Hard clamp to room bounds as a final safety net
-      const HW = 28, HD = 18;
+      const HW = state.currentLevel === 2 ? 33 : 28;
+      const HD = state.currentLevel === 2 ? 23 : 18;
       this.group.position.x = Math.max(-HW, Math.min(HW, this.group.position.x));
       this.group.position.z = Math.max(-HD, Math.min(HD, this.group.position.z));
 
@@ -178,5 +180,15 @@ export class PlayerCharacter {
 
   get position() {
     return this.group.position;
+  }
+
+  // Scene transition helpers
+  removeFromScene(scene) {
+    scene.remove(this.group);
+  }
+
+  addToScene(scene) {
+    this.scene = scene;
+    scene.add(this.group);
   }
 }

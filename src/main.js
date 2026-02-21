@@ -1,17 +1,22 @@
 import * as THREE from 'three';
 import { createScene, buildWorld, createQuestionObjects, animateQuestionObjects } from './world.js';
+import { createFactoryScene, buildFactory, createFactoryQuestionObjects, animateFactoryObjects } from './world2.js';
 import { PlayerCharacter } from './player.js';
 import { state } from './state.js';
+import { setFactoryObstacles } from './collision.js';
 import {
   buildUIHTML,
   showProfileScreen,
   showInstructions,
   showQuestionPanel,
+  showLevel2QuestionPanel,
   initHUD,
   updateHUD,
   setInteractPrompt,
   showLevelComplete,
+  showLevel2QuizComplete,
 } from './ui.js';
+import { showSimulation } from './simulation.js';
 
 // ─────────────────────────────────────────────────────
 // Renderer & Scene Setup
@@ -23,7 +28,18 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-const { scene } = createScene();
+// Active scene (swapped on level transition)
+let activeScene = null;
+
+// ── Level 1: Lab ──
+const { scene: labScene }     = createScene();
+buildWorld(labScene);
+
+// ── Level 2: Factory (built once, swapped in when needed) ──
+const { scene: factoryScene } = createFactoryScene();
+buildFactory(factoryScene);
+
+activeScene = labScene;
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 18, 38);
@@ -32,22 +48,39 @@ camera.lookAt(0, 0, 0);
 // ─────────────────────────────────────────────────────
 // World & Player
 // ─────────────────────────────────────────────────────
-buildWorld(scene);
-const player = new PlayerCharacter(scene);
-const questionObjects = createQuestionObjects(scene);
+const player = new PlayerCharacter(labScene);
+
+// Level 1 question objects
+let questionObjects    = createQuestionObjects(labScene);
+// Level 2 factory station objects (created but held back until Level 2 loads)
+let factoryQuestionObjects = null;
+
+// Which set of question objects is active
+let activeQuestionObjects = questionObjects;
 
 // ─────────────────────────────────────────────────────
-// Camera — follow player in 3rd person (fixed angle)
+// Camera — follow player in 3rd person
 // ─────────────────────────────────────────────────────
-const CAM_DIST   = 22;
-const CAM_HEIGHT = 14;
-const CAM_LERP   = 0.08;
+const CAM_DIST_L1 = 22;   // lab  – smaller room
+const CAM_DIST_L2 = 26;   // factory – bigger room, pull back a bit
+const CAM_HEIGHT  = 14;
+const CAM_LERP    = 0.08;
 let   gameStarted = false;
 
-// Fixed camera yaw – player uses camera-relative movement
-const CAM_YAW = Math.PI; // camera sits "behind" the world origin at start
-
+// Camera yaw follows player's facing direction (smooth)
+let camYaw     = Math.PI;   // start pointing at world origin
+let camYawTarget = Math.PI;
 let orbitAngle = 0;
+
+// Room bounds for camera clipping (keeps camera inside walls)
+// Updated at level transition
+let camBoundsX = 27;   // lab:  LAB_W/2 - margin
+let camBoundsZ = 17;   // lab:  LAB_D/2 - margin
+
+function setCamBounds(hx, hz) {
+  camBoundsX = hx;
+  camBoundsZ = hz;
+}
 
 function updateCamera(t) {
   if (!gameStarted) {
@@ -62,12 +95,29 @@ function updateCamera(t) {
   const px = player.position.x;
   const pz = player.position.z;
 
-  // Camera stays at a fixed offset behind the player (world-space, not player-facing)
-  const targetX = px + Math.sin(CAM_YAW) * CAM_DIST;
-  const targetZ = pz + Math.cos(CAM_YAW) * CAM_DIST;
+  // Smoothly track the camera yaw toward the player's current facing
+  const playerYaw = player.group ? player.group.rotation.y : camYaw;
+  // Camera sits *behind* the player — opposite of player's facing
+  camYawTarget = playerYaw + Math.PI;
+  // Smooth interpolation on the angle (handle wrap-around)
+  let diff = camYawTarget - camYaw;
+  while (diff >  Math.PI) diff -= Math.PI * 2;
+  while (diff < -Math.PI) diff += Math.PI * 2;
+  camYaw += diff * 0.04;   // very gentle lag so it doesn't spin wildly
 
-  camera.position.x += (targetX - camera.position.x) * CAM_LERP;
-  camera.position.z += (targetZ - camera.position.z) * CAM_LERP;
+  const camDist = state.currentLevel === 2 ? CAM_DIST_L2 : CAM_DIST_L1;
+
+  // Desired camera position (behind player)
+  let desiredX = px + Math.sin(camYaw) * camDist;
+  let desiredZ = pz + Math.cos(camYaw) * camDist;
+
+  // ── Clamp so camera never exits the room walls ──────
+  desiredX = Math.max(-camBoundsX, Math.min(camBoundsX, desiredX));
+  desiredZ = Math.max(-camBoundsZ, Math.min(camBoundsZ, desiredZ));
+
+  // Lerp toward desired position
+  camera.position.x += (desiredX - camera.position.x) * CAM_LERP;
+  camera.position.z += (desiredZ - camera.position.z) * CAM_LERP;
   camera.position.y += (CAM_HEIGHT - camera.position.y) * CAM_LERP;
   camera.lookAt(px, 3, pz);
 }
@@ -97,7 +147,7 @@ function checkProximity() {
   let closest    = null;
   let closestDist = Infinity;
 
-  for (const obj of questionObjects) {
+  for (const obj of activeQuestionObjects) {
     if (obj.done) continue;
     const dx   = player.position.x - obj.pos.x;
     const dz   = player.position.z - obj.pos.z;
@@ -110,11 +160,10 @@ function checkProximity() {
 
   if (closest !== nearObject) {
     nearObject = closest;
-    setInteractPrompt(
-      closest
-        ? `Tekan <kbd>E</kbd> &nbsp;— ❓ Fenomena ${closest.idx + 1}`
-        : null
-    );
+    const label = state.currentLevel === 2
+      ? `Tekan <kbd>E</kbd> &nbsp;— 🏭 Stasiun ${closest ? closest.idx + 1 : ''}`
+      : `Tekan <kbd>E</kbd> &nbsp;— ❓ Fenomena ${closest ? closest.idx + 1 : ''}`;
+    setInteractPrompt(closest ? label : null);
   }
 }
 
@@ -127,7 +176,10 @@ window.addEventListener('keydown', e => {
 function openQuiz(obj) {
   quizOpen = true;
   setInteractPrompt(null);
-  showQuestionPanel(obj.idx,
+
+  const panelFn = state.currentLevel === 2 ? showLevel2QuestionPanel : showQuestionPanel;
+
+  panelFn(obj.idx,
     () => {
       // Answered correctly — mark done
       obj.done = true;
@@ -139,8 +191,17 @@ function openQuiz(obj) {
       quizOpen   = false;
       nearObject = null;
 
-      if (questionObjects.every(o => o.done)) {
-        setTimeout(() => showLevelComplete(), 600);
+      if (activeQuestionObjects.every(o => o.done)) {
+        if (state.currentLevel === 1) {
+          setTimeout(() => showLevelComplete(() => startLevel2()), 600);
+        } else if (state.currentLevel === 2) {
+          setTimeout(() => showLevel2QuizComplete(() => {
+            showSimulation(() => {
+              // Simulation done — level 2 fully complete, go to level 3 placeholder
+              updateHUD();
+            });
+          }), 600);
+        }
       }
     },
     () => {
@@ -149,6 +210,34 @@ function openQuiz(obj) {
       nearObject = null;
     }
   );
+}
+
+// ─────────────────────────────────────────────────────
+// Level 2 transition
+// ─────────────────────────────────────────────────────
+function startLevel2() {
+  // Swap scene
+  activeScene = factoryScene;
+
+  // Switch collision obstacles to factory layout
+  setFactoryObstacles();
+
+  // Expand camera bounds to fit the bigger factory room
+  // FAC_W=70, FAC_D=50 → keep camera 5 units inside each wall
+  camBoundsX = 30;
+  camBoundsZ = 20;
+
+  // Move player to factory spawn
+  player.removeFromScene(labScene);
+  player.addToScene(factoryScene);
+  player.position.set(0, 0, 18);
+
+  // Create factory question objects
+  factoryQuestionObjects = createFactoryQuestionObjects(factoryScene);
+  activeQuestionObjects  = factoryQuestionObjects;
+
+  nearObject = null;
+  updateHUD();
 }
 
 // ─────────────────────────────────────────────────────
@@ -189,9 +278,14 @@ function animate() {
 
   if (gameStarted) checkProximity();
 
-  animateQuestionObjects(questionObjects, t);
+  // Animate question objects for current level
+  if (state.currentLevel === 1) {
+    animateQuestionObjects(questionObjects, t);
+  } else if (state.currentLevel === 2 && factoryQuestionObjects) {
+    animateFactoryObjects(factoryQuestionObjects, t);
+  }
 
-  renderer.render(scene, camera);
+  renderer.render(activeScene, camera);
 }
 
 animate();

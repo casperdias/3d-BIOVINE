@@ -1,5 +1,6 @@
-import { state } from './state.js';
+import { state, resetLevelState } from './state.js';
 import { stage1 } from './stages/stage1.js';
+import { stage2 } from './stages/stage2.js';
 
 // ─────────────────────────────────────────────────────
 // DOM helpers
@@ -111,18 +112,56 @@ export function showQuestionPanel(phenomenonIdx, onDone, onDismiss) {
   });
 }
 
+// Open a Level 2 (Stage 2) phenomenon by index
+export function showLevel2QuestionPanel(phenomenonIdx, onDone, onDismiss) {
+  const screen = $('stage-screen');
+  screen.classList.remove('hidden');
+  screen.style.pointerEvents = 'all';
+
+  state.phenomenonIndex = phenomenonIdx;
+
+  renderLevel2Phenomenon(phenomenonIdx, () => {
+    screen.classList.add('hidden');
+    screen.style.pointerEvents = 'none';
+    if (onDone) onDone();
+  }, () => {
+    screen.classList.add('hidden');
+    screen.style.pointerEvents = 'none';
+    if (onDismiss) onDismiss();
+  });
+}
+
 // ─────────────────────────────────────────────────────
 // Level Complete banner (all 3 phenomena done)
 // ─────────────────────────────────────────────────────
-export function showLevelComplete() {
+export function showLevelComplete(onAdvance) {
   // Calculate score based on total wrong answers across all phenomena
   const wrong = state.wrongAnswers ?? 0;
   let points = wrong === 0 ? 100 : wrong <= 2 ? 50 : 25;
   state.totalPoints += points;
   state.levelAttempts++;
   updateHUD();
-  showLevelResult(points, () => {
-    // Future: advance to next level
+  const nextLevelNum = state.currentLevel + 1;
+  showLevelResult(points, `Lanjut ke Level ${nextLevelNum} →`, () => {
+    state.currentLevel = nextLevelNum;
+    resetLevelState();
+    updateHUD();
+    if (onAdvance) onAdvance();
+  });
+}
+
+// ─────────────────────────────────────────────────────
+// Level 2 Complete (after quiz panels — before simulation)
+// ─────────────────────────────────────────────────────
+export function showLevel2QuizComplete(onAdvance) {
+  // no points awarded yet — simulation will award them
+  const wrong = state.wrongAnswers ?? 0;
+  let points = wrong === 0 ? 100 : wrong <= 2 ? 50 : 25;
+  state.totalPoints += points;
+  state.levelAttempts++;
+  updateHUD();
+  showLevelResult(points, '🔬 Mulai Simulasi Pengolahan →', () => {
+    if (onAdvance) onAdvance();
   });
 }
 
@@ -253,8 +292,111 @@ function renderPhenomenon(idx, onComplete, onDismiss) {
 }
 
 // ─────────────────────────────────────────────────────
-// Feedback helper
+// Level 2 phenomenon renderer
 // ─────────────────────────────────────────────────────
+function renderLevel2Phenomenon(idx, onComplete, onDismiss) {
+  const phenom = stage2.phenomena[idx];
+  const screen = $('stage-screen');
+
+  const existing = screen.querySelector('.stage-panel');
+  if (existing) existing.remove();
+
+  const panel = document.createElement('div');
+  panel.className = 'stage-panel fade-in';
+
+  panel.innerHTML = `
+    <div class="phenomenon-header">
+      <span class="phenomenon-badge" style="background:rgba(255,140,30,0.18);border-color:#ff8c1e;color:#ff8c1e">
+        ${phenom.title}
+      </span>
+      <span class="question-progress">${idx + 1} / ${stage2.phenomena.length}</span>
+      ${onDismiss ? `<button class="panel-close-btn" id="panel-close-btn2" title="Tutup">✕</button>` : ''}
+    </div>
+    <div class="progress-bar-wrap">
+      ${stage2.phenomena.map((_, i) => `
+        <div class="prog-dot ${i < idx ? 'done' : i === idx ? 'active' : ''}"></div>
+      `).join('')}
+    </div>
+  `;
+
+  if (onDismiss) {
+    setTimeout(() => {
+      const closeBtn = panel.querySelector('#panel-close-btn2');
+      if (closeBtn) closeBtn.onclick = onDismiss;
+    }, 0);
+  }
+
+  // Context
+  const ctxDiv = document.createElement('div');
+  ctxDiv.className = 'question-text';
+  ctxDiv.innerHTML = phenom.context;
+  panel.appendChild(ctxDiv);
+
+  // Question
+  const qDiv = document.createElement('div');
+  qDiv.className = 'question-text';
+  qDiv.style.marginTop = '4px';
+  qDiv.style.borderLeftColor = '#e67e22';
+  qDiv.innerHTML = `<strong>❓ Pertanyaan:</strong><br>${phenom.question}`;
+  panel.appendChild(qDiv);
+
+  // Answer options
+  const optionsDiv = document.createElement('div');
+  optionsDiv.className = 'answer-options';
+
+  let answered = false;
+
+  phenom.options.forEach(opt => {
+    const btn = document.createElement('button');
+    btn.className = 'answer-btn';
+    btn.innerHTML = `<strong>${opt.label}.</strong> ${opt.text}`;
+
+    btn.onclick = () => {
+      if (answered) return;
+      if (opt.correct) {
+        answered = true;
+        btn.classList.add('correct');
+        showFeedback(panel, true, phenom.explanation);
+        nextBtn.classList.add('visible');
+        optionsDiv.querySelectorAll('.answer-btn').forEach(b => (b.disabled = true));
+      } else {
+        btn.classList.add('wrong');
+        btn.disabled = true;
+        state.wrongAnswers++;
+        updateHUD();
+        showFeedback(panel, false, '❌ Jawaban kurang tepat. Coba pilihan lain!');
+      }
+    };
+    optionsDiv.appendChild(btn);
+  });
+
+  panel.appendChild(optionsDiv);
+
+  const feedbackDiv = document.createElement('div');
+  feedbackDiv.className = 'feedback-box';
+  feedbackDiv.id = 'feedback-box';
+  panel.appendChild(feedbackDiv);
+
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'next-btn';
+  const isLast = idx >= stage2.phenomena.length - 1;
+  nextBtn.textContent = isLast ? '🔬 Lanjut ke Simulasi →' : 'Stasiun Berikutnya →';
+  nextBtn.onclick = () => {
+    if (isLast) {
+      screen.classList.add('hidden');
+      screen.style.pointerEvents = 'none';
+      if (onComplete) onComplete();
+    } else {
+      state.phenomenonIndex++;
+      renderLevel2Phenomenon(state.phenomenonIndex, onComplete, onDismiss);
+    }
+  };
+  panel.appendChild(nextBtn);
+
+  screen.appendChild(panel);
+}
+
+
 function showFeedback(panel, isCorrect, message) {
   const box = panel.querySelector('#feedback-box');
   if (!box) return;
@@ -354,7 +496,7 @@ function buildRiceGraph() {
 // ─────────────────────────────────────────────────────
 // Level Result Popup
 // ─────────────────────────────────────────────────────
-function showLevelResult(points, onComplete) {
+function showLevelResult(points, btnLabel, onComplete) {
   const overlay = $('result-overlay');
   overlay.classList.remove('hidden');
 
@@ -372,7 +514,9 @@ function showLevelResult(points, onComplete) {
     : '🥉 Berhasil di percobaan ke-3.';
   $('result-attempts').textContent = attemptsText;
 
-  $('btn-result-continue').onclick = () => {
+  const contBtn = $('btn-result-continue');
+  contBtn.textContent = btnLabel || 'Lanjut →';
+  contBtn.onclick = () => {
     overlay.classList.add('hidden');
     onComplete();
   };
