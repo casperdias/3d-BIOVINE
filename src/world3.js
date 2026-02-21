@@ -186,7 +186,7 @@ function _buildPipeline(scene) {
 
   // Horizontal pipe running along Z axis
   const pipe = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.22, 0.22, 14, 10),
+    new THREE.CylinderGeometry(0.22, 0.22, 14, 20),
     pipeMat
   );
   pipe.rotation.x = Math.PI / 2;
@@ -200,7 +200,7 @@ function _buildPipeline(scene) {
 
   // Vertical drop into pond
   const dropPipe = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.22, 0.22, 2.0, 10),
+    new THREE.CylinderGeometry(0.22, 0.22, 2.0, 20),
     pipeMat
   );
   dropPipe.position.set(-1.2, 0.8, -8.2);
@@ -225,7 +225,7 @@ function _buildValve(scene) {
 
   // Stand pole
   const stand = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.15, 0.2, 3.5, 8),
+    new THREE.CylinderGeometry(0.15, 0.2, 3.5, 16),
     standMat
   );
   stand.position.set(vx, 1.75, vz);
@@ -241,7 +241,7 @@ function _buildValve(scene) {
 
   // Wheel (handwheel shape — flat torus)
   const wheel = new THREE.Mesh(
-    new THREE.TorusGeometry(0.55, 0.1, 8, 18),
+    new THREE.TorusGeometry(0.55, 0.1, 12, 32),
     wheelMat
   );
   wheel.position.set(vx, 3.5, vz - 0.7);
@@ -251,7 +251,7 @@ function _buildValve(scene) {
   // Wheel spokes
   for (let i = 0; i < 4; i++) {
     const spoke = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.05, 0.05, 1.0, 6),
+      new THREE.CylinderGeometry(0.05, 0.05, 1.0, 14),
       wheelMat
     );
     spoke.rotation.z = (i / 4) * Math.PI;
@@ -320,7 +320,7 @@ function _buildSky(scene) {
   const skyMat = new THREE.MeshBasicMaterial({
     color: 0x162c0e, side: THREE.BackSide
   });
-  const sky = new THREE.Mesh(new THREE.SphereGeometry(120, 12, 8), skyMat);
+  const sky = new THREE.Mesh(new THREE.SphereGeometry(120, 20, 14), skyMat);
   scene.add(sky);
 
   // Stars
