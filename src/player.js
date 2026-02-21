@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { resolveCollision } from './collision.js';
 
 export class PlayerCharacter {
   constructor(scene) {
@@ -6,7 +7,7 @@ export class PlayerCharacter {
     this.group = new THREE.Group();
     this._build();
     scene.add(this.group);
-    this.group.position.set(-10, 0, 5);
+    this.group.position.set(0, 0, 12);   // start in front aisle, clear of all benches
 
     // Movement state
     this.speed = 0.12;
@@ -138,12 +139,16 @@ export class PlayerCharacter {
       dx = (dx / len) * this.speed;
       dz = (dz / len) * this.speed;
 
+      // Resolve collisions (AABB obstacles + walls)
+      ({ dx, dz } = resolveCollision(this.group.position, dx, dz));
+
       this.group.position.x += dx;
       this.group.position.z += dz;
 
-      // Clamp to world bounds
-      this.group.position.x = Math.max(-140, Math.min(140, this.group.position.x));
-      this.group.position.z = Math.max(-140, Math.min(140, this.group.position.z));
+      // Hard clamp to room bounds as a final safety net
+      const HW = 28, HD = 18;
+      this.group.position.x = Math.max(-HW, Math.min(HW, this.group.position.x));
+      this.group.position.z = Math.max(-HD, Math.min(HD, this.group.position.z));
 
       // Face the actual movement direction
       this.group.rotation.y = Math.atan2(dx, dz);
