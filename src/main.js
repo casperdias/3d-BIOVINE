@@ -19,6 +19,7 @@ import {
   setInteractPrompt,
   showLevelComplete,
   showLevel2QuizComplete,
+  showGameComplete,
 } from './ui.js';
 import { showSimulation } from './simulation.js';
 import { showStage3 } from './stage3UI.js';
@@ -106,6 +107,11 @@ const CAM_HEIGHT  = 14;
 const CAM_LERP    = 0.08;
 let   gameStarted = false;
 
+// Zoom-to-object state — set when player interacts with an object
+let zoomTarget   = null;   // {x, y, z} world pos of the object
+let zoomActive   = false;
+let zoomProgress = 0;      // 0..1
+
 // Camera yaw follows player's facing direction (smooth)
 let camYaw     = Math.PI;   // start pointing at world origin
 let camYawTarget = Math.PI;
@@ -133,6 +139,44 @@ function updateCamera(t) {
 
   const px = player.position.x;
   const pz = player.position.z;
+
+  // ── Zoom-to-object mode ────────────────────────────────
+  if (zoomActive && zoomTarget) {
+    zoomProgress = Math.min(1, zoomProgress + 0.04);
+    const ease = 1 - Math.pow(1 - zoomProgress, 3);  // cubic ease-out
+    // Position camera at a fixed offset in front of the object
+    const ox = zoomTarget.x;
+    const oz = zoomTarget.z;
+    const oy = zoomTarget.y ?? 4;
+    // Stand 7 units in front of the object (toward player spawn)
+    const zoomCamX = ox + (px - ox) * 0.35;
+    const zoomCamZ = oz + (pz - oz) * 0.35;
+    const zoomCamY = oy + 6;
+    // Normal cam position (where we'd be without zoom)
+    const normalDist = state.currentLevel === 2 ? CAM_DIST_L2
+                     : state.currentLevel === 3 ? CAM_DIST_L3
+                     : state.currentLevel === 4 ? CAM_DIST_L4
+                     : state.currentLevel === 5 ? CAM_DIST_L5
+                     : state.currentLevel === 6 ? CAM_DIST_L6
+                     : CAM_DIST_L1;
+    const normalX = px + Math.sin(camYaw) * normalDist;
+    const normalZ = pz + Math.cos(camYaw) * normalDist;
+    const normalY = CAM_HEIGHT;
+    camera.position.x = normalX + (zoomCamX - normalX) * ease;
+    camera.position.y = normalY + (zoomCamY - normalY) * ease;
+    camera.position.z = normalZ + (zoomCamZ - normalZ) * ease;
+    // FOV narrows on zoom
+    camera.fov = 60 - 20 * ease;
+    camera.updateProjectionMatrix();
+    camera.lookAt(ox, oy, oz);
+    return;
+  }
+
+  // Restore FOV if returning from zoom
+  if (Math.abs(camera.fov - 60) > 0.5) {
+    camera.fov += (60 - camera.fov) * 0.1;
+    camera.updateProjectionMatrix();
+  }
 
   // Smoothly track the camera yaw toward the player's current facing
   const playerYaw = player.group ? player.group.rotation.y : camYaw;
@@ -229,6 +273,17 @@ function openQuiz(obj) {
   quizOpen = true;
   setInteractPrompt(null);
 
+  // ── Zoom camera toward the interacted object ──────────
+  zoomTarget   = obj.pos ? { x: obj.pos.x, y: 3, z: obj.pos.z } : { x: 0, y: 3, z: 0 };
+  zoomActive   = true;
+  zoomProgress = 0;
+
+  // Helper — release zoom when a panel closes
+  function releaseZoom() {
+    zoomActive   = false;
+    zoomProgress = 0;
+  }
+
   // ── Level 3: valve triggers Stage 3 UI ─────────────────
   if (state.currentLevel === 3 && obj.isValve) {
     showStage3(() => {
@@ -236,6 +291,7 @@ function openQuiz(obj) {
       obj.doneSprite.visible = true;
       obj.glowMat.color.set(0x2ecc71);
       obj.glowMat.opacity = 0.3;
+      releaseZoom();
       quizOpen   = false;
       nearObject = null;
       state.stage3.valveOpened = true;
@@ -251,6 +307,7 @@ function openQuiz(obj) {
       obj.doneSprite.visible = true;
       obj.glowMat.color.set(0x2ecc71);
       obj.glowMat.opacity = 0.3;
+      releaseZoom();
       quizOpen   = false;
       nearObject = null;
       state.stage4.terminalDone = true;
@@ -266,6 +323,7 @@ function openQuiz(obj) {
       obj.doneSprite.visible = true;
       obj.glowMat.color.set(0x2ecc71);
       obj.glowMat.opacity = 0.3;
+      releaseZoom();
       quizOpen   = false;
       nearObject = null;
       state.stage5.scopeDone = true;
@@ -281,11 +339,12 @@ function openQuiz(obj) {
       obj.doneSprite.visible = true;
       obj.glowMat.color.set(0x2ecc71);
       obj.glowMat.opacity = 0.3;
+      releaseZoom();
       quizOpen   = false;
       nearObject = null;
       state.stage6.podiumDone = true;
-      // Game complete — show final level complete screen
-      setTimeout(() => showLevelComplete(() => updateHUD()), 600);
+      // Game complete — return to start
+      setTimeout(() => showGameComplete(), 600);
     });
     return;
   }
@@ -301,6 +360,7 @@ function openQuiz(obj) {
       obj.glowMat.color.set(0x2ecc71);
       obj.glowMat.emissive.set(0x2ecc71);
       obj.glowMat.emissiveIntensity = 0.2;
+      releaseZoom();
       quizOpen   = false;
       nearObject = null;
 
@@ -319,6 +379,7 @@ function openQuiz(obj) {
     },
     () => {
       // Dismissed without finishing
+      releaseZoom();
       quizOpen   = false;
       nearObject = null;
     }

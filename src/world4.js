@@ -10,14 +10,14 @@ export const TERMINAL_POS = new THREE.Vector3(0, 0, -14);
 // ─────────────────────────────────────────────────────────
 export function createWorkshopScene() {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0d1a2a);
-  scene.fog = new THREE.FogExp2(0x0a1520, 0.022);
+  scene.background = new THREE.Color(0x1a2e44);   // bright indoor workshop blue
+  scene.fog = new THREE.FogExp2(0x182840, 0.012);
 
-  // Ambient – cool blue workshop glow
-  scene.add(new THREE.AmbientLight(0x4080c0, 0.4));
+  // Ambient – bright fluorescent workshop fill
+  scene.add(new THREE.AmbientLight(0xa0c8e8, 1.0));
 
   // Main overhead fluorescent
-  const overHead = new THREE.DirectionalLight(0xd0e8ff, 0.85);
+  const overHead = new THREE.DirectionalLight(0xe8f4ff, 1.6);
   overHead.position.set(0, 20, 5);
   overHead.castShadow = true;
   overHead.shadow.mapSize.set(2048, 2048);
@@ -30,12 +30,12 @@ export function createWorkshopScene() {
   scene.add(overHead);
 
   // Warm accent light from the terminal side
-  const termLight = new THREE.PointLight(0x40aaff, 1.4, 20);
+  const termLight = new THREE.PointLight(0x60ccff, 2.0, 28);
   termLight.position.set(TERMINAL_POS.x, 4, TERMINAL_POS.z);
   scene.add(termLight);
 
   // Side fill
-  const fill = new THREE.DirectionalLight(0x6080a0, 0.3);
+  const fill = new THREE.DirectionalLight(0x90b0d0, 0.8);
   fill.position.set(-18, 10, -10);
   scene.add(fill);
 

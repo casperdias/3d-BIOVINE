@@ -10,13 +10,13 @@ export const PODIUM_POS = new THREE.Vector3(0, 0, -16);
 // ─────────────────────────────────────────────────────────
 export function createClassroomScene() {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0d1830);
-  scene.fog = new THREE.FogExp2(0x0a1428, 0.018);
+  scene.background = new THREE.Color(0x1c2848);   // bright classroom hall blue
+  scene.fog = new THREE.FogExp2(0x182040, 0.010);
 
-  scene.add(new THREE.AmbientLight(0x8090b0, 0.4));
+  scene.add(new THREE.AmbientLight(0xb0b8d0, 1.0));
 
-  // Stage spotlight
-  const spot = new THREE.SpotLight(0xfff0c0, 2.2, 40, Math.PI / 6, 0.4, 1.5);
+  // Stage spotlight — brighter
+  const spot = new THREE.SpotLight(0xfff8d0, 3.5, 55, Math.PI / 5, 0.35, 1.2);
   spot.position.set(0, 22, -10);
   spot.target.position.set(0, 0, -16);
   spot.castShadow = true;
@@ -24,19 +24,19 @@ export function createClassroomScene() {
   scene.add(spot);
   scene.add(spot.target);
 
-  // Overhead fill
-  const fill = new THREE.DirectionalLight(0x6080c0, 0.5);
+  // Overhead fill — brighter
+  const fill = new THREE.DirectionalLight(0x90a8d8, 1.0);
   fill.position.set(0, 20, 8);
   fill.castShadow = false;
   scene.add(fill);
 
   // Screen glow (back wall)
-  const screenGlow = new THREE.PointLight(0x2040c0, 1.4, 28);
+  const screenGlow = new THREE.PointLight(0x4060e0, 2.0, 36);
   screenGlow.position.set(0, 6, -22);
   scene.add(screenGlow);
 
-  // Warm audience fill
-  const audFill = new THREE.PointLight(0xc0a060, 0.6, 30);
+  // Warm audience fill — brighter
+  const audFill = new THREE.PointLight(0xd0b870, 1.2, 40);
   audFill.position.set(0, 4, 8);
   scene.add(audFill);
 

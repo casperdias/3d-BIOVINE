@@ -10,13 +10,13 @@ export const SCOPE_POS = new THREE.Vector3(0, 0, -12);
 // ─────────────────────────────────────────────────────────
 export function createObsLabScene() {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a1420);
-  scene.fog = new THREE.FogExp2(0x080f18, 0.020);
+  scene.background = new THREE.Color(0x1a2a3c);   // bright lab blue-white
+  scene.fog = new THREE.FogExp2(0x162030, 0.010);
 
-  scene.add(new THREE.AmbientLight(0x6090c0, 0.35));
+  scene.add(new THREE.AmbientLight(0xb0c8e0, 1.0));
 
-  // Main light — cool blue-white
-  const main = new THREE.DirectionalLight(0xc0d8ff, 0.9);
+  // Main light — cool blue-white bright lab
+  const main = new THREE.DirectionalLight(0xe0f0ff, 1.6);
   main.position.set(5, 18, 8);
   main.castShadow = true;
   main.shadow.mapSize.set(2048, 2048);
@@ -29,12 +29,12 @@ export function createObsLabScene() {
   scene.add(main);
 
   // Warm microscope lamp glow
-  const scopeLight = new THREE.PointLight(0xffcc60, 1.6, 16);
+  const scopeLight = new THREE.PointLight(0xffdd80, 2.2, 22);
   scopeLight.position.set(SCOPE_POS.x, 5, SCOPE_POS.z);
   scene.add(scopeLight);
 
   // Accent fill from left
-  const fill = new THREE.DirectionalLight(0x4060a0, 0.25);
+  const fill = new THREE.DirectionalLight(0x8090c0, 0.7);
   fill.position.set(-15, 8, -5);
   scene.add(fill);
 

@@ -1,15 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Stage 2 – Proses Produksi Etanol & Simulasi Pengolahan Vinasse
+// Questions loaded from src/data/stage2_questions.json
 // ─────────────────────────────────────────────────────────────────────────────
+import questionsRaw from '../data/stage2_questions.json';
 
-// ── Factory tour stops (shown as info panels when player visits each machine) ─
 export const stage2 = {
   id: 2,
   title: 'Level 2 – Pabrik Etanol & Simulasi Vinasse',
   description: 'Jelajahi pabrik etanol dan simulasikan pengolahan limbah vinasse',
+  phenomena: questionsRaw,
+};
 
-  // 3 interactive objects in the factory scene
-  phenomena: [
+// ── Legacy inline phenomena kept for reference only ──────────────────────────
+const _phenomenaInline = [
     {
       id: 1,
       title: 'Stasiun 1 – Drum Fermentor',
@@ -127,8 +130,8 @@ export const stage2 = {
       ],
       explanation: `✅ <strong>Benar!</strong> Di atas 100 °C, air (titik didih 100 °C) ikut menguap. Distilat menjadi campuran etanol-air dengan kadar etanol rendah. Untuk mendapatkan etanol dengan kemurnian tinggi, suhu harus dijaga seketat mungkin di kisaran titik didih etanol (78–82 °C).`,
     },
-  ],
-};
+  ];
+// ── End of legacy inline data ────────────────────────────────────────────────
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Simulasi vinasse: menghitung COD, BOD, pH awal berdasarkan volume yang dituang

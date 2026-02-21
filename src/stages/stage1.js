@@ -1,9 +1,20 @@
+// ─────────────────────────────────────────────────────────────────────────────
 // Stage 1 – Vinasse Waste Pollution, Bekonang Industrial Area
+// Questions loaded from src/data/stage1_questions.json
+// ─────────────────────────────────────────────────────────────────────────────
+import questionsRaw from '../data/stage1_questions.json';
+
 export const stage1 = {
   id: 1,
   title: 'Level 1 – Pencemaran Limbah Vinasse',
   description: 'Kawasan industri ciu Bekonang, dekat Sungai Bengawan Solo',
-  phenomena: [
+  // phenomena is populated from JSON — inline array below kept as fallback
+  // but will be overridden at runtime by the JSON import
+  phenomena: questionsRaw,
+};
+
+// ── Legacy inline data kept for reference only (not exported/used) ──────────
+const _phenomenaInline = [
     /* ─────────────────── FENOMENA 1 ─────────────────── */
     {
       id: 1,
@@ -112,5 +123,5 @@ export const stage1 = {
       correctKey: 'A',
       explanation: `✅ <strong>Jawaban benar!</strong><br>Pada Tahun ke-2, COD ~80 mg/L dan pH tanah ~8,6 masih dalam toleransi padi. Bahan organik vinasse mengandung N, P, dan K yang justru menyuburkan tanah. Tahun ke-3, saat COD >100 mg/L dan pH >9, kondisi tanah menjadi toksik: ion logam larut meracuni akar dan penyerapan Fosfor (P) terhambat, sehingga hasil panen anjlok.`,
     },
-  ],
-};
+  ];
+// ── End of legacy inline data ────────────────────────────────────────────────

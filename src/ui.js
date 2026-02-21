@@ -164,6 +164,61 @@ export function showLevel2QuizComplete(onAdvance) {
   });
 }
 
+// ─────────────────────────────────────────────────────
+// Game Complete — after Level 6, back to start
+// ─────────────────────────────────────────────────────
+export function showGameComplete() {
+  const overlay = document.createElement('div');
+  overlay.id = 'game-complete-overlay';
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,0.88);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    z-index:9999;font-family:system-ui,sans-serif;color:#fff;text-align:center;
+    animation:fadeIn .5s ease;
+  `;
+  overlay.innerHTML = `
+    <div style="max-width:520px;padding:40px 32px;background:linear-gradient(135deg,#1a2a1a,#0d1a10);
+      border-radius:20px;border:2px solid #2ecc71;box-shadow:0 0 60px rgba(46,204,113,.4)">
+      <div style="font-size:72px;margin-bottom:12px">🏆</div>
+      <h1 style="font-size:28px;margin:0 0 8px;color:#2ecc71">Selamat, Kamu Menyelesaikan<br>3D BIOVINE!</h1>
+      <p style="font-size:15px;color:#aaa;margin:0 0 24px">
+        Kamu telah berhasil mengolah limbah vinasse menjadi<br>
+        <strong style="color:#ffe040">Pupuk Organik Cair (POC)</strong> yang bermanfaat 🌿
+      </p>
+      <div style="background:rgba(46,204,113,.1);border-radius:12px;padding:18px 24px;margin-bottom:28px">
+        <div style="font-size:42px;font-weight:700;color:#ffe040">${state.totalPoints}</div>
+        <div style="font-size:14px;color:#aaa;margin-top:4px">Total Poin</div>
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button id="btn-gc-restart" style="
+          padding:12px 28px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:600;
+          background:linear-gradient(135deg,#2ecc71,#27ae60);color:#fff;
+          box-shadow:0 4px 16px rgba(46,204,113,.4)">
+          🔄 Main Lagi dari Awal
+        </button>
+        <button id="btn-gc-close" style="
+          padding:12px 28px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:600;
+          background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)">
+          ✕ Tutup
+        </button>
+      </div>
+    </div>
+    <style>@keyframes fadeIn{from{opacity:0}to{opacity:1}}</style>
+  `;
+  document.body.appendChild(overlay);
+
+  overlay.querySelector('#btn-gc-close').onclick = () => {
+    overlay.remove();
+    updateHUD();
+  };
+
+  overlay.querySelector('#btn-gc-restart').onclick = () => {
+    overlay.remove();
+    // Full page reload — cleanest way to restart all state
+    window.location.reload();
+  };
+}
+
 function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
   const phenom = stage1.phenomena[idx];
   const screen = $('stage-screen');
@@ -201,6 +256,18 @@ function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
   ctxDiv.className = 'question-text';
   ctxDiv.innerHTML = phenom.context;
   panel.appendChild(ctxDiv);
+
+  // Optional question image
+  if (phenom.image) {
+    const imgWrap = document.createElement('div');
+    imgWrap.style.cssText = 'text-align:center;margin:10px 0';
+    const img = document.createElement('img');
+    img.src = phenom.image;
+    img.alt = phenom.title || 'Gambar soal';
+    img.style.cssText = 'max-width:100%;max-height:260px;border-radius:10px;border:2px solid rgba(255,255,255,.15);object-fit:contain';
+    imgWrap.appendChild(img);
+    panel.appendChild(imgWrap);
+  }
 
   // Data table
   if (phenom.tableData) {
@@ -333,6 +400,18 @@ function renderLevel2Phenomenon(idx, onComplete, onDismiss, standalone = false) 
   ctxDiv.className = 'question-text';
   ctxDiv.innerHTML = phenom.context;
   panel.appendChild(ctxDiv);
+
+  // Optional question image
+  if (phenom.image) {
+    const imgWrap = document.createElement('div');
+    imgWrap.style.cssText = 'text-align:center;margin:10px 0';
+    const img = document.createElement('img');
+    img.src = phenom.image;
+    img.alt = phenom.title || 'Gambar soal';
+    img.style.cssText = 'max-width:100%;max-height:260px;border-radius:10px;border:2px solid rgba(255,255,255,.15);object-fit:contain';
+    imgWrap.appendChild(img);
+    panel.appendChild(imgWrap);
+  }
 
   // Question
   const qDiv = document.createElement('div');

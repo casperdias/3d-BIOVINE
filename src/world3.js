@@ -11,14 +11,14 @@ export const VALVE_POS = new THREE.Vector3(0, 0, -10);
 // ─────────────────────────────────────────────────────────
 export function createPondScene() {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x0a1a0a);   // deep outdoor night/dusk green
-  scene.fog = new THREE.FogExp2(0x0a1505, 0.018);
+  scene.background = new THREE.Color(0x1a3a1a);   // bright daylight outdoor green
+  scene.fog = new THREE.FogExp2(0x1a3010, 0.012);
 
-  // Ambient – dim moonlight
-  scene.add(new THREE.AmbientLight(0x80c8a0, 0.35));
+  // Ambient – bright daylight fill
+  scene.add(new THREE.AmbientLight(0xc8e8c0, 1.0));
 
-  // Overhead sun (low angle – late afternoon)
-  const sun = new THREE.DirectionalLight(0xffe8a0, 0.9);
+  // Overhead sun (high noon – bright)
+  const sun = new THREE.DirectionalLight(0xfff0b0, 1.8);
   sun.position.set(20, 28, 20);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
@@ -31,17 +31,17 @@ export function createPondScene() {
   scene.add(sun);
 
   // Cool sky fill
-  const skyFill = new THREE.DirectionalLight(0x8080ff, 0.25);
+  const skyFill = new THREE.DirectionalLight(0xa0c0ff, 0.7);
   skyFill.position.set(-15, 20, -15);
   scene.add(skyFill);
 
   // Warm glow above pond
-  const pondGlow = new THREE.PointLight(0x60c040, 1.2, 30);
+  const pondGlow = new THREE.PointLight(0x80e060, 1.6, 40);
   pondGlow.position.set(0, 6, 0);
   scene.add(pondGlow);
 
   // Small lamp near valve
-  const valveLamp = new THREE.PointLight(0xffdd88, 1.0, 16);
+  const valveLamp = new THREE.PointLight(0xffee99, 1.4, 20);
   valveLamp.position.set(VALVE_POS.x, 8, VALVE_POS.z);
   scene.add(valveLamp);
 
