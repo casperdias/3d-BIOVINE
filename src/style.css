@@ -2,6 +2,11 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#game-canvas {
+  touch-action: none;
 }
 
 :root {
@@ -819,4 +824,171 @@ body {
 
 .prog-dot.done {
   background: var(--accent);
+}
+
+/* ============================================================
+   MOBILE / TOUCH  — responsive overrides & virtual controls
+   ============================================================ */
+
+/* ── Virtual joystick + interact button ─────────────────── */
+#mobile-controls {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 180px;
+  pointer-events: none;
+  z-index: 50;
+  /* safe-area inset for notched phones */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+#joystick-zone {
+  position: absolute;
+  left: 24px;
+  bottom: 24px;
+  width: 110px;
+  height: 110px;
+  pointer-events: all;
+  touch-action: none;
+}
+
+#joystick-base {
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  border: 2px solid rgba(255,255,255,0.18);
+  position: relative;
+  backdrop-filter: blur(4px);
+}
+
+#joystick-knob {
+  position: absolute;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: rgba(46,204,113,0.75);
+  border: 2px solid rgba(46,204,113,1);
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 0.05s;
+  box-shadow: 0 2px 12px rgba(46,204,113,0.4);
+  pointer-events: none;
+}
+
+#btn-interact-mobile {
+  position: absolute;
+  right: 28px;
+  bottom: 28px;
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background: rgba(230,126,34,0.85);
+  border: 2px solid #e67e22;
+  color: #fff;
+  font-size: 22px;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: all;
+  touch-action: none;
+  box-shadow: 0 4px 18px rgba(230,126,34,0.5);
+  user-select: none;
+  -webkit-user-select: none;
+  letter-spacing: -1px;
+}
+
+#btn-interact-mobile:active {
+  background: rgba(230,126,34,1);
+  transform: scale(0.92);
+}
+
+/* ── Responsive screens ─────────────────────────────────── */
+@media (max-width: 600px) {
+  /* HUD */
+  #hud-bar {
+    padding: 6px 12px;
+    gap: 8px;
+  }
+  #hud-player  { font-size: 12px; }
+  #hud-level   { font-size: 11px; padding: 2px 8px; }
+  #hud-points  { font-size: 12px; }
+  #btn-glossary { font-size: 11px; padding: 4px 8px; }
+  .attempt-dot { width: 9px; height: 9px; }
+
+  /* Quiz panel — full width on mobile */
+  .stage-panel {
+    position: fixed;
+    right: 0; left: 0; top: 48px;
+    width: 100%;
+    max-height: calc(100vh - 48px - 190px); /* leave room for controls */
+    border-left: none;
+    border-radius: 0;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  /* Profile / instructions cards */
+  .profile-card {
+    padding: 28px 20px;
+    border-radius: 14px;
+  }
+  .profile-card h1 { font-size: 22px; }
+  .profile-card .logo { font-size: 40px; }
+
+  .instructions-card {
+    padding: 20px 16px;
+    border-radius: 14px;
+    max-height: 85vh;
+  }
+
+  /* Popup / result overlay */
+  .popup-card {
+    padding: 28px 20px;
+  }
+  .popup-card .result-score { font-size: 36px; }
+
+  /* Glossary */
+  .glossary-card {
+    padding: 20px 14px;
+    border-radius: 14px;
+  }
+
+  /* Answer buttons — bigger tap targets */
+  .answer-btn {
+    padding: 14px 12px;
+    font-size: 14px;
+  }
+
+  .next-btn { font-size: 15px; padding: 13px; }
+
+  /* Question text */
+  .question-text { font-size: 13px; }
+
+  /* Stage UI modals (stage3–6 built inline) — make them full-screen */
+  .s3-overlay, .s4-overlay, .s5-overlay, .s6-overlay {
+    align-items: flex-start !important;
+    padding-top: 0 !important;
+  }
+  .s3-card, .s4-card, .s5-card, .s6-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: unset !important;
+    border-radius: 0 !important;
+    max-height: calc(100vh - 180px) !important;
+    overflow-y: auto;
+  }
+}
+
+/* Landscape phones — reduce control height */
+@media (max-height: 420px) and (orientation: landscape) {
+  #mobile-controls { height: 130px; }
+  #joystick-zone   { bottom: 12px; left: 16px; width: 90px; height: 90px; }
+  #joystick-base   { width: 90px; height: 90px; }
+  #joystick-knob   { width: 38px; height: 38px; }
+  #btn-interact-mobile { bottom: 16px; right: 20px; width: 58px; height: 58px; font-size: 18px; }
+
+  .stage-panel {
+    max-height: calc(100vh - 44px - 140px);
+  }
 }

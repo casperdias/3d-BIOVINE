@@ -269,6 +269,17 @@ window.addEventListener('keydown', e => {
   }
 });
 
+// Mobile interact button
+document.addEventListener('DOMContentLoaded', () => {
+  const mobileBtn = document.getElementById('btn-interact-mobile');
+  if (mobileBtn) {
+    mobileBtn.addEventListener('touchstart', e => {
+      e.preventDefault();
+      if (nearObject && !quizOpen && gameStarted) openQuiz(nearObject);
+    }, { passive: false });
+  }
+});
+
 function openQuiz(obj) {
   quizOpen = true;
   setInteractPrompt(null);
@@ -523,6 +534,11 @@ window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
 });
+
+// Prevent page scroll / zoom on touch devices while playing
+canvas.addEventListener('touchstart',  e => e.preventDefault(), { passive: false });
+canvas.addEventListener('touchmove',   e => e.preventDefault(), { passive: false });
+canvas.addEventListener('touchend',    e => e.preventDefault(), { passive: false });
 
 // ─────────────────────────────────────────────────────
 // Build UI & Boot

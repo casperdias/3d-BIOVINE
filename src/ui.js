@@ -26,6 +26,17 @@ function hideProfileScreen() {
 // ─────────────────────────────────────────────────────
 export function showInstructions(cb) {
   $('instructions-screen').classList.remove('hidden');
+
+  // Fill control hint based on device type
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+                || (navigator.maxTouchPoints > 1);
+  const ctrlEl = $('instr-controls-text');
+  if (ctrlEl) {
+    ctrlEl.innerHTML = isMobile
+      ? `Gunakan <strong>joystick virtual</strong> di kiri bawah layar untuk bergerak. Dekati objek bercahaya lalu ketuk tombol <strong>E</strong> di kanan bawah untuk berinteraksi.`
+      : `Gunakan <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> atau tombol panah untuk bergerak. Dekati objek bercahaya lalu tekan <kbd>E</kbd> untuk berinteraksi.`;
+  }
+
   $('btn-start-game').onclick = () => {
     $('instructions-screen').classList.add('hidden');
     cb();
@@ -59,18 +70,24 @@ export function updateHUD() {
 // Interact Prompt (floating "Press E" hint)
 // ─────────────────────────────────────────────────────
 export function setInteractPrompt(html) {
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+                || (navigator.maxTouchPoints > 1);
   let el = $('interact-prompt');
   if (!el) {
     el = document.createElement('div');
     el.id = 'interact-prompt';
     el.style.cssText = `
-      position:fixed; bottom:120px; left:50%; transform:translateX(-50%);
+      position:fixed; bottom:${isMobile ? '200px' : '120px'}; left:50%; transform:translateX(-50%);
       background:rgba(10,20,40,0.88); color:#fff; padding:10px 22px;
       border-radius:24px; font-size:15px; pointer-events:none;
       border:2px solid #00d4ff; box-shadow:0 0 18px #00d4ff88;
       transition:opacity 0.25s; z-index:200; white-space:nowrap;
     `;
     document.body.appendChild(el);
+  }
+  // On mobile replace keyboard hint with tap hint
+  if (isMobile && html) {
+    html = html.replace(/Tekan <kbd>E<\/kbd>/g, '👆 Ketuk tombol <b>E</b>');
   }
   if (html) {
     el.innerHTML = html;
@@ -663,7 +680,12 @@ export function buildUIHTML() {
         </div>
 
         <div class="instr-section">
-          <h3>📊 Sistem Level</h3>
+          <h3>�️ Kontrol Gerak</h3>
+          <p id="instr-controls-text"></p>
+        </div>
+
+        <div class="instr-section">
+          <h3>�📊 Sistem Level</h3>
           <p>Terdapat <strong>6 Level</strong> yang harus diselesaikan secara berurutan. Setiap level memiliki 3 fenomena dengan masing-masing 1 pertanyaan.</p>
         </div>
 

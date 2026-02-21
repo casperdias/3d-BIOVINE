@@ -19,11 +19,79 @@ export class PlayerCharacter {
     this._armAngle = 0;
 
     this._bindKeys();
+    this._bindTouch();
   }
 
   _bindKeys() {
     window.addEventListener('keydown', e => { this.keys[e.code] = true; });
     window.addEventListener('keyup',   e => { this.keys[e.code] = false; });
+  }
+
+  // ── Virtual joystick (touch) ──────────────────────────────
+  _bindTouch() {
+    // Virtual axis set by the joystick, range -1..1
+    this._touchAxis = { x: 0, y: 0 };
+
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+                  || (navigator.maxTouchPoints > 1);
+    if (!isMobile) return;
+
+    // Show mobile controls overlay
+    const ctrl = document.getElementById('mobile-controls');
+    if (ctrl) ctrl.style.display = 'block';
+
+    const base  = document.getElementById('joystick-base');
+    const knob  = document.getElementById('joystick-knob');
+    if (!base || !knob) return;
+
+    const RADIUS = 32;   // max knob travel in px
+    let   touchId = null;
+    let   baseRect = null;
+    let   cx = 0, cy = 0;
+
+    const onTouchStart = (e) => {
+      if (touchId !== null) return;
+      const t = e.changedTouches[0];
+      touchId  = t.identifier;
+      baseRect = base.getBoundingClientRect();
+      cx = baseRect.left + baseRect.width  / 2;
+      cy = baseRect.top  + baseRect.height / 2;
+      e.preventDefault();
+    };
+
+    const onTouchMove = (e) => {
+      for (const t of e.changedTouches) {
+        if (t.identifier !== touchId) continue;
+        const dx = t.clientX - cx;
+        const dy = t.clientY - cy;
+        const dist = Math.sqrt(dx*dx + dy*dy);
+        const clamped = Math.min(dist, RADIUS);
+        const angle   = Math.atan2(dy, dx);
+        const kx = Math.cos(angle) * clamped;
+        const ky = Math.sin(angle) * clamped;
+        // Update knob visuals
+        knob.style.transform = `translate(calc(-50% + ${kx}px), calc(-50% + ${ky}px))`;
+        // Normalise to -1..1
+        this._touchAxis.x =  kx / RADIUS;
+        this._touchAxis.y = -ky / RADIUS;  // y-up = forward
+        e.preventDefault();
+      }
+    };
+
+    const onTouchEnd = (e) => {
+      for (const t of e.changedTouches) {
+        if (t.identifier !== touchId) continue;
+        touchId = null;
+        knob.style.transform = 'translate(-50%, -50%)';
+        this._touchAxis.x = 0;
+        this._touchAxis.y = 0;
+      }
+    };
+
+    base.addEventListener('touchstart',  onTouchStart,  { passive: false });
+    window.addEventListener('touchmove', onTouchMove,   { passive: false });
+    window.addEventListener('touchend',  onTouchEnd,    { passive: false });
+    window.addEventListener('touchcancel', onTouchEnd,  { passive: false });
   }
 
   _build() {
@@ -214,6 +282,15 @@ export class PlayerCharacter {
     if (k['KeyS'] || k['ArrowDown'])  forward -= 1;
     if (k['KeyA'] || k['ArrowLeft'])  strafe  -= 1;
     if (k['KeyD'] || k['ArrowRight']) strafe  += 1;
+
+    // Merge virtual joystick axis (touch)
+    if (this._touchAxis) {
+      forward += this._touchAxis.y;
+      strafe  += this._touchAxis.x;
+      // Clamp to ±1
+      forward = Math.max(-1, Math.min(1, forward));
+      strafe  = Math.max(-1, Math.min(1, strafe));
+    }
 
     this._moving = (forward !== 0 || strafe !== 0);
 
