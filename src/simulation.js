@@ -55,8 +55,8 @@ function buildSimHTML() {
         <div class="vol-preview" id="vol-preview">
           <div class="beaker-wrap">
             <div class="beaker">
-              <div class="beaker-water" id="beaker-water"></div>
               <div class="beaker-vinasse" id="beaker-vinasse"></div>
+              <div class="beaker-water"   id="beaker-water"></div>
               <div class="beaker-scale">
                 ${[1000,800,600,400,200,0].map(l => `<span>${l}</span>`).join('')}
               </div>
@@ -234,8 +234,14 @@ function updateBeaker(vol) {
 
   const vinEl  = $('beaker-vinasse');
   const watEl  = $('beaker-water');
+
+  // Vinasse sits at the bottom
   vinEl.style.height = vinPct + '%';
+  vinEl.style.bottom = '0%';
+
+  // Water sits directly on top of vinasse (not overlapping)
   watEl.style.height = watPct + '%';
+  watEl.style.bottom = vinPct + '%';
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -556,14 +562,16 @@ function injectSimulationCSS() {
       padding: 2px 0;
     }
     .beaker-water {
-      position: absolute; bottom: 0; left: 0; right: 0;
+      position: absolute; left: 0; right: 0;
       background: rgba(100, 170, 220, 0.5);
-      transition: height 0.5s ease;
+      transition: height 0.5s ease, bottom 0.5s ease;
+      border-bottom: 1px solid rgba(120, 200, 255, 0.4);
     }
     .beaker-vinasse {
       position: absolute; bottom: 0; left: 0; right: 0;
       background: rgba(100, 40, 0, 0.85);
       transition: height 0.5s ease;
+      border-top: 1px solid rgba(160, 80, 20, 0.6);
     }
     .vol-legend { font-size: 12px; color: #8090a0; line-height: 1.8; }
     .legend-box { display: inline-block; width: 12px; height: 12px; margin-right: 4px; vertical-align: middle; border-radius: 2px; }
