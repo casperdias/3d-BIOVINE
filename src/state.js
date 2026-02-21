@@ -22,6 +22,15 @@ export const state = {
     finalPH:      null,
     compliant:    false,
   },
+
+  // Level 3 – microorganism shop + valve state
+  stage3: {
+    challengeAnswered:  false,
+    purchasedOrganism:  null,   // organism id string
+    purchaseCost:       0,
+    valveOpened:        false,
+    bonusPoints:        0,
+  },
 };
 
 export function resetLevelState() {
@@ -44,5 +53,15 @@ export function resetSimState() {
     finalBOD:      null,
     finalPH:       null,
     compliant:     false,
+  };
+}
+
+export function resetStage3State() {
+  state.stage3 = {
+    challengeAnswered: false,
+    purchasedOrganism: null,
+    purchaseCost:      0,
+    valveOpened:       false,
+    bonusPoints:       0,
   };
 }

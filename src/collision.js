@@ -70,11 +70,38 @@ export const FACTORY_OBSTACLES = [
   box(  28, -13, 3.0, 6.0 ),
 ];
 
+// ─── Static obstacle list – Pond (Level 3) ────────────
+// Matches world3.js: POND_W=60, POND_D=50, pond reactor at centre, valve at (0,0,-10)
+const POND_W3 = 60;
+const POND_D3 = 50;
+
+export const POND_OBSTACLES = [
+
+  // ── Area boundary fences ──
+  box(  0,           -(POND_D3/2),  POND_W3/2 + 2, 1.5 ),  // north fence
+  box(  0,             POND_D3/2,   POND_W3/2 + 2, 1.5 ),  // south fence
+  box( -(POND_W3/2),   0,           1.5,            POND_D3/2 + 2 ),  // west fence
+  box(   POND_W3/2,    0,           1.5,            POND_D3/2 + 2 ),  // east fence
+
+  // ── Pond reactor (22×16 pool, walls ~0.6 thick) ──
+  box(  0,  -8,  11.6, 0.8 ),  // north wall of pond
+  box(  0,   8,  11.6, 0.8 ),  // south wall of pond
+  box(-11,   0,  0.8,   8.6 ),  // west wall of pond
+  box( 11,   0,  0.8,   8.6 ),  // east wall of pond
+
+  // ── Valve stand (at 0, 0, -10) ──
+  box(  0, -10,  0.8, 0.8 ),
+];
+
 // Active obstacle set – switched at level transition
 export let OBSTACLES = LAB_OBSTACLES;
 
 export function setFactoryObstacles() {
   OBSTACLES = FACTORY_OBSTACLES;
+}
+
+export function setPondObstacles() {
+  OBSTACLES = POND_OBSTACLES;
 }
 
 export function setLabObstacles() {

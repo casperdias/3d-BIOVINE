@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { createScene, buildWorld, createQuestionObjects, animateQuestionObjects } from './world.js';
 import { createFactoryScene, buildFactory, createFactoryQuestionObjects, animateFactoryObjects } from './world2.js';
+import { createPondScene, buildPond, createValveObject, animateValveObject } from './world3.js';
 import { PlayerCharacter } from './player.js';
 import { state } from './state.js';
-import { setFactoryObstacles } from './collision.js';
+import { setFactoryObstacles, setPondObstacles } from './collision.js';
 import {
   buildUIHTML,
   showProfileScreen,
@@ -17,6 +18,7 @@ import {
   showLevel2QuizComplete,
 } from './ui.js';
 import { showSimulation } from './simulation.js';
+import { showStage3 } from './stage3UI.js';
 
 // ─────────────────────────────────────────────────────
 // Renderer & Scene Setup
@@ -39,6 +41,10 @@ buildWorld(labScene);
 const { scene: factoryScene } = createFactoryScene();
 buildFactory(factoryScene);
 
+// ── Level 3: Remediation Pond ──
+const { scene: pondScene } = createPondScene();
+buildPond(pondScene);
+
 activeScene = labScene;
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -54,6 +60,8 @@ const player = new PlayerCharacter(labScene);
 let questionObjects    = createQuestionObjects(labScene);
 // Level 2 factory station objects (created but held back until Level 2 loads)
 let factoryQuestionObjects = null;
+// Level 3 valve object
+let valveObject = null;
 
 // Which set of question objects is active
 let activeQuestionObjects = questionObjects;
@@ -63,6 +71,7 @@ let activeQuestionObjects = questionObjects;
 // ─────────────────────────────────────────────────────
 const CAM_DIST_L1 = 22;   // lab  – smaller room
 const CAM_DIST_L2 = 26;   // factory – bigger room, pull back a bit
+const CAM_DIST_L3 = 24;   // pond – outdoor, medium distance
 const CAM_HEIGHT  = 14;
 const CAM_LERP    = 0.08;
 let   gameStarted = false;
@@ -105,7 +114,9 @@ function updateCamera(t) {
   while (diff < -Math.PI) diff += Math.PI * 2;
   camYaw += diff * 0.04;   // very gentle lag so it doesn't spin wildly
 
-  const camDist = state.currentLevel === 2 ? CAM_DIST_L2 : CAM_DIST_L1;
+  const camDist = state.currentLevel === 2 ? CAM_DIST_L2
+                : state.currentLevel === 3 ? CAM_DIST_L3
+                : CAM_DIST_L1;
 
   // Desired camera position (behind player)
   let desiredX = px + Math.sin(camYaw) * camDist;
@@ -162,6 +173,8 @@ function checkProximity() {
     nearObject = closest;
     const label = state.currentLevel === 2
       ? `Tekan <kbd>E</kbd> &nbsp;— 🏭 Stasiun ${closest ? closest.idx + 1 : ''}`
+      : state.currentLevel === 3
+      ? `Tekan <kbd>E</kbd> &nbsp;— 🚰 Buka Kran Vinasse`
       : `Tekan <kbd>E</kbd> &nbsp;— ❓ Fenomena ${closest ? closest.idx + 1 : ''}`;
     setInteractPrompt(closest ? label : null);
   }
@@ -176,6 +189,25 @@ window.addEventListener('keydown', e => {
 function openQuiz(obj) {
   quizOpen = true;
   setInteractPrompt(null);
+
+  // ── Level 3: valve triggers Stage 3 UI ─────────────────
+  if (state.currentLevel === 3 && obj.isValve) {
+    showStage3(() => {
+      obj.done = true;
+      obj.doneSprite.visible = true;
+      obj.glowMat.color.set(0x2ecc71);
+      obj.glowMat.opacity = 0.3;
+      quizOpen   = false;
+      nearObject = null;
+      state.stage3.valveOpened = true;
+      // Level 3 complete — show final level complete screen
+      setTimeout(() => showLevelComplete(() => {
+        // Future: startLevel4() or game end screen
+        updateHUD();
+      }), 600);
+    });
+    return;
+  }
 
   const panelFn = state.currentLevel === 2 ? showLevel2QuestionPanel : showQuestionPanel;
 
@@ -197,8 +229,8 @@ function openQuiz(obj) {
         } else if (state.currentLevel === 2) {
           setTimeout(() => showLevel2QuizComplete(() => {
             showSimulation(() => {
-              // Simulation done — level 2 fully complete, go to level 3 placeholder
-              updateHUD();
+              // Simulation done — go to Level 3
+              setTimeout(() => showLevelComplete(() => startLevel3()), 600);
             });
           }), 600);
         }
@@ -235,6 +267,35 @@ function startLevel2() {
   // Create factory question objects
   factoryQuestionObjects = createFactoryQuestionObjects(factoryScene);
   activeQuestionObjects  = factoryQuestionObjects;
+
+  nearObject = null;
+  updateHUD();
+}
+
+// ─────────────────────────────────────────────────────
+// Level 3 transition
+// ─────────────────────────────────────────────────────
+function startLevel3() {
+  state.currentLevel = 3;
+
+  // Swap to pond scene
+  activeScene = pondScene;
+
+  // Switch collision obstacles
+  setPondObstacles();
+
+  // Camera bounds for pond area (POND_W=60, POND_D=50)
+  camBoundsX = 26;
+  camBoundsZ = 21;
+
+  // Move player to pond spawn
+  player.removeFromScene(factoryScene);
+  player.addToScene(pondScene);
+  player.position.set(0, 0, 16);
+
+  // Create valve interactive object
+  valveObject = createValveObject(pondScene);
+  activeQuestionObjects = [valveObject];
 
   nearObject = null;
   updateHUD();
@@ -283,6 +344,8 @@ function animate() {
     animateQuestionObjects(questionObjects, t);
   } else if (state.currentLevel === 2 && factoryQuestionObjects) {
     animateFactoryObjects(factoryQuestionObjects, t);
+  } else if (state.currentLevel === 3 && valveObject) {
+    animateValveObject(valveObject, t);
   }
 
   renderer.render(activeScene, camera);
