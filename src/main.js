@@ -37,12 +37,15 @@ const player = new PlayerCharacter(scene);
 const questionObjects = createQuestionObjects(scene);
 
 // ─────────────────────────────────────────────────────
-// Camera — follow player in 3rd person
+// Camera — follow player in 3rd person (fixed angle)
 // ─────────────────────────────────────────────────────
 const CAM_DIST   = 22;
 const CAM_HEIGHT = 14;
 const CAM_LERP   = 0.08;
 let   gameStarted = false;
+
+// Fixed camera yaw – player uses camera-relative movement
+const CAM_YAW = Math.PI; // camera sits "behind" the world origin at start
 
 let orbitAngle = 0;
 
@@ -58,13 +61,27 @@ function updateCamera(t) {
 
   const px = player.position.x;
   const pz = player.position.z;
-  const targetX = px - Math.sin(player.group.rotation.y) * CAM_DIST;
-  const targetZ = pz - Math.cos(player.group.rotation.y) * CAM_DIST;
+
+  // Camera stays at a fixed offset behind the player (world-space, not player-facing)
+  const targetX = px + Math.sin(CAM_YAW) * CAM_DIST;
+  const targetZ = pz + Math.cos(CAM_YAW) * CAM_DIST;
 
   camera.position.x += (targetX - camera.position.x) * CAM_LERP;
   camera.position.z += (targetZ - camera.position.z) * CAM_LERP;
   camera.position.y += (CAM_HEIGHT - camera.position.y) * CAM_LERP;
   camera.lookAt(px, 3, pz);
+}
+
+// Returns the camera's forward and right vectors (flat, Y=0)
+function getCameraAxes() {
+  // Camera looks at player; forward = player - camera (flattened)
+  const fwd = new THREE.Vector3(
+    player.position.x - camera.position.x,
+    0,
+    player.position.z - camera.position.z
+  ).normalize();
+  const right = new THREE.Vector3().crossVectors(fwd, new THREE.Vector3(0, 1, 0)).normalize();
+  return { fwd, right };
 }
 
 // ─────────────────────────────────────────────────────
@@ -115,8 +132,10 @@ function openQuiz(obj) {
       // Answered correctly — mark done
       obj.done = true;
       obj.doneSprite.visible = true;
-      obj.glowMat.color.set(0x555555);
-      obj.glowMat.emissive.set(0x222222);
+      // Shift glow to calm green
+      obj.glowMat.color.set(0x2ecc71);
+      obj.glowMat.emissive.set(0x2ecc71);
+      obj.glowMat.emissiveIntensity = 0.2;
       quizOpen   = false;
       nearObject = null;
 
@@ -166,22 +185,11 @@ function animate() {
   const t = clock.getElapsedTime();
 
   updateCamera(t);
-  player.update(t, quizOpen || !gameStarted);
+  player.update(t, quizOpen || !gameStarted, getCameraAxes());
 
   if (gameStarted) checkProximity();
 
   animateQuestionObjects(questionObjects, t);
-
-  scene.children.forEach(obj => {
-    if (obj.userData?.smoke) {
-      obj.position.y += 0.01;
-      obj.material.opacity = Math.max(0, obj.material.opacity - 0.0003);
-      if (obj.material.opacity < 0.05) {
-        obj.material.opacity = 0.35;
-        obj.position.y -= 12;
-      }
-    }
-  });
 
   renderer.render(scene, camera);
 }

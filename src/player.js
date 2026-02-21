@@ -109,21 +109,32 @@ export class PlayerCharacter {
     this.group.add(sprite);
   }
 
-  // Called every frame. Returns {x,z} position.
-  update(t, blocked = false) {
+  // Called every frame. cameraAxes = { fwd, right } from camera perspective.
+  update(t, blocked = false, cameraAxes = null) {
     const k = this.keys;
-    let dx = 0, dz = 0;
+    let forward = 0, strafe = 0;
 
-    if (k['KeyW'] || k['ArrowUp'])    dz -= 1;
-    if (k['KeyS'] || k['ArrowDown'])  dz += 1;
-    if (k['KeyA'] || k['ArrowLeft'])  dx -= 1;
-    if (k['KeyD'] || k['ArrowRight']) dx += 1;
+    if (k['KeyW'] || k['ArrowUp'])    forward += 1;
+    if (k['KeyS'] || k['ArrowDown'])  forward -= 1;
+    if (k['KeyA'] || k['ArrowLeft'])  strafe  -= 1;
+    if (k['KeyD'] || k['ArrowRight']) strafe  += 1;
 
-    this._moving = (dx !== 0 || dz !== 0);
+    this._moving = (forward !== 0 || strafe !== 0);
 
     if (this._moving && !blocked) {
+      let dx = 0, dz = 0;
+
+      if (cameraAxes) {
+        // Move relative to where the camera is looking
+        dx = cameraAxes.fwd.x * forward + cameraAxes.right.x * strafe;
+        dz = cameraAxes.fwd.z * forward + cameraAxes.right.z * strafe;
+      } else {
+        dx = strafe;
+        dz = -forward;
+      }
+
       // Normalise diagonal
-      const len = Math.sqrt(dx * dx + dz * dz);
+      const len = Math.sqrt(dx * dx + dz * dz) || 1;
       dx = (dx / len) * this.speed;
       dz = (dz / len) * this.speed;
 
@@ -134,7 +145,7 @@ export class PlayerCharacter {
       this.group.position.x = Math.max(-140, Math.min(140, this.group.position.x));
       this.group.position.z = Math.max(-140, Math.min(140, this.group.position.z));
 
-      // Face movement direction
+      // Face the actual movement direction
       this.group.rotation.y = Math.atan2(dx, dz);
 
       // Walk animation
