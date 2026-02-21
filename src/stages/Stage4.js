@@ -133,7 +133,7 @@ export class Stage4 {
       bench.castShadow = true;
       scene.add(bench);
 
-      const legs = [-2, 2].forEach(dx => {
+      [-2, 2].forEach(dx => {
         const leg = new THREE.Mesh(
           new THREE.BoxGeometry(0.15, 1, 0.15),
           new THREE.MeshLambertMaterial({ color: 0x888888 })
