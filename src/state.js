@@ -9,6 +9,14 @@ export const state = {
   answered: false,
   wrongAnswers: 0,        // wrong answers within current question attempt
 
+  // Per-level point breakdown — populated when each level is completed
+  // Each entry: { level: Number, label: String, points: Number }
+  levelBreakdown: [],
+
+  // Snapshot of totalPoints at the beginning of the current level
+  // (used to compute how many points were earned during that level)
+  pointsAtLevelStart: 0,
+
   // Level 2 simulation state
   sim: {
     vinasseVol:   null,    // mL selected
@@ -97,4 +105,30 @@ export function resetStage5State() {
 
 export function resetStage6State() {
   state.stage6 = { podiumDone: false };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Per-level score recording
+// Call at the moment a level's scoring is finalised (before transitioning).
+// ─────────────────────────────────────────────────────────────────────────────
+export const LEVEL_LABELS = {
+  1: 'Level 1 – Lab Sains',
+  2: 'Level 2 – Pabrik Etanol',
+  3: 'Level 3 – Kolam Remediasi',
+  4: 'Level 4 – Workshop IPAL',
+  5: 'Level 5 – Lab Observasi',
+  6: 'Level 6 – Aula Presentasi',
+};
+
+/**
+ * Push the points earned during the just-completed level into levelBreakdown.
+ * `state.pointsAtLevelStart` must be set at the beginning of each level.
+ */
+export function recordLevelPoints(levelNum) {
+  const earned = state.totalPoints - state.pointsAtLevelStart;
+  state.levelBreakdown.push({
+    level:  levelNum,
+    label:  LEVEL_LABELS[levelNum] || `Level ${levelNum}`,
+    points: earned,
+  });
 }

@@ -1,19 +1,63 @@
-import { state, resetLevelState } from './state.js';
+import { state, resetLevelState, recordLevelPoints } from './state.js';
 import { stage1 } from './stages/stage1.js';
 import { stage2 } from './stages/stage2.js';
+import { loadCheckpoint, clearCheckpoint, saveScore } from './db.js';
 
 // ─────────────────────────────────────────────────────
 // DOM helpers
 // ─────────────────────────────────────────────────────
 const $ = id => document.getElementById(id);
 
-let onProfileDone = null;
+let onProfileDone   = null;
+let onProfileResume = null;  // set when a checkpoint is found
 
 // ─────────────────────────────────────────────────────
 // Profile Screen
 // ─────────────────────────────────────────────────────
-export function showProfileScreen(cb) {
-  onProfileDone = cb;
+/**
+ * cb(name)      – called when player starts a NEW game
+ * resumeCb(cp)  – called when player chooses to RESUME a saved checkpoint
+ */
+export function showProfileScreen(cb, resumeCb) {
+  onProfileDone   = cb;
+  onProfileResume = resumeCb || null;
+
+  const checkpoint = loadCheckpoint();
+
+  // Populate (or hide) the checkpoint banner
+  const resumeSection = $('resume-section');
+  if (checkpoint && resumeSection && onProfileResume) {
+    const d = new Date(checkpoint.savedAt);
+    const fmt = d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })
+              + ' ' + d.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+    resumeSection.classList.remove('hidden');
+    resumeSection.innerHTML = `
+      <div class="resume-card">
+        <div class="resume-info">
+          <span class="resume-avatar">🎮</span>
+          <div>
+            <strong>${checkpoint.playerName}</strong>
+            <div style="font-size:12px;color:#aaa;margin-top:2px">
+              Level ${checkpoint.currentLevel} &nbsp;·&nbsp; ${checkpoint.totalPoints} poin &nbsp;·&nbsp; ${fmt}
+            </div>
+          </div>
+        </div>
+        <button class="btn-resume" id="btn-resume-game">▶ Lanjutkan</button>
+        <button class="btn-new-checkpoint" id="btn-discard-checkpoint" title="Mulai baru">✕</button>
+      </div>
+    `;
+    document.getElementById('btn-resume-game').onclick = () => {
+      hideProfileScreen();
+      onProfileResume(checkpoint);
+    };
+    document.getElementById('btn-discard-checkpoint').onclick = () => {
+      clearCheckpoint();
+      resumeSection.classList.add('hidden');
+    };
+  } else if (resumeSection) {
+    resumeSection.classList.add('hidden');
+  }
+
   $('profile-screen').classList.remove('hidden');
 }
 
@@ -35,6 +79,25 @@ export function showInstructions(cb) {
     ctrlEl.innerHTML = isMobile
       ? `Gunakan <strong>joystick virtual</strong> di kiri bawah layar untuk bergerak. Dekati objek bercahaya lalu ketuk tombol <strong>E</strong> di kanan bawah untuk berinteraksi.`
       : `Gunakan <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> atau tombol panah untuk bergerak. Dekati objek bercahaya lalu tekan <kbd>E</kbd> untuk berinteraksi.`;
+  }
+
+  // Populate level guide cards
+  const levelGuideEl = $('instr-level-guide');
+  if (levelGuideEl) {
+    const levels = [
+      { num:1, icon:'🔬', name:'Lab Sains',            desc:'Amati 3 fenomena pencemaran vinasse di laboratorium dan jawab pertanyaan ilmiah.' },
+      { num:2, icon:'🏭', name:'Pabrik Etanol',         desc:'Kunjungi 3 stasiun pabrik, lakukan simulasi pengolahan COD/BOD/pH secara interaktif.' },
+      { num:3, icon:'🌿', name:'Kolam Remediasi',       desc:'Pilih mikroorganisme yang tepat di toko, hitung dosis, lalu buka kran vinasse.' },
+      { num:4, icon:'🔧', name:'Workshop IPAL',         desc:'Rancang prototype reaktor IPAL: pilih alat & bahan, ikuti prosedur, evaluasi hasilnya.' },
+      { num:5, icon:'🔭', name:'Lab Observasi',         desc:'Analisis kegagalan reaktor dari Level 4 dan jawab soal evaluasi mikroskop.' },
+      { num:6, icon:'🎤', name:'Aula Presentasi',       desc:'Presentasikan temuanmu dalam 5 slide, lakukan quiz akhir, dan tampilkan produk POC.' },
+    ];
+    levelGuideEl.innerHTML = levels.map(l => `
+      <div class="level-guide-card">
+        <span class="lg-icon">${l.icon}</span>
+        <div><strong>Level ${l.num} – ${l.name}</strong><div class="lg-desc">${l.desc}</div></div>
+      </div>
+    `).join('');
   }
 
   $('btn-start-game').onclick = () => {
@@ -157,9 +220,12 @@ export function showLevelComplete(onAdvance) {
   state.totalPoints += points;
   state.levelAttempts++;
   updateHUD();
+  // Record how many points were earned this level
+  recordLevelPoints(state.currentLevel);
   const nextLevelNum = state.currentLevel + 1;
   showLevelResult(points, `Lanjut ke Level ${nextLevelNum} →`, () => {
     state.currentLevel = nextLevelNum;
+    state.pointsAtLevelStart = state.totalPoints; // reset baseline for next level
     resetLevelState();
     updateHUD();
     if (onAdvance) onAdvance();
@@ -185,27 +251,59 @@ export function showLevel2QuizComplete(onAdvance) {
 // Game Complete — after Level 6, back to start
 // ─────────────────────────────────────────────────────
 export function showGameComplete() {
+  // ── Persist the final level's points & save to leaderboard ──
+  recordLevelPoints(state.currentLevel);
+  saveScore({
+    playerName:     state.playerName,
+    totalPoints:    state.totalPoints,
+    levelBreakdown: state.levelBreakdown,
+    completedAt:    new Date().toISOString(),
+  });
+  clearCheckpoint();
+
+  // ── Build per-level breakdown rows ──
+  const breakdownRows = state.levelBreakdown.map(entry => `
+    <tr>
+      <td style="text-align:left;padding:6px 12px;color:#ccc">${entry.label}</td>
+      <td style="text-align:right;padding:6px 12px;font-weight:700;color:#ffe040">+${entry.points}</td>
+    </tr>
+  `).join('');
+
   const overlay = document.createElement('div');
   overlay.id = 'game-complete-overlay';
   overlay.style.cssText = `
     position:fixed;inset:0;background:rgba(0,0,0,0.88);
     display:flex;flex-direction:column;align-items:center;justify-content:center;
     z-index:9999;font-family:system-ui,sans-serif;color:#fff;text-align:center;
-    animation:fadeIn .5s ease;
+    animation:fadeIn .5s ease;overflow-y:auto;padding:20px 0;
   `;
   overlay.innerHTML = `
-    <div style="max-width:520px;padding:40px 32px;background:linear-gradient(135deg,#1a2a1a,#0d1a10);
-      border-radius:20px;border:2px solid #2ecc71;box-shadow:0 0 60px rgba(46,204,113,.4)">
-      <div style="font-size:72px;margin-bottom:12px">🏆</div>
-      <h1 style="font-size:28px;margin:0 0 8px;color:#2ecc71">Selamat, Kamu Menyelesaikan<br>3D BIOVINE!</h1>
-      <p style="font-size:15px;color:#aaa;margin:0 0 24px">
+    <div style="max-width:560px;width:92%;padding:36px 32px;
+          background:linear-gradient(135deg,#1a2a1a,#0d1a10);
+          border-radius:20px;border:2px solid #2ecc71;box-shadow:0 0 60px rgba(46,204,113,.4)">
+      <div style="font-size:64px;margin-bottom:8px">🏆</div>
+      <h1 style="font-size:26px;margin:0 0 6px;color:#2ecc71">Selamat, Kamu Menyelesaikan<br>3D BIOVINE!</h1>
+      <p style="font-size:14px;color:#aaa;margin:0 0 20px">
         Kamu telah berhasil mengolah limbah vinasse menjadi<br>
         <strong style="color:#ffe040">Pupuk Organik Cair (POC)</strong> yang bermanfaat 🌿
       </p>
-      <div style="background:rgba(46,204,113,.1);border-radius:12px;padding:18px 24px;margin-bottom:28px">
-        <div style="font-size:42px;font-weight:700;color:#ffe040">${state.totalPoints}</div>
-        <div style="font-size:14px;color:#aaa;margin-top:4px">Total Poin</div>
+
+      <!-- Per-level breakdown -->
+      <div style="background:rgba(0,0,0,.3);border-radius:12px;padding:16px;margin-bottom:20px;text-align:left">
+        <div style="font-size:13px;font-weight:700;color:#2ecc71;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">📊 Rincian Poin per Level</div>
+        <table style="width:100%;border-collapse:collapse;font-size:14px">
+          <tbody>
+            ${breakdownRows}
+          </tbody>
+          <tfoot>
+            <tr style="border-top:1px solid rgba(255,255,255,.15)">
+              <td style="text-align:left;padding:8px 12px;font-weight:700;color:#fff">Total</td>
+              <td style="text-align:right;padding:8px 12px;font-size:22px;font-weight:700;color:#ffe040">${state.totalPoints}</td>
+            </tr>
+          </tfoot>
+        </table>
       </div>
+
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
         <button id="btn-gc-restart" style="
           padding:12px 28px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:600;
@@ -663,6 +761,10 @@ export function buildUIHTML() {
         <div class="logo">🌿</div>
         <h1>3D BIOVINE</h1>
         <p class="subtitle">Game Edukasi Penyelamatan Lingkungan<br>dari Pencemaran Limbah Vinasse</p>
+
+        <!-- Checkpoint resume banner (populated dynamically) -->
+        <div id="resume-section" class="hidden"></div>
+
         <label for="input-name">Nama Karakter Kamu</label>
         <input type="text" id="input-name" placeholder="Masukkan nama karakter..." maxlength="30" />
         <button class="btn-primary" id="btn-profile-start">Mulai Petualangan →</button>
@@ -702,7 +804,22 @@ export function buildUIHTML() {
         </div>
 
         <div class="instr-section">
-          <h3>📖 Bantuan</h3>
+          <h3>�️ Panduan Level</h3>
+          <div id="instr-level-guide"></div>
+        </div>
+
+        <div class="instr-section">
+          <h3>💡 Tips Bermain</h3>
+          <ul class="instr-tips">
+            <li>🔴 Jawab dengan hati-hati karena setiap jawaban salah mengurangi poin yang kamu dapatkan.</li>
+            <li>🟡 Progres permainan tersimpan otomatis setiap kali kamu menyelesaikan sebuah level!</li>
+            <li>🟢 Jika kamu menutup permainan, kamu bisa <strong>melanjutkan dari level terakhir</strong> kapan saja.</li>
+            <li>🔵 Gunakan <strong>Buku Saku</strong> di HUD jika kamu tidak mengenal istilah kimia.</li>
+          </ul>
+        </div>
+
+        <div class="instr-section">
+          <h3>�📖 Bantuan</h3>
           <p>Klik ikon <strong>"Buku Saku"</strong> di pojok kanan atas jika kamu butuh penjelasan tentang istilah kimia seperti pH, BOD, COD, DO, atau Vinasse.</p>
         </div>
 

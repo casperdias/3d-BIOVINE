@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin – 3D BIOVINE Leaderboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0a1628;
+      color: #e0e0e0;
+      min-height: 100vh;
+    }
+
+    /* ── Login Screen ────────────────────────────────────── */
+    #login-screen {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .login-card {
+      background: linear-gradient(135deg, #1a2a3a, #0d1820);
+      border: 2px solid #00d4ff;
+      border-radius: 20px;
+      padding: 48px 40px;
+      width: 420px;
+      max-width: 95vw;
+      text-align: center;
+      box-shadow: 0 0 60px rgba(0, 212, 255, 0.25);
+    }
+
+    .login-card .logo { font-size: 56px; margin-bottom: 12px; }
+    .login-card h1   { font-size: 22px; color: #00d4ff; margin-bottom: 6px; }
+    .login-card p    { font-size: 13px; color: #888; margin-bottom: 32px; }
+
+    .login-card label {
+      display: block;
+      font-size: 12px;
+      color: #aaa;
+      text-align: left;
+      margin-bottom: 6px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+
+    .login-card input {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 10px;
+      border: 1.5px solid rgba(255,255,255,.15);
+      background: rgba(255,255,255,.07);
+      color: #fff;
+      font-size: 15px;
+      margin-bottom: 20px;
+      outline: none;
+      transition: border-color .2s;
+    }
+
+    .login-card input:focus { border-color: #00d4ff; }
+
+    .login-card button {
+      width: 100%;
+      padding: 13px;
+      border-radius: 10px;
+      border: none;
+      background: linear-gradient(135deg, #00d4ff, #0099cc);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+
+    .login-card button:hover { opacity: .85; }
+
+    #login-error {
+      color: #e74c3c;
+      font-size: 13px;
+      margin-top: 12px;
+      display: none;
+    }
+
+    /* ── Admin Panel ─────────────────────────────────────── */
+    #admin-panel { display: none; }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: rgba(0,212,255,.06);
+      border-bottom: 1px solid rgba(0,212,255,.15);
+      padding: 16px 28px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    header .brand { font-size: 18px; font-weight: 700; color: #00d4ff; }
+    header .brand span { color: #aaa; font-weight: 400; font-size: 13px; margin-left: 8px; }
+
+    .hdr-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .btn {
+      padding: 8px 18px;
+      border-radius: 8px;
+      border: none;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .2s;
+    }
+    .btn:hover { opacity: .8; }
+    .btn-primary  { background: #00d4ff; color: #0a1628; }
+    .btn-danger   { background: #e74c3c; color: #fff; }
+    .btn-outline  { background: transparent; color: #aaa; border: 1px solid rgba(255,255,255,.2); }
+
+    .main-content { padding: 28px; }
+
+    /* Stats cards */
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+
+    .stat-card {
+      background: rgba(255,255,255,.04);
+      border: 1px solid rgba(255,255,255,.1);
+      border-radius: 14px;
+      padding: 20px;
+      text-align: center;
+    }
+
+    .stat-val  { font-size: 34px; font-weight: 700; color: #00d4ff; }
+    .stat-lbl  { font-size: 12px; color: #888; margin-top: 4px; }
+
+    /* Filters */
+    .filter-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .filter-row input, .filter-row select {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+      color: #e0e0e0;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .filter-row input:focus, .filter-row select:focus {
+      border-color: #00d4ff;
+    }
+
+    /* Table */
+    .table-wrap {
+      overflow-x: auto;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,.08);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    thead th {
+      background: rgba(0,212,255,.08);
+      color: #00d4ff;
+      font-size: 11px;
+      letter-spacing: .05em;
+      text-transform: uppercase;
+      padding: 12px 14px;
+      text-align: left;
+      white-space: nowrap;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    thead th:hover { background: rgba(0,212,255,.15); }
+    thead th .sort-arrow { margin-left: 4px; opacity: .4; }
+    thead th.sort-active .sort-arrow { opacity: 1; }
+
+    tbody tr {
+      border-top: 1px solid rgba(255,255,255,.05);
+      transition: background .15s;
+    }
+
+    tbody tr:hover { background: rgba(255,255,255,.04); }
+
+    tbody td {
+      padding: 11px 14px;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .rank-badge {
+      display: inline-block;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.08);
+      line-height: 28px;
+      text-align: center;
+      font-weight: 700;
+      font-size: 12px;
+    }
+    .rank-1 { background: #f1c40f; color: #1a1a1a; }
+    .rank-2 { background: #bdc3c7; color: #1a1a1a; }
+    .rank-3 { background: #e67e22; color: #1a1a1a; }
+
+    .points-total { font-size: 16px; font-weight: 700; color: #ffe040; }
+
+    .level-dot {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      margin: 1px 2px;
+    }
+
+    td.ts { color: #666; font-size: 11px; }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #555;
+    }
+
+    .empty-state .empty-icon { font-size: 48px; margin-bottom: 12px; }
+
+    /* Detail expand */
+    .expand-row td {
+      padding: 0 !important;
+      background: rgba(0,0,0,.2);
+    }
+
+    .breakdown-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+
+    .breakdown-table td {
+      padding: 6px 20px;
+      border-top: 1px solid rgba(255,255,255,.04);
+    }
+
+    .breakdown-table td:first-child { color: #aaa; }
+    .breakdown-table td:last-child  { font-weight: 700; color: #ffe040; text-align: right; }
+
+    @media (max-width: 640px) {
+      header { padding: 12px 16px; }
+      .main-content { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Login Screen ──────────────────────────────────────── -->
+  <div id="login-screen">
+    <div class="login-card">
+      <div class="logo">🛡️</div>
+      <h1>Admin Panel</h1>
+      <p>3D BIOVINE – Leaderboard &amp; Skor Pemain</p>
+
+      <label for="admin-password">Kata Sandi Admin</label>
+      <input type="password" id="admin-password" placeholder="Masukkan kata sandi…" />
+      <button onclick="doLogin()">🔓 Masuk</button>
+
+      <div id="login-error">❌ Kata sandi salah. Silakan coba lagi.</div>
+    </div>
+  </div>
+
+  <!-- ── Admin Panel ────────────────────────────────────────── -->
+  <div id="admin-panel">
+    <header>
+      <div class="brand">
+        🌿 3D BIOVINE <span>Admin Leaderboard</span>
+      </div>
+      <div class="hdr-actions">
+        <button class="btn btn-primary"  onclick="exportJSON()">⬇ Export JSON</button>
+        <button class="btn btn-danger"   onclick="clearAll()">🗑 Hapus Semua</button>
+        <button class="btn btn-outline"  onclick="logout()">✕ Keluar</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <!-- Stats cards -->
+      <div class="stats-row" id="stats-row"></div>
+
+      <!-- Filter row -->
+      <div class="filter-row">
+        <input type="text" id="filter-name" placeholder="🔍 Cari nama pemain…" oninput="renderTable()" />
+        <select id="sort-by" onchange="renderTable()">
+          <option value="totalPoints-desc">Skor ↓</option>
+          <option value="totalPoints-asc">Skor ↑</option>
+          <option value="completedAt-desc">Terbaru</option>
+          <option value="completedAt-asc">Terlama</option>
+          <option value="playerName-asc">Nama A–Z</option>
+        </select>
+        <span id="filter-count" style="font-size:12px;color:#666;margin-left:4px"></span>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr id="table-head"></tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Constants ──────────────────────────────────────────────────────────────
+    const ADMIN_PASSWORD = 'biovine2024';   // static admin password
+    const SCORES_KEY     = 'biovine_scores';
+
+    const LEVEL_LABELS = {
+      1: 'Level 1 – Lab',
+      2: 'Level 2 – Pabrik',
+      3: 'Level 3 – Kolam',
+      4: 'Level 4 – IPAL',
+      5: 'Level 5 – Obs. Lab',
+      6: 'Level 6 – Aula',
+    };
+
+    const LEVEL_COLORS = {
+      1: '#3498db',
+      2: '#e67e22',
+      3: '#2ecc71',
+      4: '#9b59b6',
+      5: '#1abc9c',
+      6: '#e74c3c',
+    };
+
+    // ── Auth ───────────────────────────────────────────────────────────────────
+    function doLogin() {
+      const pw = document.getElementById('admin-password').value;
+      if (pw === ADMIN_PASSWORD) {
+        document.getElementById('login-screen').style.display  = 'none';
+        document.getElementById('admin-panel').style.display   = 'block';
+        renderAll();
+      } else {
+        const err = document.getElementById('login-error');
+        err.style.display = 'block';
+        setTimeout(() => { err.style.display = 'none'; }, 3000);
+        document.getElementById('admin-password').style.borderColor = '#e74c3c';
+        setTimeout(() => { document.getElementById('admin-password').style.borderColor = ''; }, 2000);
+      }
+    }
+
+    document.getElementById('admin-password').addEventListener('keydown', e => {
+      if (e.key === 'Enter') doLogin();
+    });
+
+    function logout() {
+      document.getElementById('admin-panel').style.display  = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('admin-password').value = '';
+    }
+
+    // ── Data helpers ───────────────────────────────────────────────────────────
+    function getScores() {
+      try {
+        return JSON.parse(localStorage.getItem(SCORES_KEY) || '[]');
+      } catch { return []; }
+    }
+
+    function filteredSorted() {
+      const nameQ  = (document.getElementById('filter-name')?.value || '').toLowerCase();
+      const sortBy = document.getElementById('sort-by')?.value || 'totalPoints-desc';
+
+      let data = getScores().filter(s =>
+        !nameQ || (s.playerName || '').toLowerCase().includes(nameQ)
+      );
+
+      const [field, dir] = sortBy.split('-');
+      data.sort((a, b) => {
+        let va = a[field] ?? '', vb = b[field] ?? '';
+        if (typeof va === 'string') va = va.toLowerCase();
+        if (typeof vb === 'string') vb = vb.toLowerCase();
+        if (va < vb) return dir === 'asc' ? -1 :  1;
+        if (va > vb) return dir === 'asc' ?  1 : -1;
+        return 0;
+      });
+
+      return data;
+    }
+
+    // ── Render stats cards ─────────────────────────────────────────────────────
+    function renderStats() {
+      const scores = getScores();
+      const el     = document.getElementById('stats-row');
+      if (!scores.length) { el.innerHTML = ''; return; }
+
+      const totals  = scores.map(s => s.totalPoints || 0);
+      const maxPts  = Math.max(...totals);
+      const avgPts  = Math.round(totals.reduce((a, b) => a + b, 0) / totals.length);
+
+      el.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-val">${scores.length}</div>
+          <div class="stat-lbl">Total Pemain</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:#ffe040">${maxPts}</div>
+          <div class="stat-lbl">Skor Tertinggi</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:#2ecc71">${avgPts}</div>
+          <div class="stat-lbl">Rata-rata Skor</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val" style="color:#9b59b6">${scores.filter(s => Array.isArray(s.levelBreakdown) && s.levelBreakdown.length === 6).length}</div>
+          <div class="stat-lbl">Tamat (6 Level)</div>
+        </div>
+      `;
+    }
+
+    // ── Render table ───────────────────────────────────────────────────────────
+    function renderTable() {
+      const data = filteredSorted();
+
+      document.getElementById('filter-count').textContent =
+        data.length ? `${data.length} data ditemukan` : '';
+
+      // Detect which level columns actually have data
+      const usedLevels = [];
+      for (let l = 1; l <= 6; l++) {
+        if (data.some(s => Array.isArray(s.levelBreakdown) &&
+            s.levelBreakdown.find(e => e.level === l))) {
+          usedLevels.push(l);
+        }
+      }
+
+      // Table head
+      document.getElementById('table-head').innerHTML = `
+        <th>#</th>
+        <th>Nama Pemain</th>
+        <th>Total Poin</th>
+        ${usedLevels.map(l => `<th style="color:${LEVEL_COLORS[l]}">${LEVEL_LABELS[l] || 'Level '+l}</th>`).join('')}
+        <th>Waktu Selesai</th>
+        <th></th>
+      `;
+
+      const tbody = document.getElementById('table-body');
+
+      if (!data.length) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="${4 + usedLevels.length}" style="padding:0">
+              <div class="empty-state">
+                <div class="empty-icon">📋</div>
+                <p>Belum ada data skor tersimpan.</p>
+              </div>
+            </td>
+          </tr>`;
+        return;
+      }
+
+      tbody.innerHTML = '';
+
+      data.forEach((score, idx) => {
+        const rank  = idx + 1;
+        const badge = rank <= 3
+          ? `<span class="rank-badge rank-${rank}">${['🥇','🥈','🥉'][rank-1]}</span>`
+          : `<span class="rank-badge">${rank}</span>`;
+
+        const dt  = score.completedAt ? new Date(score.completedAt) : null;
+        const ts  = dt ? dt.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })
+                       + ' ' + dt.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' })
+                       : '–';
+
+        const levelCells = usedLevels.map(l => {
+          const entry = Array.isArray(score.levelBreakdown)
+            ? score.levelBreakdown.find(e => e.level === l)
+            : null;
+          if (!entry) return '<td style="color:#444">–</td>';
+          return `<td>
+            <span class="level-dot" style="background:${LEVEL_COLORS[l]}22;color:${LEVEL_COLORS[l]};border:1px solid ${LEVEL_COLORS[l]}44">
+              +${entry.points}
+            </span>
+          </td>`;
+        }).join('');
+
+        const rowId    = `row-${idx}`;
+        const detailId = `detail-${idx}`;
+
+        const tr = document.createElement('tr');
+        tr.id = rowId;
+        tr.innerHTML = `
+          <td>${badge}</td>
+          <td><strong>${escHtml(score.playerName || '–')}</strong></td>
+          <td class="points-total">${score.totalPoints || 0}</td>
+          ${levelCells}
+          <td class="ts">${ts}</td>
+          <td>
+            <button class="btn btn-outline" style="padding:4px 10px;font-size:11px"
+              onclick="toggleDetail(${idx})">▾ Detail</button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+
+        // Hidden detail row with breakdown
+        const dtr = document.createElement('tr');
+        dtr.id = detailId;
+        dtr.className = 'expand-row';
+        dtr.style.display = 'none';
+        dtr.innerHTML = `
+          <td colspan="${4 + usedLevels.length}">
+            <table class="breakdown-table">
+              ${Array.isArray(score.levelBreakdown) && score.levelBreakdown.length
+                ? score.levelBreakdown.map(e => `
+                    <tr>
+                      <td>${e.label || 'Level ' + e.level}</td>
+                      <td>+${e.points}</td>
+                    </tr>`).join('')
+                : '<tr><td colspan="2" style="color:#555">Tidak ada rincian tersedia.</td></tr>'
+              }
+              <tr style="border-top:1px solid rgba(255,255,255,.1);font-size:13px">
+                <td style="color:#fff;font-weight:700">Total</td>
+                <td>${score.totalPoints || 0}</td>
+              </tr>
+            </table>
+          </td>
+        `;
+        tbody.appendChild(dtr);
+      });
+    }
+
+    function toggleDetail(idx) {
+      const dtr = document.getElementById(`detail-${idx}`);
+      if (!dtr) return;
+      dtr.style.display = dtr.style.display === 'none' ? 'table-row' : 'none';
+    }
+
+    function renderAll() {
+      renderStats();
+      renderTable();
+    }
+
+    // ── Export JSON ────────────────────────────────────────────────────────────
+    function exportJSON() {
+      const scores = getScores();
+      const blob   = new Blob([JSON.stringify(scores, null, 2)], { type: 'application/json' });
+      const url    = URL.createObjectURL(blob);
+      const a      = document.createElement('a');
+      const today  = new Date().toISOString().slice(0, 10);
+      a.href     = url;
+      a.download = `biovine_scores_${today}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    // ── Clear all ──────────────────────────────────────────────────────────────
+    function clearAll() {
+      if (!confirm('Hapus semua data skor? Tindakan ini tidak bisa dibatalkan.')) return;
+      localStorage.removeItem(SCORES_KEY);
+      renderAll();
+    }
+
+    // ── Utility ────────────────────────────────────────────────────────────────
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+  </script>
+</body>
+</html>
