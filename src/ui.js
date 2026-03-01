@@ -241,6 +241,54 @@ export function initHUD() {
   $('btn-glossary').onclick = () => toggleGlossary();
 }
 
+// ─────────────────────────────────────────────────────
+// Pause Menu
+// ─────────────────────────────────────────────────────
+export function initPauseMenu(onResumeCheckpoint, onNewGame) {
+  const overlay = $('pause-menu-overlay');
+
+  $('btn-pause-menu').onclick = () => {
+    // Populate checkpoint info
+    const cp = loadCheckpoint();
+    const infoEl = $('pause-checkpoint-info');
+    const resumeBtn = $('btn-pm-resume');
+    if (cp) {
+      const d = new Date(cp.savedAt);
+      const fmt = d.toLocaleDateString('id-ID', { day:'2-digit', month:'short', year:'numeric' })
+                + ' ' + d.toLocaleTimeString('id-ID', { hour:'2-digit', minute:'2-digit' });
+      infoEl.innerHTML = `💾 Checkpoint tersimpan: <strong>${cp.playerName}</strong> · Level ${cp.currentLevel} · ${cp.totalPoints} poin<br><small style="color:#aaa">${fmt}</small>`;
+      resumeBtn.disabled = false;
+      resumeBtn.title = '';
+    } else {
+      infoEl.innerHTML = `<span style="color:#aaa">Belum ada checkpoint tersimpan.</span>`;
+      resumeBtn.disabled = true;
+      resumeBtn.title = 'Tidak ada checkpoint tersimpan';
+    }
+    overlay.classList.remove('hidden');
+  };
+
+  $('btn-pm-continue').onclick = () => {
+    overlay.classList.add('hidden');
+  };
+
+  $('btn-pm-resume').onclick = () => {
+    overlay.classList.add('hidden');
+    onResumeCheckpoint();
+  };
+
+  $('btn-pm-newgame').onclick = () => {
+    if (confirm('Yakin ingin memulai ulang? Semua progres sesi ini akan hilang.')) {
+      overlay.classList.add('hidden');
+      onNewGame();
+    }
+  };
+
+  // Close on backdrop click
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.add('hidden');
+  });
+}
+
 export function updateHUD() {
   $('hud-player').textContent = state.playerName || 'Pemain';
   $('hud-level').textContent  = `Level ${state.currentLevel}`;
@@ -875,6 +923,7 @@ export function buildUIHTML() {
         <span id="hud-points">0</span>
         <div id="hud-attempts"></div>
         <button id="btn-glossary">📖 Buku Saku</button>
+        <button id="btn-pause-menu">⚙️ Menu</button>
       </div>
     </div>
   `;
@@ -882,6 +931,17 @@ export function buildUIHTML() {
 
   const ui = $('ui-overlay');
   ui.innerHTML = `
+    <!-- PAUSE MENU MODAL -->
+    <div id="pause-menu-overlay" class="hidden">
+      <div id="pause-menu-card">
+        <div id="pause-menu-title">⚙️ Menu Permainan</div>
+        <div id="pause-checkpoint-info"></div>
+        <button class="btn-pause-action" id="btn-pm-continue">▶ Lanjutkan Bermain</button>
+        <button class="btn-pause-action btn-pause-checkpoint" id="btn-pm-resume">↩ Kembali ke Checkpoint</button>
+        <button class="btn-pause-action btn-pause-newgame" id="btn-pm-newgame">🔄 Mulai Ulang (New Game)</button>
+      </div>
+    </div>
+
     <!-- PROFILE SCREEN -->
     <div class="screen" id="profile-screen">
       <div class="profile-card">

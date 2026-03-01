@@ -158,6 +158,22 @@ body {
   color: #000;
 }
 
+#btn-pause-menu {
+  background: none;
+  border: 1.5px solid #f0a830;
+  color: #f0a830;
+  border-radius: 8px;
+  padding: 5px 13px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+  pointer-events: all;
+}
+#btn-pause-menu:hover {
+  background: #f0a830;
+  color: #000;
+}
+
 /* ===== SCREENS ===== */
 .screen {
   position: absolute;
@@ -1233,4 +1249,79 @@ body {
     padding: 20px 14px;
     gap: 16px;
   }
+}
+
+/* ===== PAUSE MENU MODAL ===== */
+#pause-menu-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 950;
+  backdrop-filter: blur(4px);
+}
+#pause-menu-overlay.hidden {
+  display: none !important;
+}
+#pause-menu-card {
+  background: linear-gradient(160deg, #0d1f35 0%, #0a2210 100%);
+  border: 1px solid rgba(240, 168, 48, 0.4);
+  border-radius: 18px;
+  padding: 36px 40px;
+  width: min(400px, 90vw);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 0 60px rgba(240, 168, 48, 0.15), 0 8px 40px rgba(0,0,0,0.6);
+}
+#pause-menu-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #f0a830;
+  text-align: center;
+  margin-bottom: 4px;
+  text-shadow: 0 0 12px #f0a83066;
+}
+#pause-checkpoint-info {
+  font-size: 0.85rem;
+  color: #cde;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  padding: 10px 14px;
+  line-height: 1.6;
+  min-height: 44px;
+}
+.btn-pause-action {
+  width: 100%;
+  padding: 13px 0;
+  border-radius: 10px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter 0.18s, transform 0.12s;
+  letter-spacing: 0.02em;
+}
+.btn-pause-action:hover:not(:disabled) {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+.btn-pause-action:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+}
+#btn-pm-continue {
+  background: linear-gradient(90deg, #00d4ff, #00a88a);
+  color: #001a20;
+}
+.btn-pause-checkpoint {
+  background: linear-gradient(90deg, #f0a830, #e07020);
+  color: #1a0a00;
+}
+.btn-pause-newgame {
+  background: rgba(255,255,255,0.08);
+  color: #e0e8ff;
+  border: 1px solid rgba(255,255,255,0.18) !important;
 }

@@ -13,6 +13,7 @@ import {
   showProfileScreen,
   showInstructions,
   showIntroVideo,
+  initPauseMenu,
   showQuestionPanel,
   showLevel2QuestionPanel,
   initHUD,
@@ -27,7 +28,7 @@ import { showStage3 } from './stage3UI.js';
 import { showStage4 } from './stage4UI.js';
 import { showStage5 } from './stage5UI.js';
 import { showStage6 } from './stage6UI.js';
-import { saveCheckpoint } from './db.js';
+import { saveCheckpoint, loadCheckpoint } from './db.js';
 
 // ─────────────────────────────────────────────────────
 // Renderer & Scene Setup
@@ -664,6 +665,10 @@ function resumeToLevel(checkpoint) {
   document.getElementById('hud').style.display = 'block';
   initHUD();
   updateHUD();
+  initPauseMenu(
+    () => { resumeToLevel(loadCheckpoint()); },
+    () => { location.reload(); }
+  );
 }
 
 showProfileScreen(
@@ -676,6 +681,10 @@ showProfileScreen(
         document.getElementById('hud').style.display = 'block';
         initHUD();
         updateHUD();
+        initPauseMenu(
+          () => { resumeToLevel(loadCheckpoint()); },
+          () => { location.reload(); }
+        );
       });
     });
   },
