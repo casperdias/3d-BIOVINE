@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import { state, resetLevelState, recordLevelPoints } from './state.js';
 import { stage1 } from './stages/stage1.js';
 import { stage2 } from './stages/stage2.js';
@@ -63,6 +64,132 @@ export function showProfileScreen(cb, resumeCb) {
 
 function hideProfileScreen() {
   $('profile-screen').classList.add('hidden');
+}
+
+// ─────────────────────────────────────────────────────
+// Intro Video Screen (shown once after profile is created)
+// ─────────────────────────────────────────────────────
+let _introAssetRenderer = null;  // keep ref so we can dispose it
+
+export function showIntroVideo(cb) {
+  const screen = $('intro-video-screen');
+  screen.classList.remove('hidden');
+
+  // ── Build the Three.js 3-D asset ─────────────────────────────
+  const assetCanvas = $('intro-3d-canvas');
+  const W = assetCanvas.clientWidth  || 320;
+  const H = assetCanvas.clientHeight || 320;
+  assetCanvas.width  = W;
+  assetCanvas.height = H;
+
+  const ivRenderer = new THREE.WebGLRenderer({ canvas: assetCanvas, antialias: true, alpha: true });
+  ivRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  ivRenderer.setSize(W, H);
+  ivRenderer.setClearColor(0x000000, 0);
+  _introAssetRenderer = ivRenderer;
+
+  const ivScene  = new THREE.Scene();
+  const ivCamera = new THREE.PerspectiveCamera(55, W / H, 0.1, 100);
+  ivCamera.position.set(0, 0, 6);
+
+  // Ambient + point lights
+  ivScene.add(new THREE.AmbientLight(0xffffff, 0.4));
+  const pLight = new THREE.PointLight(0x00ff99, 3, 20);
+  pLight.position.set(3, 3, 3);
+  ivScene.add(pLight);
+  const pLight2 = new THREE.PointLight(0x00d4ff, 2, 20);
+  pLight2.position.set(-3, -2, 2);
+  ivScene.add(pLight2);
+
+  // Central nucleus — glowing sphere
+  const nucleusMat = new THREE.MeshStandardMaterial({
+    color: 0x00ff99, emissive: 0x006633, emissiveIntensity: 1.2,
+    roughness: 0.2, metalness: 0.6,
+  });
+  const nucleus = new THREE.Mesh(new THREE.SphereGeometry(0.9, 32, 32), nucleusMat);
+  ivScene.add(nucleus);
+
+  // Three orbital rings
+  const ringMat = new THREE.MeshStandardMaterial({
+    color: 0x00d4ff, emissive: 0x005566, emissiveIntensity: 0.8,
+    roughness: 0.3, metalness: 0.5,
+  });
+  const orbits = [
+    { tilt: 0,              speed: 1.2, radius: 1.9 },
+    { tilt: Math.PI / 3,   speed: 0.9, radius: 2.3 },
+    { tilt: -Math.PI / 4,  speed: 1.5, radius: 2.0 },
+  ];
+  const orbitGroups = [];
+  const electrons   = [];
+  orbits.forEach(o => {
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(o.radius, 0.04, 8, 64),
+      ringMat.clone()
+    );
+    ring.rotation.x = o.tilt;
+    ivScene.add(ring);
+
+    // Electron (small glowing sphere) on each ring
+    const eMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff, emissive: 0x00ffcc, emissiveIntensity: 2,
+      roughness: 0.1, metalness: 0.8,
+    });
+    const electron = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), eMat);
+    const group = new THREE.Group();
+    group.rotation.x = o.tilt;
+    electron.position.set(o.radius, 0, 0);
+    group.add(electron);
+    ivScene.add(group);
+    orbitGroups.push({ group, speed: o.speed });
+    electrons.push(electron);
+  });
+
+  // Particle cloud
+  const particleCount = 80;
+  const pPositions = new Float32Array(particleCount * 3);
+  for (let i = 0; i < particleCount; i++) {
+    const phi   = Math.acos(2 * Math.random() - 1);
+    const theta = Math.random() * Math.PI * 2;
+    const r     = 2.8 + Math.random() * 1.2;
+    pPositions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+    pPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+    pPositions[i * 3 + 2] = r * Math.cos(phi);
+  }
+  const pGeo = new THREE.BufferGeometry();
+  pGeo.setAttribute('position', new THREE.BufferAttribute(pPositions, 3));
+  const pMat = new THREE.PointsMaterial({ color: 0x00ff99, size: 0.06, sizeAttenuation: true });
+  const particles = new THREE.Points(pGeo, pMat);
+  ivScene.add(particles);
+
+  // Animation loop (stopped when screen hides)
+  let ivRafId = null;
+  const ivClock = new THREE.Clock();
+  function ivAnimate() {
+    ivRafId = requestAnimationFrame(ivAnimate);
+    const t = ivClock.getElapsedTime();
+    nucleus.rotation.y = t * 0.5;
+    nucleus.rotation.x = t * 0.3;
+    orbitGroups.forEach(o => { o.group.rotation.y = t * o.speed; });
+    particles.rotation.y = t * 0.08;
+    particles.rotation.x = t * 0.04;
+    ivRenderer.render(ivScene, ivCamera);
+  }
+  ivAnimate();
+
+  // ── Button handler ───────────────────────────────────────────
+  $('btn-intro-continue').onclick = () => {
+    // Stop animation & free GPU resources
+    cancelAnimationFrame(ivRafId);
+    ivRenderer.dispose();
+    _introAssetRenderer = null;
+
+    // Mute & remove the YouTube iframe so audio stops
+    const iframe = $('intro-yt-iframe');
+    if (iframe) iframe.src = '';
+
+    screen.classList.add('hidden');
+    cb();
+  };
 }
 
 // ─────────────────────────────────────────────────────
@@ -824,6 +951,41 @@ export function buildUIHTML() {
         </div>
 
         <button class="btn-primary" id="btn-start-game">🚀 Mulai Level 1</button>
+      </div>
+    </div>
+
+    <!-- INTRO VIDEO SCREEN -->
+    <div class="screen hidden" id="intro-video-screen">
+      <div class="intro-video-card">
+        <div class="intro-header">
+          <div class="intro-logo">🌿</div>
+          <div class="intro-title-block">
+            <h2>Selamat Datang di 3D BIOVINE</h2>
+            <p>Pelajari lebih lanjut tentang pencemaran limbah vinasse dan cara penanggulangannya</p>
+          </div>
+        </div>
+
+        <div class="intro-content-row">
+          <!-- YouTube Embed -->
+          <div class="intro-video-wrap">
+            <iframe
+              id="intro-yt-iframe"
+              src="https://www.youtube.com/embed/QXk8Tc14dq0?autoplay=1&mute=0&rel=0&modestbranding=1"
+              title="BIOVINE Intro Video"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowfullscreen
+            ></iframe>
+          </div>
+
+          <!-- 3-D Asset Canvas -->
+          <div class="intro-3d-wrap">
+            <canvas id="intro-3d-canvas"></canvas>
+            <div class="intro-3d-label">Model Molekul Vinasse 3D</div>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="btn-intro-continue">Lanjutkan ke Petunjuk Permainan →</button>
       </div>
     </div>
 

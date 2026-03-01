@@ -12,6 +12,7 @@ import {
   buildUIHTML,
   showProfileScreen,
   showInstructions,
+  showIntroVideo,
   showQuestionPanel,
   showLevel2QuestionPanel,
   initHUD,
@@ -669,11 +670,13 @@ showProfileScreen(
   // New game callback
   name => {
     player.setName(name);
-    showInstructions(() => {
-      gameStarted = true;
-      document.getElementById('hud').style.display = 'block';
-      initHUD();
-      updateHUD();
+    showIntroVideo(() => {
+      showInstructions(() => {
+        gameStarted = true;
+        document.getElementById('hud').style.display = 'block';
+        initHUD();
+        updateHUD();
+      });
     });
   },
   // Resume callback
