@@ -84,8 +84,655 @@ export function startBgMusic() {
 }
 
 export function showIntroVideo(cb) {
-  // TODO: rewrite intro video scene
-  cb();
+  const screen = $('intro-video-screen');
+  screen.classList.remove('hidden');
+
+  // ── Canvas / Renderer ──────────────────────────────────────────────
+  const canvas = $('intro-3d-canvas');
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  // false = don't set canvas CSS style (let CSS width:100%/height:100% handle it)
+  renderer.setSize(W, H, false);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type    = THREE.PCFSoftShadowMap;
+  _introAssetRenderer = renderer;
+
+  // ── Scene / Camera ─────────────────────────────────────────────────
+  const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x87ceeb);
+  scene.fog = new THREE.Fog(0xb8d8f0, 90, 210);
+
+  const camera = new THREE.PerspectiveCamera(50, W / H, 0.1, 300);
+  camera.position.set(0, 65, 75);
+  camera.lookAt(0, 0, 0);
+
+  // ── Lights ─────────────────────────────────────────────────────────
+  scene.add(new THREE.HemisphereLight(0x9ed4f8, 0x5a7a40, 1.2));
+  const sun = new THREE.DirectionalLight(0xfff7e0, 2.8);
+  sun.position.set(40, 80, 50);
+  sun.castShadow = true;
+  sun.shadow.mapSize.setScalar(2048);
+  sun.shadow.camera.left = sun.shadow.camera.bottom = -90;
+  sun.shadow.camera.right = sun.shadow.camera.top    =  90;
+  sun.shadow.camera.far  = 220;
+  scene.add(sun);
+  const fillLight = new THREE.DirectionalLight(0xb0d0ff, 0.45);
+  fillLight.position.set(-30, 25, -20);
+  scene.add(fillLight);
+  scene.add(new THREE.Mesh(
+    new THREE.SphereGeometry(190, 16, 8),
+    new THREE.MeshBasicMaterial({ color: 0x6aaee0, side: THREE.BackSide })
+  ));
+
+  // ── Small helpers ──────────────────────────────────────────────────
+  function smat(col, rough = 0.78, metal = 0, em, emI) {
+    const p = { color: col, roughness: rough, metalness: metal };
+    if (em !== undefined) { p.emissive = em; p.emissiveIntensity = emI || 0.2; }
+    return new THREE.MeshStandardMaterial(p);
+  }
+  function box(x, y, z, w, h, d, m) {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m);
+    mesh.position.set(x, y + h * 0.5, z);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    scene.add(mesh); return mesh;
+  }
+  function cyl(x, y, z, rt, rb, h, seg, m) {
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, seg), m);
+    mesh.position.set(x, y + h * 0.5, z);
+    mesh.castShadow = true; mesh.receiveShadow = true;
+    scene.add(mesh); return mesh;
+  }
+  function water(x, z, w, d, col, op = 0.84) {
+    const mesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(w, d),
+      new THREE.MeshStandardMaterial({
+        color: col, transparent: true, opacity: op, roughness: 0.04, metalness: 0.18,
+      })
+    );
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.position.set(x, 0.22, z);
+    scene.add(mesh); return mesh;
+  }
+  function pipe(ax, ay, az, bx, by, bz, col = 0x556677, r = 0.24) {
+    const a = new THREE.Vector3(ax, ay, az);
+    const b = new THREE.Vector3(bx, by, bz);
+    const d = b.clone().sub(a), len = d.length();
+    if (len < 0.05) return;
+    const m = new THREE.Mesh(new THREE.CylinderGeometry(r, r, len, 8), smat(col, 0.45, 0.65));
+    m.position.copy(a.clone().add(b).multiplyScalar(0.5));
+    m.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize());
+    scene.add(m);
+  }
+
+  // ====================================================================
+  // GROUND
+  // ====================================================================
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(260, 260), smat(0x7a9458, 0.95));
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+  // Paved compound
+  box(6, -0.05, 1, 82, 0.1, 68, smat(0xb2a990, 0.88));
+
+  // ====================================================================
+  // CHANNEL ARRAY  (7 parallel east-west channels, serpentine flow)
+  // Each channel: length 26 (X: -13..+13), width 5 (Z), walls 1.4 tall
+  // Spaced 7 units apart in Z.  Centers at Z: -21,-14,-7,0,7,14,21
+  // Serpentine: ch0 W→E, ch1 E→W … ch6 W→E (exits east → clarifier)
+  // ====================================================================
+  const N_CH    = 7;
+  const CH_HALF = 13;   // half-length in X
+  const CH_W    = 5;    // width in Z
+  const CH_STEP = 7;    // row spacing
+  const WALL_H  = 1.4;
+  const WALL_T  = 0.36;
+
+  const chZ = i => -21 + i * CH_STEP;  // Z centre of channel i
+
+  const waterCols = [
+    0x7a3310,  // ch0 raw (dark brown)
+    0x6a4a16,  // ch1 screened
+    0x4a5a28,  // ch2 equalized
+    0x2d6e48,  // ch3 start aeration (dark green)
+    0x20787a,  // ch4 active aeration (teal)
+    0x188a9a,  // ch5 secondary settled (blue-teal)
+    0x0ea8cc,  // ch6 treated (clear blue)
+  ];
+
+  const channelWaterMeshes = [];  // { mesh, baseOp }
+  const aeratorMeshes = [];
+
+  for (let i = 0; i < N_CH; i++) {
+    const cz  = chZ(i);
+    const col = waterCols[i];
+    const wm  = smat(0x7a8070, 0.78);
+
+    // North wall
+    box(0, 0, cz - CH_W / 2,              CH_HALF * 2 + WALL_T * 2, WALL_H, WALL_T, wm);
+    // South wall
+    box(0, 0, cz + CH_W / 2,              CH_HALF * 2 + WALL_T * 2, WALL_H, WALL_T, wm);
+    // West end wall
+    box(-CH_HALF, 0, cz,                  WALL_T, WALL_H, CH_W,              wm);
+    // East end wall
+    box( CH_HALF, 0, cz,                  WALL_T, WALL_H, CH_W,              wm);
+    // Floor (concrete)
+    box(0, -0.25, cz, CH_HALF * 2, 0.28, CH_W,            smat(0xa09880, 0.88));
+
+    // Water surface
+    const baseOp = 0.76 + i * 0.015;
+    const wMesh = water(0, cz, CH_HALF * 2 - 0.1, CH_W - 0.12, col, baseOp);
+    channelWaterMeshes.push({ mesh: wMesh, baseOp });
+
+    // Aerators in biological channels (ch3 and ch4)
+    if (i === 3 || i === 4) {
+      for (let k = -1; k <= 1; k++) {
+        const ae = cyl(k * 7, 0.25, cz, 0.75, 0.75, 0.28, 12,
+                       smat(0xaabbcc, 0.4, 0.55, 0x3399cc, 0.3));
+        aeratorMeshes.push(ae);
+        box(k * 7, 0.28, cz, 0.14, 1.0, 0.14, smat(0x888999, 0.5, 0.5));
+      }
+    }
+  }
+
+  // Walkways between rows and perimeter paths
+  const walkMat = smat(0xc2b8a2, 0.88);
+  for (let i = 0; i <= N_CH; i++) {
+    const wz = -21 - CH_STEP / 2 + i * CH_STEP;
+    box(6, 0, wz, 82, 0.12, 2.0, walkMat);
+  }
+  box(-20, 0,  1, 2.2, 0.12, 70, walkMat); // west side path
+  box( 32, 0,  1, 2.2, 0.12, 70, walkMat); // east side path
+
+  // U-turn junction boxes at alternating channel ends
+  // ch0→ch1: east end (+13)   ch1→ch2: west end (-13) … etc.
+  for (let i = 0; i < N_CH - 1; i++) {
+    const ex  = (i % 2 === 0) ? CH_HALF + 0.5 : -(CH_HALF + 0.5);
+    const z1  = chZ(i), z2 = chZ(i + 1);
+    box(ex, 0, (z1 + z2) * 0.5, 2.2, WALL_H, Math.abs(z2 - z1) + 0.5,
+        smat(0x6a7888, 0.65, 0.3));
+  }
+
+  // ====================================================================
+  // INTAKE / SCREENING BUILDING  (top-left, matches photo)
+  // ====================================================================
+  box(-28, 0, -30, 12, 5.5, 8,  smat(0x5a6878, 0.62, 0.1));
+  box(-28, 5.5, -30, 12.5, 0.55, 8.5, smat(0x3a4858, 0.5));
+  // Bar screen slots
+  for (let s = -1.5; s <= 1.5; s += 0.65) {
+    box(-22.8, 0, -30 + s, 0.1, 2.4, 0.1, smat(0x334455, 0.4, 0.7));
+  }
+  // Windows
+  box(-27, 2.0, -33.7, 1.8, 1.2, 0.08, smat(0x88ddff, 0.08, 0.0, 0x003355, 0.9));
+  box(-29.5, 2.0, -33.7, 1.8, 1.2, 0.08, smat(0x88ddff, 0.08, 0.0, 0x003355, 0.9));
+
+  // ====================================================================
+  // EQUALIZATION TANK  (left middle, between intake and first channel)
+  // ====================================================================
+  const EQ_X = -24, EQ_Z = -14;
+  const EQ_W = 12, EQ_D = 9;
+  box(EQ_X, 0, EQ_Z, EQ_W, 1.5, EQ_D, smat(0x6e7e70, 0.75));
+  box(EQ_X, 0, EQ_Z, EQ_W - WALL_T * 2, 0.24, EQ_D - WALL_T * 2, smat(0x9a9088, 0.88));
+  const equalizationWater = water(EQ_X, EQ_Z, EQ_W - 0.8, EQ_D - 0.8, 0x5a7040, 0.82);
+  // Pipes: intake → EQ → channel-0 west
+  pipe(-22, 0.9, -28, -22, 0.9, -14, 0x445566, 0.3);
+  pipe(-18.2, 0.9, -14, -13.2, 0.9, -21, 0x445566, 0.3);
+
+  // ====================================================================
+  // PUMP STATION  (left side, below EQ)
+  // ====================================================================
+  box(-28, 0, 8, 8, 4.5, 6.5, smat(0x6a7070, 0.65, 0.1));
+  box(-28, 4.5, 8, 8.5, 0.42, 7.0, smat(0x3a4050, 0.5));
+  // Chimney
+  cyl(-25.5, 4.9, 6, 0.34, 0.34, 4.5, 10, smat(0x888898, 0.5, 0.3));
+  // Inlet manifold pipes along west side
+  for (let k = 0; k < 3; k++) {
+    pipe(-18.5, 0.8, -21 + k * 14, -21, 0.8, -21 + k * 14, 0x445566, 0.2);
+  }
+
+  // ====================================================================
+  // SLUDGE DRYING BEDS  (bottom-left, matching dark rectangular pads)
+  // ====================================================================
+  [-14, -6, 2].forEach(dx => {
+    box(-32 + dx * 0.3, 0, 32, 6, 0.42, 9.5, smat(0xa09060, 0.93));
+  });
+
+  // ====================================================================
+  // CIRCULAR SECONDARY CLARIFIER  (right side, mirrors the photo)
+  // ====================================================================
+  const CL_X = 30, CL_Z = 18, CL_R = 10;
+  // Outer ring wall
+  cyl(CL_X, 0, CL_Z, CL_R + 0.55, CL_R + 0.55, 1.6, 48, smat(0x7a8878, 0.70));
+  // Make the outer visible as a ring by slightly shorter inner
+  cyl(CL_X, 0, CL_Z, CL_R,        CL_R,        1.6, 48, smat(0x7a8878, 0.70));
+  // Floor
+  cyl(CL_X, -0.25, CL_Z, CL_R, CL_R, 0.28, 48, smat(0x9a8870, 0.88));
+  // Water
+  const clarifier = new THREE.Mesh(
+    new THREE.CircleGeometry(CL_R - 0.08, 48),
+    new THREE.MeshStandardMaterial({
+      color: 0x2ea8b8, transparent: true, opacity: 0.86, roughness: 0.04, metalness: 0.2,
+    })
+  );
+  clarifier.rotation.x = -Math.PI / 2;
+  clarifier.position.set(CL_X, 0.22, CL_Z);
+  scene.add(clarifier);
+  // Centre column + rotating bridge
+  cyl(CL_X, 1.6, CL_Z, 0.58, 0.58, 3.8, 10, smat(0x5a6a77, 0.5, 0.5));
+  box(CL_X, 1.6, CL_Z, CL_R * 2 - 0.3, 0.22, 0.38, smat(0x8899aa, 0.45, 0.4));
+  // Inverted sludge cone
+  const sludgeConeM = new THREE.Mesh(new THREE.ConeGeometry(4.5, 2.8, 32), smat(0x5a3310, 0.85));
+  sludgeConeM.rotation.x = Math.PI;
+  sludgeConeM.position.set(CL_X, 0.9, CL_Z);
+  scene.add(sludgeConeM);
+  // Feed pipe: ch6 east end → clarifier
+  pipe(CH_HALF + 0.4, 0.9, chZ(6), CL_X - CL_R - 0.6, 0.9, CL_Z, 0x446688, 0.3);
+
+  // ====================================================================
+  // TERTIARY FILTER BEDS + UV DISINFECTION  (far right)
+  // ====================================================================
+  [[44, -10], [52, -10]].forEach(([tx, tz]) => {
+    box(tx, 0, tz, 6.5, 1.1, 10,  smat(0x788898, 0.70));
+    water(tx, tz, 6.0, 9.5, 0x66aacc, 0.82);
+  });
+  // UV column
+  cyl(58, 0, -5, 0.95, 0.95, 3.4, 14, smat(0xddeeff, 0.32, 0.28, 0x8844ff, 0.40));
+  pipe(CL_X + CL_R + 0.5, 0.9, CL_Z, 44, 0.9, -10, 0x446688, 0.28);
+  pipe(48, 0.9, -10, 52, 0.9, -10, 0x446688, 0.25);
+  pipe(55.5, 0.9, -10, 58, 0.9, -5,  0x446688, 0.25);
+
+  // ====================================================================
+  // SPARING MONITORING POLE + RIVER DISCHARGE
+  // ====================================================================
+  box(58, 0, 16, 0.36, 9, 0.36, smat(0x999aaa, 0.40, 0.60));
+  box(58, 9, 16, 1.6, 0.9, 1.0, smat(0xcc2222, 0.50, 0.30, 0xff0000, 0.55));
+  const sparingLED = new THREE.Mesh(
+    new THREE.SphereGeometry(0.32, 8, 8),
+    new THREE.MeshStandardMaterial({ color: 0xff2222, emissive: 0xff0000, emissiveIntensity: 2.5 })
+  );
+  sparingLED.position.set(58, 10.2, 16);
+  scene.add(sparingLED);
+  // TX data spheres
+  const txSpheres = [];
+  for (let i = 0; i < 4; i++) {
+    const ts = new THREE.Mesh(
+      new THREE.SphereGeometry(0.22, 6, 6),
+      new THREE.MeshStandardMaterial({
+        color: 0x22ffbb, emissive: 0x00cc88, emissiveIntensity: 1.8,
+        transparent: true, opacity: 0.9,
+      })
+    );
+    ts.userData.i = i;
+    scene.add(ts);
+    txSpheres.push(ts);
+  }
+  // River (discharge canal)
+  const river = water(72, 8, 18, 60, 0x2288bb, 0.78);
+  pipe(58, 0.9, -5, 66, 0.9, 0, 0x446688, 0.3);
+
+  // ====================================================================
+  // TREES   (dense perimeter matching aerial photo)
+  // ====================================================================
+  const trunkMat = new THREE.MeshStandardMaterial({ color: 0x6b3a0a, roughness: 0.95 });
+  const foliageMats = [
+    smat(0x2d7d3a, 0.9), smat(0x3a8f44, 0.88), smat(0x4a9940, 0.85),
+    smat(0x22883a, 0.92), smat(0x538830, 0.87), smat(0x1e6622, 0.93),
+  ];
+  const treePos = [];
+  for (let tx = -58; tx <= 78; tx += 6.5) { treePos.push([tx, -42]); treePos.push([tx, 44]); }
+  for (let tz = -40; tz <= 42; tz += 6.5) { treePos.push([-58, tz]); treePos.push([78, tz]); }
+  [[-44,-22],[-46,-8],[-44,18],[-44,30],
+   [56,-28],[58,-12],[56,10],[56,30],
+   [-36,38],[-18,40],[2,40],[20,40],[38,40],
+   [-36,-36],[-18,-38],[2,-38],[22,-38],[42,-36],[52,-36],
+  ].forEach(p => treePos.push(p));
+
+  treePos.forEach(([tx, tz]) => {
+    const s  = 0.85 + Math.random() * 0.75;
+    const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.18*s, 0.30*s, 2.2*s, 7), trunkMat);
+    tr.position.set(tx, 1.1*s, tz); tr.castShadow = true; scene.add(tr);
+    const fm = foliageMats[Math.floor(Math.random() * foliageMats.length)];
+    if (Math.random() > 0.42) {
+      const fo = new THREE.Mesh(new THREE.SphereGeometry(1.5*s, 8, 7), fm);
+      fo.position.set(tx, 3.8*s, tz); fo.castShadow = true; scene.add(fo);
+    } else {
+      for (let tier = 0; tier < 3; tier++) {
+        const co = new THREE.Mesh(new THREE.ConeGeometry((1.3-tier*0.28)*s, 1.3*s, 8), fm);
+        co.position.set(tx, (2.5+tier*1.2)*s, tz); co.castShadow = true; scene.add(co);
+      }
+    }
+  });
+
+  // ====================================================================
+  // SERPENTINE FLOW PATH
+  // Intake → EQ → ch0(W→E) → ch1(E→W) → … → ch6(W→E) → clarifier → filter → river
+  // ====================================================================
+  const flowPath = new THREE.CatmullRomCurve3([
+    // Intake building → EQ
+    new THREE.Vector3(-23,  0.7, -30),
+    new THREE.Vector3(-23,  0.7, -21),
+    new THREE.Vector3(EQ_X, 0.7, EQ_Z),
+    // EQ → channel 0 (west end, flows →E)
+    new THREE.Vector3(-13,  0.7, -21),
+    new THREE.Vector3(  0,  0.7, -21),
+    new THREE.Vector3( 13,  0.7, -21),
+    // Junction east: ch0 → ch1 (east end, z=-21 to z=-14)
+    new THREE.Vector3( 14,  0.7, -17.5),
+    new THREE.Vector3( 13,  0.7, -14),
+    // Channel 1 (E→W)
+    new THREE.Vector3(  0,  0.7, -14),
+    new THREE.Vector3(-13,  0.7, -14),
+    // Junction west: ch1 → ch2 (z=-14 to z=-7)
+    new THREE.Vector3(-14,  0.7, -10.5),
+    new THREE.Vector3(-13,  0.7,  -7),
+    // Channel 2 (W→E)
+    new THREE.Vector3(  0,  0.7,  -7),
+    new THREE.Vector3( 13,  0.7,  -7),
+    // Junction east: ch2 → ch3 (z=-7 to z=0)
+    new THREE.Vector3( 14,  0.7,  -3.5),
+    new THREE.Vector3( 13,  0.7,   0),
+    // Channel 3 (E→W)
+    new THREE.Vector3(  0,  0.7,   0),
+    new THREE.Vector3(-13,  0.7,   0),
+    // Junction west: ch3 → ch4 (z=0 to z=7)
+    new THREE.Vector3(-14,  0.7,   3.5),
+    new THREE.Vector3(-13,  0.7,   7),
+    // Channel 4 (W→E)
+    new THREE.Vector3(  0,  0.7,   7),
+    new THREE.Vector3( 13,  0.7,   7),
+    // Junction east: ch4 → ch5 (z=7 to z=14)
+    new THREE.Vector3( 14,  0.7,  10.5),
+    new THREE.Vector3( 13,  0.7,  14),
+    // Channel 5 (E→W)
+    new THREE.Vector3(  0,  0.7,  14),
+    new THREE.Vector3(-13,  0.7,  14),
+    // Junction west: ch5 → ch6 (z=14 to z=21)
+    new THREE.Vector3(-14,  0.7,  17.5),
+    new THREE.Vector3(-13,  0.7,  21),
+    // Channel 6 (W→E)
+    new THREE.Vector3(  0,  0.7,  21),
+    new THREE.Vector3( 13,  0.7,  21),
+    // ch6 → Clarifier
+    new THREE.Vector3( 22,  0.7,  21),
+    new THREE.Vector3( CL_X, 0.7, CL_Z),
+    // Clarifier → filter → UV → river
+    new THREE.Vector3( 44,  0.7, -10),
+    new THREE.Vector3( 58,  0.7,  -5),
+    new THREE.Vector3( 66,  0.7,   0),
+  ]);
+
+  // ── Color lerp (brown → clear blue) ─────────────────────────────
+  function lerpHex(c1, c2, t) {
+    const r1=(c1>>16)&255, g1=(c1>>8)&255, b1=c1&255;
+    const r2=(c2>>16)&255, g2=(c2>>8)&255, b2=c2&255;
+    return (Math.round(r1+(r2-r1)*t)<<16)|(Math.round(g1+(g2-g1)*t)<<8)|Math.round(b1+(b2-b1)*t);
+  }
+
+  // ====================================================================
+  // PARTICLES
+  // ====================================================================
+  // Flow particles (brown → clear blue)
+  const FLOW_N = 55;
+  const flowMeshes = [];
+  for (let i = 0; i < FLOW_N; i++) {
+    const t0  = i / FLOW_N;
+    const col = lerpHex(0x7a2800, 0x10a8d8, t0);
+    const fm  = new THREE.Mesh(
+      new THREE.SphereGeometry(0.30, 6, 6),
+      new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.5, roughness: 0.3 })
+    );
+    fm.userData.t = t0;
+    scene.add(fm);
+    flowMeshes.push(fm);
+  }
+
+  // Aeration bubbles in biological channels
+  const bubbles = [];
+  const BUBBLE_N = 50;
+  const bZones = [[-7, 0], [0, 0], [7, 0],   // ch3  (z=0)
+                  [-7, 7], [0, 7], [7, 7]];    // ch4  (z=7)
+  for (let i = 0; i < BUBBLE_N; i++) {
+    const zone = bZones[i % bZones.length];
+    const bm = new THREE.Mesh(
+      new THREE.SphereGeometry(0.07 + Math.random() * 0.09, 5, 5),
+      new THREE.MeshStandardMaterial({ color: 0xb8e8ff, transparent: true, opacity: 0.72 })
+    );
+    bm.userData.phase = (i / BUBBLE_N) * Math.PI * 2;
+    bm.userData.ox = zone[0] + (Math.random() - 0.5) * 10;
+    bm.userData.oz = zone[1] + (Math.random() - 0.5) * (CH_W - 1);
+    scene.add(bm);
+    bubbles.push(bm);
+  }
+
+  // Sludge particles settling in clarifier
+  const sludgeParticles = [];
+  const SLUDGE_N = 28;
+  for (let i = 0; i < SLUDGE_N; i++) {
+    const sp = new THREE.Mesh(
+      new THREE.SphereGeometry(0.14, 5, 5),
+      new THREE.MeshStandardMaterial({ color: 0x6b3311, transparent: true, opacity: 0.78 })
+    );
+    sp.userData.phase = i / SLUDGE_N;
+    sp.userData.ang   = Math.random() * Math.PI * 2;
+    sp.userData.r     = 1.5 + Math.random() * (CL_R - 3);
+    scene.add(sp);
+    sludgeParticles.push(sp);
+  }
+
+  // Chimney smoke from pump station
+  const smokeMeshes = [];
+  const SMOKE_N = 22;
+  for (let i = 0; i < SMOKE_N; i++) {
+    const sm = new THREE.Mesh(
+      new THREE.SphereGeometry(0.26, 5, 5),
+      new THREE.MeshStandardMaterial({ color: 0xaaaaaa, transparent: true, opacity: 0.38 })
+    );
+    sm.userData.life = i / SMOKE_N;
+    sm.userData.ox   = (Math.random() - 0.5) * 0.6;
+    sm.userData.oz   = (Math.random() - 0.5) * 0.6;
+    scene.add(sm);
+    smokeMeshes.push(sm);
+  }
+
+  // Chlorine dose drops at UV column
+  const doseDrops = [];
+  const DOSE_N = 12;
+  for (let i = 0; i < DOSE_N; i++) {
+    const dm = new THREE.Mesh(
+      new THREE.SphereGeometry(0.13, 5, 5),
+      new THREE.MeshStandardMaterial({ color: 0xddff88, transparent: true, opacity: 0.88 })
+    );
+    dm.userData.phase = i / DOSE_N;
+    dm.userData.ox    = (Math.random() - 0.5) * 3.5;
+    scene.add(dm);
+    doseDrops.push(dm);
+  }
+
+  // ====================================================================
+  // STAGES
+  // Each stage = 11 seconds.  Camera eases between segments.
+  // ====================================================================
+  const STAGES = [
+    {
+      tag: 'Tahap 1 dari 6', title: 'Pra-Pengolahan Sumber',
+      subtitle: 'Pre-Treatment at Source', waterQuality: 5,
+      camPos: [-40, 32, -36], camLook: [-24, 0, -24],
+      desc: 'Setiap industri diwajibkan memiliki unit <strong>Pre-Treatment</strong> internal agar limbah tidak melampaui <em>Standard Inlet</em> kawasan — mencegah korosi pipa dan gangguan mikroorganisme IPAL pusat akibat logam berat berlebih.',
+    },
+    {
+      tag: 'Tahap 2 dari 6', title: 'Sistem Koleksi & Distribusi',
+      subtitle: 'Collection & Distribution System', waterQuality: 10,
+      camPos: [-36, 28,  4], camLook: [-20, 0, -6],
+      desc: 'Limbah memenuhi standar dialirkan lewat <strong>Jaringan Pipa Bawah Tanah</strong> secara gravitasi atau bantuan pompa. Debit dipantau di titik kontrol untuk menjaga kapasitas hidrolik tetap aman.',
+    },
+    {
+      tag: 'Tahap 3 dari 6', title: 'Pengolahan Primer',
+      subtitle: 'Primary Treatment', waterQuality: 28,
+      camPos: [-10, 28, -28], camLook: [-4, 0, -16],
+      desc: '<strong>Screening & Grit Removal</strong> memisahkan padatan kasar &amp; partikel anorganik. <strong>Equalization Tank</strong> meratakan fluktuasi debit &amp; beban organik agar beban biologi bersifat homogen.',
+    },
+    {
+      tag: 'Tahap 4 dari 6', title: 'Pengolahan Biologis Sekunder',
+      subtitle: 'Secondary Biological Treatment', waterQuality: 60,
+      camPos: [8, 32, 16], camLook: [6, 0, 2],
+      desc: '<strong>Aerasi mekanis</strong> menginjeksi oksigen — bakteri aerobik mendegradasi BOD &amp; COD. Campuran biomassa mengalir ke <strong>Klarifier Sekunder</strong>: lumpur mengendap, air jernih naik ke permukaan.',
+    },
+    {
+      tag: 'Tahap 5 dari 6', title: 'Pengolahan Akhir & Disinfeksi',
+      subtitle: 'Tertiary Treatment & Disinfection', waterQuality: 85,
+      camPos: [54, 28, -18], camLook: [48, 0, -8],
+      desc: '<strong>Filtrasi lanjutan</strong> mereduksi padatan tersisa. <strong>Klorinasi / UV</strong> mengeliminasi patogen. Seluruh parameter diuji ketat terhadap <em>Baku Mutu Lingkungan (BML)</em> sebelum dilepas.',
+    },
+    {
+      tag: 'Tahap 6 dari 6', title: 'Pembuangan & Monitoring SPARING',
+      subtitle: 'Discharge & Real-time Monitoring', waterQuality: 100,
+      camPos: [62, 30, 30], camLook: [54, 0, 14],
+      desc: 'Efluen bersih dilepas ke badan air penerima. Sistem <strong>SPARING</strong> mengirim data kualitas air <em>real-time</em> ke server <strong>KLHK</strong> — menjamin transparansi dan akuntabilitas berkelanjutan.',
+    },
+  ];
+
+  const labelEl = $('intro-stage-label');
+  let lastSegIdx = -1;
+  const SEG_DUR   = 11;
+  const TOTAL_DUR = SEG_DUR * STAGES.length;
+
+  function easeIO(x) { return x < 0.5 ? 2*x*x : -1+(4-2*x)*x; }
+  function lerp3(a, b, f) {
+    return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
+  }
+
+  // ====================================================================
+  // ANIMATION
+  // ====================================================================
+  let rafId = null;
+  const clock = new THREE.Clock();
+
+  function animate() {
+    rafId = requestAnimationFrame(animate);
+    const t = clock.getElapsedTime();
+
+    // Segmented camera
+    const cyc    = t % TOTAL_DUR;
+    const segF   = cyc / SEG_DUR;
+    const segIdx = Math.min(Math.floor(segF), STAGES.length - 1);
+    const segPrg = segF - Math.floor(segF);
+    const prev   = (segIdx + STAGES.length - 1) % STAGES.length;
+    const TRANS  = 0.15;
+
+    let camP, camL;
+    if (segPrg < TRANS) {
+      const bl = easeIO(segPrg / TRANS);
+      camP = lerp3(STAGES[prev].camPos,  STAGES[segIdx].camPos,  bl);
+      camL = lerp3(STAGES[prev].camLook, STAGES[segIdx].camLook, bl);
+    } else {
+      const cp = STAGES[segIdx].camPos, cl = STAGES[segIdx].camLook;
+      camP = [cp[0] + Math.sin(t*0.26)*1.4, cp[1] + Math.sin(t*0.19)*0.6, cp[2] + Math.cos(t*0.22)*1.1];
+      camL = [...cl];
+    }
+    camera.position.set(camP[0], camP[1], camP[2]);
+    camera.lookAt(camL[0], camL[1], camL[2]);
+
+    // Stage label update
+    if (segIdx !== lastSegIdx && labelEl) {
+      lastSegIdx = segIdx;
+      const s = STAGES[segIdx];
+      const q = s.waterQuality;
+      const qc = q < 40 ? '#e05020' : q < 75 ? '#d4aa20' : '#22bb55';
+      labelEl.innerHTML =
+        `<div class="sl-tag">${s.tag}</div>` +
+        `<div class="sl-title">${s.title}</div>` +
+        `<div class="sl-subtitle">${s.subtitle}</div>` +
+        `<div class="sl-desc">${s.desc}</div>` +
+        `<div class="sl-wq">` +
+          `<span style="font-size:11px;opacity:.75;margin-right:6px">Kualitas Air</span>` +
+          `<div class="sl-wq-bar"><div class="sl-wq-fill" style="width:${q}%;background:${qc}"></div></div>` +
+          `<span class="sl-wq-val" style="color:${qc}">${q}%</span>` +
+        `</div>` +
+        `<div class="sl-dots">${STAGES.map((_,k)=>`<span class="sl-dot${k===segIdx?' active':''}"></span>`).join('')}</div>`;
+    }
+
+    // Flow particles along serpentine path
+    flowMeshes.forEach(p => {
+      p.userData.t = (p.userData.t + 0.00145) % 1;
+      p.position.copy(flowPath.getPoint(p.userData.t));
+      const col = lerpHex(0x7a2800, 0x10a8d8, p.userData.t);
+      p.material.color.setHex(col);
+      p.material.emissive.setHex(col);
+    });
+
+    // Aeration bubbles rising in biological channels
+    bubbles.forEach(b => {
+      const life = ((t * 0.82 + b.userData.phase) % (Math.PI * 2)) / (Math.PI * 2);
+      b.position.set(b.userData.ox, 0.22 + life * 1.55, b.userData.oz);
+      b.material.opacity = life < 0.72 ? 0.7 : (1 - life) * 4.5;
+    });
+
+    // Sludge settling in clarifier (slow spiral)
+    sludgeParticles.forEach(s => {
+      const life = ((t * 0.22 + s.userData.phase) % 1);
+      s.position.set(
+        CL_X + Math.cos(s.userData.ang + t * 0.04) * s.userData.r,
+        1.3 - life * 1.2,
+        CL_Z + Math.sin(s.userData.ang + t * 0.04) * s.userData.r
+      );
+      s.material.opacity = life > 0.75 ? (1 - life) * 5 : 0.72;
+    });
+
+    // Aerator rotation
+    aeratorMeshes.forEach((a, i) => { a.rotation.y = t * (1.5 + (i % 3) * 0.4); });
+
+    // Chimney smoke
+    smokeMeshes.forEach(sm => {
+      sm.userData.life = (sm.userData.life + 0.0036) % 1;
+      const l = sm.userData.life;
+      sm.position.set(
+        -25.5 + sm.userData.ox + Math.sin(l * 3.5 + t) * 0.5,
+        4.9 + l * 5.5,
+        6   + sm.userData.oz + Math.cos(l * 2.8 + t * 0.6) * 0.4
+      );
+      sm.material.opacity = Math.max(0, (1 - l) * 0.40);
+      sm.scale.setScalar(0.18 + l * 1.25);
+    });
+
+    // Chlorine drops at UV unit
+    doseDrops.forEach(dd => {
+      const life = ((t * 1.05 + dd.userData.phase) % 1);
+      dd.position.set(58 + dd.userData.ox, 3.8 - life * 4.5, -5);
+      dd.material.opacity = 0.88 * (1 - life);
+    });
+
+    // SPARING LED blink
+    sparingLED.material.emissiveIntensity = 1.2 + 1.5 * Math.sin(t * 5.8);
+
+    // TX data spheres arc from SPARING pole
+    txSpheres.forEach(ts => {
+      const a = ((t * 0.58 + ts.userData.i * 0.25) % 1);
+      ts.position.set(58 + a * 14, 10.2 + Math.sin(a * Math.PI) * 5, 16 + a * 6);
+      ts.material.opacity = (1 - a) * 0.88;
+    });
+
+    // Water shimmer
+    channelWaterMeshes.forEach(cw => {
+      cw.mesh.material.opacity = cw.baseOp + 0.03 * Math.sin(t * 0.75 + cw.baseOp * 14);
+    });
+    clarifier.material.opacity          = 0.84 + 0.05 * Math.sin(t * 1.05);
+    equalizationWater.material.opacity  = 0.80 + 0.04 * Math.sin(t * 0.68);
+    river.material.opacity              = 0.75 + 0.06 * Math.sin(t * 0.88);
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // Continue button
+  $('btn-intro-continue').onclick = () => {
+    cancelAnimationFrame(rafId);
+    renderer.dispose();
+    _introAssetRenderer = null;
+    screen.classList.add('hidden');
+    cb();
+  };
 }
 
 
