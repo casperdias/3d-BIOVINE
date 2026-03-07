@@ -13,6 +13,7 @@ import {
   showProfileScreen,
   showInstructions,
   showIntroVideo,
+  startBgMusic,
   initPauseMenu,
   showQuestionPanel,
   showLevel2QuestionPanel,
@@ -675,6 +676,7 @@ showProfileScreen(
   // New game callback
   name => {
     player.setName(name);
+    startBgMusic();
     showIntroVideo(() => {
       showInstructions(() => {
         gameStarted = true;
@@ -690,6 +692,7 @@ showProfileScreen(
   },
   // Resume callback
   checkpoint => {
+    startBgMusic();
     resumeToLevel(checkpoint);
   }
 );
