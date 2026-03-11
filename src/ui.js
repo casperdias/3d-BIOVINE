@@ -268,6 +268,20 @@ export function showIntroVideo(cb) {
   box(-27, 2.0, -33.7, 1.8, 1.2, 0.08, smat(0x88ddff, 0.08, 0.0, 0x003355, 0.9));
   box(-29.5, 2.0, -33.7, 1.8, 1.2, 0.08, smat(0x88ddff, 0.08, 0.0, 0x003355, 0.9));
 
+  // Distillation column (penyulingan) — tall thin vessel + band rings
+  const DISTIL_X = -34, DISTIL_Z = -30;
+  cyl(DISTIL_X,      0, DISTIL_Z, 1.10, 0.90, 14.0, 16, smat(0x8899aa, 0.38, 0.55));
+  cyl(DISTIL_X, 14.0, DISTIL_Z, 1.20, 1.20,  0.30, 16, smat(0xaabbcc, 0.35, 0.5));  // cap
+  // Horizontal band rings along the column for a real distillation-tower look
+  [2.0, 4.5, 7.5, 10.5, 13.0].forEach(hy => {
+    cyl(DISTIL_X, hy, DISTIL_Z, 1.18, 1.18, 0.18, 16, smat(0x99aabb, 0.42, 0.6));
+  });
+  // Connecting pipe from column base → intake building
+  pipe(DISTIL_X + 1.1, 1.2, DISTIL_Z, -22, 1.2, -30, 0x445566, 0.28);
+  // Small condenser box at mid-height
+  box(DISTIL_X - 2.2, 6, DISTIL_Z, 2.8, 1.4, 1.4, smat(0x6a7888, 0.55, 0.3));
+  pipe(DISTIL_X - 1.1, 6.5, DISTIL_Z, DISTIL_X - 1.8, 6.5, DISTIL_Z, 0x556677, 0.22);
+
   // ====================================================================
   // EQUALIZATION TANK  (left middle, between intake and first channel)
   // ====================================================================
@@ -473,17 +487,27 @@ export function showIntroVideo(cb) {
   // ====================================================================
   // PARTICLES
   // ====================================================================
-  // Flow particles (brown → clear blue)
-  const FLOW_N = 55;
+  // Flow ripples & foam — expanding rings + foam discs on open-channel water surface
+  // 2/3 are RingGeometry (surface ripple waves), 1/3 are CircleGeometry (foam patches)
+  const FLOW_N = 90;
   const flowMeshes = [];
   for (let i = 0; i < FLOW_N; i++) {
-    const t0  = i / FLOW_N;
-    const col = lerpHex(0x7a2800, 0x10a8d8, t0);
-    const fm  = new THREE.Mesh(
-      new THREE.SphereGeometry(0.30, 6, 6),
-      new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.5, roughness: 0.3 })
-    );
-    fm.userData.t = t0;
+    const t0     = i / FLOW_N;
+    const col    = lerpHex(0x7a2800, 0x10a8d8, t0);
+    const useRing = (i % 3 !== 0);
+    const geo    = useRing
+      ? new THREE.RingGeometry(0.10 + (i % 6) * 0.04, 0.28 + (i % 5) * 0.07, 20)
+      : new THREE.CircleGeometry(0.16 + (i % 7) * 0.03, 12);
+    const fm = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+      color: col, emissive: col,
+      emissiveIntensity: useRing ? 0.65 : 0.30,
+      roughness: 0.04, metalness: 0.1,
+      transparent: true, opacity: useRing ? 0.72 : 0.52,
+      side: THREE.DoubleSide,
+    }));
+    fm.rotation.x = -Math.PI / 2;   // lay flat on water surface
+    fm.userData.t  = t0;
+    fm.userData.ph = (i * 0.618033) % 1;  // golden-ratio spread → no clumping
     scene.add(fm);
     flowMeshes.push(fm);
   }
@@ -521,6 +545,24 @@ export function showIntroVideo(cb) {
     sludgeParticles.push(sp);
   }
 
+  // Steam / vapour from distillation column (penyulingan)
+  const distilSteam = [];
+  const DISTIL_STEAM_N = 36;
+  for (let i = 0; i < DISTIL_STEAM_N; i++) {
+    const ds = new THREE.Mesh(
+      new THREE.SphereGeometry(0.30 + Math.random() * 0.22, 7, 7),
+      new THREE.MeshStandardMaterial({
+        color: 0xeef8ff, emissive: 0xaaddee, emissiveIntensity: 0.18,
+        transparent: true, opacity: 0.55, roughness: 0.85,
+      })
+    );
+    ds.userData.life = i / DISTIL_STEAM_N;
+    ds.userData.ox   = (Math.random() - 0.5) * 1.2;
+    ds.userData.oz   = (Math.random() - 0.5) * 1.2;
+    scene.add(ds);
+    distilSteam.push(ds);
+  }
+
   // Chimney smoke from pump station
   const smokeMeshes = [];
   const SMOKE_N = 22;
@@ -556,40 +598,34 @@ export function showIntroVideo(cb) {
   // ====================================================================
   const STAGES = [
     {
-      tag: 'Tahap 1 dari 6', title: 'Pra-Pengolahan Sumber',
-      subtitle: 'Pre-Treatment at Source', waterQuality: 5,
+      tag: 'Tahap 1 dari 5', title: 'Penampungan Awal (Bak Ekualisasi)',
+      subtitle: 'Equalization Basin', waterQuality: 5,
       camPos: [-40, 32, -36], camLook: [-24, 0, -24],
-      desc: 'Setiap industri diwajibkan memiliki unit <strong>Pre-Treatment</strong> internal agar limbah tidak melampaui <em>Standard Inlet</em> kawasan — mencegah korosi pipa dan gangguan mikroorganisme IPAL pusat akibat logam berat berlebih.',
+      desc: 'Limbah vinasse yang pekat dari industri etanol dialirkan dan ditampung terlebih dahulu di bak penampungan awal IPAL Ciunik. Pada tahap ini, dilakukan penyamaan atau stabilisasi debit, suhu, dan tingkat keasaman (pH) limbah agar kondisinya ideal dan tidak merusak sistem pengolahan di tahap selanjutnya.',
     },
     {
-      tag: 'Tahap 2 dari 6', title: 'Sistem Koleksi & Distribusi',
-      subtitle: 'Collection & Distribution System', waterQuality: 10,
-      camPos: [-36, 28,  4], camLook: [-20, 0, -6],
-      desc: 'Limbah memenuhi standar dialirkan lewat <strong>Jaringan Pipa Bawah Tanah</strong> secara gravitasi atau bantuan pompa. Debit dipantau di titik kontrol untuk menjaga kapasitas hidrolik tetap aman.',
+      tag: 'Tahap 2 dari 5', title: 'Proses Aerasi (Injeksi Oksigen)',
+      subtitle: 'Aeration Process', waterQuality: 28,
+      camPos: [-10, 28, -10], camLook: [0, 0, 0],
+      desc: 'Setelah stabil, limbah dialirkan ke dalam bak aerasi. Di dalam bak ini, air limbah dipompa dan disuplai dengan gelembung udara (oksigen) secara terus-menerus menggunakan mesin aerator. Oksigen ini sangat krusial untuk menjaga agar kondisi air tetap kaya oksigen terlarut.',
     },
     {
-      tag: 'Tahap 3 dari 6', title: 'Pengolahan Primer',
-      subtitle: 'Primary Treatment', waterQuality: 28,
-      camPos: [-10, 28, -28], camLook: [-4, 0, -16],
-      desc: '<strong>Screening & Grit Removal</strong> memisahkan padatan kasar &amp; partikel anorganik. <strong>Equalization Tank</strong> meratakan fluktuasi debit &amp; beban organik agar beban biologi bersifat homogen.',
-    },
-    {
-      tag: 'Tahap 4 dari 6', title: 'Pengolahan Biologis Sekunder',
-      subtitle: 'Secondary Biological Treatment', waterQuality: 60,
+      tag: 'Tahap 3 dari 5', title: 'Penambahan Mikroorganisme (Bakteri Pengurai)',
+      subtitle: 'Biological Treatment', waterQuality: 55,
       camPos: [8, 32, 16], camLook: [6, 0, 2],
-      desc: '<strong>Aerasi mekanis</strong> menginjeksi oksigen — bakteri aerobik mendegradasi BOD &amp; COD. Campuran biomassa mengalir ke <strong>Klarifier Sekunder</strong>: lumpur mengendap, air jernih naik ke permukaan.',
+      desc: 'Bersamaan dengan suplai oksigen yang melimpah, ditambahkan mikroorganisme aerobik (bakteri pengurai) ke dalam bak aerasi. Mikroorganisme ini bekerja dengan cara menguraikan polutan serta zat-zat organik berbahaya yang terkandung dalam vinasse, mengubahnya menjadi pupuk organik cair.',
     },
     {
-      tag: 'Tahap 5 dari 6', title: 'Pengolahan Akhir & Disinfeksi',
-      subtitle: 'Tertiary Treatment & Disinfection', waterQuality: 85,
-      camPos: [54, 28, -18], camLook: [48, 0, -8],
-      desc: '<strong>Filtrasi lanjutan</strong> mereduksi padatan tersisa. <strong>Klorinasi / UV</strong> mengeliminasi patogen. Seluruh parameter diuji ketat terhadap <em>Baku Mutu Lingkungan (BML)</em> sebelum dilepas.',
+      tag: 'Tahap 4 dari 5', title: 'Pengendapan (Clarifier)',
+      subtitle: 'Secondary Clarifier', waterQuality: 80,
+      camPos: [32, 28, 28], camLook: [30, 0, 18],
+      desc: 'Setelah zat organik hancur terurai, campuran air limbah dan mikroorganisme dialirkan ke bak pengendap. Gumpalan bakteri dan sisa kotoran akan dibiarkan mengendap ke dasar bak, sementara air yang sudah jernih akan terpisah dan naik ke permukaan.',
     },
     {
-      tag: 'Tahap 6 dari 6', title: 'Pembuangan & Monitoring SPARING',
-      subtitle: 'Discharge & Real-time Monitoring', waterQuality: 100,
+      tag: 'Tahap 5 dari 5', title: 'Pelepasan Air Bersih (Output)',
+      subtitle: 'Clean Water Discharge', waterQuality: 100,
       camPos: [62, 30, 30], camLook: [54, 0, 14],
-      desc: 'Efluen bersih dilepas ke badan air penerima. Sistem <strong>SPARING</strong> mengirim data kualitas air <em>real-time</em> ke server <strong>KLHK</strong> — menjamin transparansi dan akuntabilitas berkelanjutan.',
+      desc: 'Air hasil pemisahan tersebut kini memiliki kadar polutan (seperti BOD dan COD) yang sangat rendah dan sudah memenuhi standar baku mutu lingkungan. Air ini dapat dikembalikan atau dilepas ke alam tanpa mencemari ekosistem sekitarnya atau dimanfaatkan menjadi pupuk organik cair.',
     },
   ];
 
@@ -607,11 +643,19 @@ export function showIntroVideo(cb) {
   // ANIMATION
   // ====================================================================
   let rafId = null;
+  let introDone = false;
   const clock = new THREE.Clock();
+  const continueBtn = $('btn-intro-continue');
+  continueBtn.disabled = true;
 
   function animate() {
     rafId = requestAnimationFrame(animate);
     const t = clock.getElapsedTime();
+
+    if (!introDone && t >= TOTAL_DUR) {
+      introDone = true;
+      continueBtn.disabled = false;
+    }
 
     // Segmented camera
     const cyc    = t % TOTAL_DUR;
@@ -653,11 +697,17 @@ export function showIntroVideo(cb) {
         `<div class="sl-dots">${STAGES.map((_,k)=>`<span class="sl-dot${k===segIdx?' active':''}"></span>`).join('')}</div>`;
     }
 
-    // Flow particles along serpentine path
+    // Flow ripples & foam along serpentine open-channel path
     flowMeshes.forEach(p => {
       p.userData.t = (p.userData.t + 0.00145) % 1;
-      p.position.copy(flowPath.getPoint(p.userData.t));
-      const col = lerpHex(0x7a2800, 0x10a8d8, p.userData.t);
+      const pt = p.userData.t;
+      p.position.copy(flowPath.getPoint(pt));
+      p.position.y = 0.27;
+      // Each particle independently cycles: expand from small → large, fade transparent
+      const ph = (p.userData.ph + t * 0.32) % 1;
+      p.scale.setScalar(0.4 + ph * 2.2);
+      p.material.opacity = Math.max(0, 0.80 - ph * 0.88);
+      const col = lerpHex(0x7a2800, 0x10a8d8, pt);
       p.material.color.setHex(col);
       p.material.emissive.setHex(col);
     });
@@ -682,6 +732,19 @@ export function showIntroVideo(cb) {
 
     // Aerator rotation
     aeratorMeshes.forEach((a, i) => { a.rotation.y = t * (1.5 + (i % 3) * 0.4); });
+
+    // Distillation steam (white vapour rising from column top)
+    distilSteam.forEach(ds => {
+      ds.userData.life = (ds.userData.life + 0.0048) % 1;
+      const l = ds.userData.life;
+      ds.position.set(
+        DISTIL_X + ds.userData.ox + Math.sin(l * 4.2 + t * 0.7) * 0.55,
+        14.3 + l * 8.0,
+        DISTIL_Z + ds.userData.oz + Math.cos(l * 3.5 + t * 0.5) * 0.55
+      );
+      ds.scale.setScalar(0.5 + l * 2.8);
+      ds.material.opacity = Math.max(0, (0.55 - l * 0.62));
+    });
 
     // Chimney smoke
     smokeMeshes.forEach(sm => {

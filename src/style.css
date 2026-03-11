@@ -1152,34 +1152,34 @@ body {
 /* Title overlay */
 .intro-overlay-title {
   position: absolute;
-  top: 28px;
-  left: 32px;
+  top: 18px;
+  left: 20px;
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: rgba(0, 20, 50, 0.72);
-  border: 1px solid rgba(100, 200, 255, 0.45);
-  border-radius: 14px;
-  padding: 14px 22px;
+  gap: 8px;
+  background: rgba(0, 20, 50, 0.65);
+  border: 1px solid rgba(100, 200, 255, 0.35);
+  border-radius: 10px;
+  padding: 7px 14px;
   backdrop-filter: blur(6px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.30);
 }
 .intro-overlay-logo {
-  font-size: 2.4rem;
-  filter: drop-shadow(0 0 10px #00ff99);
+  font-size: 1.4rem;
+  filter: drop-shadow(0 0 7px #00ff99);
 }
 .intro-overlay-h {
-  font-size: 1.5rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: #aaf0ff;
-  text-shadow: 0 0 14px #00aaff88;
+  text-shadow: 0 0 10px #00aaff88;
   letter-spacing: 0.06em;
 }
 .intro-overlay-sub {
-  font-size: 0.8rem;
+  font-size: 0.68rem;
   color: #cce8ff;
-  margin-top: 2px;
-  max-width: 380px;
+  margin-top: 1px;
+  max-width: 260px;
 }
 
 /* Legend */
@@ -1297,6 +1297,11 @@ body {
   font-size: 1rem;
   letter-spacing: 0.04em;
   box-shadow: 0 0 24px rgba(0, 212, 255, 0.35);
+}
+.intro-btn-continue:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
 @media (max-width: 600px) {
