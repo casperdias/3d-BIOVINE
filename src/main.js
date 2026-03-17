@@ -11,6 +11,7 @@ import { setFactoryObstacles, setPondObstacles, setWorkshopObstacles, setObsLabO
 import {
   buildUIHTML,
   showProfileScreen,
+  showSynopsis,
   showInstructions,
   showIntroVideo,
   startBgMusic,
@@ -677,16 +678,18 @@ showProfileScreen(
   name => {
     player.setName(name);
     startBgMusic();
-    showIntroVideo(() => {
-      showInstructions(() => {
-        gameStarted = true;
-        document.getElementById('hud').style.display = 'block';
-        initHUD();
-        updateHUD();
-        initPauseMenu(
-          () => { resumeToLevel(loadCheckpoint()); },
-          () => { location.reload(); }
-        );
+    showSynopsis(() => {
+      showIntroVideo(() => {
+        showInstructions(() => {
+          gameStarted = true;
+          document.getElementById('hud').style.display = 'block';
+          initHUD();
+          updateHUD();
+          initPauseMenu(
+            () => { resumeToLevel(loadCheckpoint()); },
+            () => { location.reload(); }
+          );
+        });
       });
     });
   },

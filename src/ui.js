@@ -67,6 +67,115 @@ function hideProfileScreen() {
 }
 
 // ─────────────────────────────────────────────────────
+// Synopsis Screen (shown before intro video)
+// ─────────────────────────────────────────────────────
+export function showSynopsis(cb) {
+  const screen = $('synopsis-screen');
+  screen.classList.remove('hidden');
+
+  const SEGMENTS = [
+    {
+      tag:    'Bagian 1 dari 3',
+      title:  'Industri Etanol di Desa Bekonang',
+      bubble: 'Halo! Yuk, kenali industri yang melahirkan masalah lingkungan ini.',
+      text:   `Industri etanol di Desa Bekonang, Sukoharjo, adalah warisan <strong>turun-temurun</strong> yang sudah ada sejak zaman kolonial. Banyak pabrik di sini memproduksi minuman keras tradisional bernama <strong>ciu</strong> — dibuat dari tetes tebu, tape singkong, atau nira aren melalui proses fermentasi dan penyulingan.<br><br>Seiring waktu, industri ini berkembang menjadi produksi <strong>etanol medis</strong> yang digunakan untuk kebutuhan rumah sakit dan dunia kesehatan.`,
+    },
+    {
+      tag:    'Bagian 2 dari 3',
+      title:  'Masalah: Limbah Vinasse',
+      bubble: 'Ini masalah serius yang mencemari lingkungan sekitar!',
+      text:   `Proses produksi etanol menghasilkan limbah cair bernama <strong>vinasse</strong>. Setiap harinya, satu pabrik bisa menghasilkan <strong>150–200 liter</strong> limbah ini — tanpa sistem pengolahan yang memadai.<br><br>Vinasse berwarna <strong>hitam pekat</strong>, berbau menyengat, dan sangat berbahaya jika dibuang langsung ke sungai. Vinasse <strong>menyerap oksigen</strong> di dalam air, menyebabkan ikan-ikan mati dan sungai tercemar parah.`,
+    },
+    {
+      tag:    'Bagian 3 dari 3',
+      title:  'Solusi: Vinasse → Pupuk Organik Cair',
+      bubble: 'Kita bisa mengubah limbah menjadi sesuatu yang bermanfaat!',
+      text:   `Kabar baiknya, limbah vinasse bisa diolah menjadi <strong>Pupuk Organik Cair (POC)</strong>! Caranya dengan menambahkan <strong>mikroorganisme berupa ragi</strong> ke dalam vinasse yang sudah diaerasi minimal 24 jam.<br><br>Setelah ditumbuhkan selama <strong>15 hari</strong> dalam bak terbuka beraeasi, limbah berubah menjadi pupuk: tidak berbau asam, berwarna coklat muda. Diaplikasikan ke tanaman dengan perbandingan <strong>1 : 10</strong> (POC : air). Ukur kadar COD, BOD, dan pH untuk memastikan kualitasnya!`,
+    },
+  ];
+
+  let current = 0;
+  let mouthOpen = false;
+  let mouthTimer = null;
+
+  const tagEl     = $('syn-seg-tag');
+  const titleEl   = $('syn-seg-title');
+  const textEl    = $('syn-seg-text');
+  const dotsEl    = $('syn-dots');
+  const prevBtn   = $('btn-syn-prev');
+  const nextBtn   = $('btn-syn-next');
+  const skipBtn   = $('btn-syn-skip');
+  const bubbleEl  = $('syn-bubble');
+  const panel     = $('synopsis-content-panel');
+  const mouthPath = $('syn-mouth');
+
+  // Animate mouth open/close while "talking"
+  function startMouthAnim() {
+    stopMouthAnim();
+    mouthTimer = setInterval(() => {
+      mouthOpen = !mouthOpen;
+      if (mouthPath) {
+        mouthPath.setAttribute('d',
+          mouthOpen
+            ? 'M84 124 Q100 144 116 124'   // open
+            : 'M84 126 Q100 138 116 126'   // closed / smile
+        );
+      }
+    }, 280);
+  }
+
+  function stopMouthAnim() {
+    if (mouthTimer) { clearInterval(mouthTimer); mouthTimer = null; }
+    if (mouthPath)  { mouthPath.setAttribute('d', 'M84 126 Q100 138 116 126'); }
+  }
+
+  function dismiss() {
+    stopMouthAnim();
+    screen.classList.add('hidden');
+    cb();
+  }
+
+  function render(idx) {
+    const seg = SEGMENTS[idx];
+
+    // Slide animation: remove → force reflow → add
+    panel.classList.remove('synopsis-slide');
+    void panel.offsetWidth;
+    panel.classList.add('synopsis-slide');
+
+    tagEl.textContent    = seg.tag;
+    titleEl.textContent  = seg.title;
+    textEl.innerHTML     = seg.text;
+    bubbleEl.textContent = seg.bubble;
+
+    // Dots
+    dotsEl.innerHTML = SEGMENTS.map((_, k) =>
+      `<span class="synopsis-dot ${k === idx ? 'active' : ''}"></span>`
+    ).join('');
+
+    // Navigation buttons
+    prevBtn.style.display = idx === 0 ? 'none' : '';
+    nextBtn.textContent   = idx === SEGMENTS.length - 1
+      ? '🚀 Mulai Petualangan →'
+      : 'Lanjutkan →';
+
+    startMouthAnim();
+  }
+
+  render(0);
+
+  prevBtn.onclick = () => { if (current > 0) render(--current); };
+  nextBtn.onclick = () => {
+    if (current < SEGMENTS.length - 1) {
+      render(++current);
+    } else {
+      dismiss();
+    }
+  };
+  skipBtn.onclick = () => dismiss();
+}
+
+// ─────────────────────────────────────────────────────
 // Intro Video Screen (shown once after profile is created)
 // ─────────────────────────────────────────────────────
 let _introAssetRenderer = null;  // keep ref so we can dispose it
@@ -1618,6 +1727,102 @@ export function buildUIHTML() {
         </div>
 
         <button class="btn-primary" id="btn-start-game">🚀 Mulai Level 1</button>
+      </div>
+    </div>
+
+    <!-- SYNOPSIS SCREEN (shown before intro video) -->
+    <div class="screen hidden" id="synopsis-screen">
+      <div class="synopsis-container">
+        <!-- Avatar panel -->
+        <div class="synopsis-avatar-wrap">
+          <div id="syn-bubble" class="synopsis-bubble">Halo! Yuk, kenali masalah lingkungan ini bersama saya.</div>
+          <svg viewBox="0 0 200 400" class="synopsis-avatar" xmlns="http://www.w3.org/2000/svg">
+            <!-- Shadow -->
+            <ellipse cx="100" cy="393" rx="52" ry="6" fill="rgba(0,0,0,0.18)"/>
+            <!-- Shoes -->
+            <ellipse cx="80"  cy="387" rx="19" ry="7" fill="#1a1a2a"/>
+            <ellipse cx="120" cy="387" rx="19" ry="7" fill="#1a1a2a"/>
+            <!-- Legs (dark trousers) -->
+            <rect x="68"  y="290" width="22" height="100" rx="9" fill="#2c3e50"/>
+            <rect x="110" y="290" width="22" height="100" rx="9" fill="#2c3e50"/>
+            <!-- Lab coat body -->
+            <path d="M40 163 L160 163 L164 302 L36 302 Z" fill="#f0f4f8"/>
+            <!-- Lab coat lapels -->
+            <path d="M100 163 L76 214 L52 192 L40 163 Z" fill="#dde3e8"/>
+            <path d="M100 163 L124 214 L148 192 L160 163 Z" fill="#dde3e8"/>
+            <!-- Shirt / tie area -->
+            <path d="M100 163 L76 214 L124 214 Z" fill="#2980b9"/>
+            <polygon points="100,175 94,210 100,220 106,210" fill="#1a5276"/>
+            <!-- Right arm (relaxed along side) -->
+            <path d="M160 178 Q182 208 175 252" stroke="#dde3e8" stroke-width="28" fill="none" stroke-linecap="round"/>
+            <path d="M160 178 Q182 208 175 252" stroke="#f5cba7" stroke-width="20" fill="none" stroke-linecap="round"/>
+            <ellipse cx="174" cy="257" rx="13" ry="10" fill="#f5cba7"/>
+            <!-- Left arm (raised / gesturing at viewer) -->
+            <path d="M40 178 Q14 202 18 248" stroke="#f0f4f8" stroke-width="28" fill="none" stroke-linecap="round"/>
+            <path d="M40 178 Q14 202 18 248" stroke="#f5cba7" stroke-width="20" fill="none" stroke-linecap="round"/>
+            <ellipse cx="17" cy="253" rx="13" ry="10" fill="#f5cba7"/>
+            <!-- Pointing index finger -->
+            <line x1="17" y1="248" x2="4" y2="236" stroke="#f5cba7" stroke-width="7" stroke-linecap="round"/>
+            <!-- Neck -->
+            <rect x="87" y="140" width="26" height="28" rx="9" fill="#f5cba7"/>
+            <!-- Head -->
+            <ellipse cx="100" cy="98" rx="56" ry="60" fill="#f5cba7"/>
+            <!-- Hair (dark, neat) -->
+            <path d="M46 82 Q46 36 100 36 Q154 36 154 82 Q150 48 100 48 Q50 48 46 82 Z" fill="#1c0c02"/>
+            <!-- Side hair -->
+            <path d="M46 78 Q44 108 48 132" stroke="#1c0c02" stroke-width="9" fill="none" stroke-linecap="round"/>
+            <path d="M154 78 Q156 108 152 132" stroke="#1c0c02" stroke-width="9" fill="none" stroke-linecap="round"/>
+            <!-- Ears -->
+            <ellipse cx="46"  cy="100" rx="8" ry="12" fill="#e8a87c"/>
+            <ellipse cx="154" cy="100" rx="8" ry="12" fill="#e8a87c"/>
+            <!-- Eyes (whites) -->
+            <ellipse cx="78"  cy="98" rx="13" ry="14" fill="white"/>
+            <ellipse cx="122" cy="98" rx="13" ry="14" fill="white"/>
+            <!-- Irises -->
+            <circle cx="80"  cy="100" r="9" fill="#2c1a0e"/>
+            <circle cx="124" cy="100" r="9" fill="#2c1a0e"/>
+            <!-- Pupils / highlight -->
+            <circle cx="82"  cy="98" r="3.5" fill="white"/>
+            <circle cx="126" cy="98" r="3.5" fill="white"/>
+            <!-- Eyebrows -->
+            <path d="M65 83 Q78 76 91 83" stroke="#1c0c02" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+            <path d="M109 83 Q122 76 135 83" stroke="#1c0c02" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+            <!-- Glasses frames -->
+            <rect x="62"  y="87" width="30" height="22" rx="7" fill="rgba(180,220,255,0.08)" stroke="#556" stroke-width="2.5"/>
+            <rect x="108" y="87" width="30" height="22" rx="7" fill="rgba(180,220,255,0.08)" stroke="#556" stroke-width="2.5"/>
+            <line x1="92"  y1="98" x2="108" y2="98" stroke="#556" stroke-width="2.5"/>
+            <line x1="62"  y1="98" x2="52"  y2="94" stroke="#556" stroke-width="2.5"/>
+            <line x1="138" y1="98" x2="148" y2="94" stroke="#556" stroke-width="2.5"/>
+            <!-- Mouth (animated by JS) -->
+            <path id="syn-mouth" d="M84 126 Q100 138 116 126" stroke="#c0392b" stroke-width="2.8" fill="none" stroke-linecap="round"/>
+            <!-- Cheek blush -->
+            <ellipse cx="64"  cy="115" rx="9" ry="6" fill="rgba(255,150,100,0.18)"/>
+            <ellipse cx="136" cy="115" rx="9" ry="6" fill="rgba(255,150,100,0.18)"/>
+            <!-- Lab coat pocket with pen -->
+            <rect x="116" y="212" width="30" height="36" rx="6" fill="none" stroke="#c8d0d8" stroke-width="1.5"/>
+            <line x1="125" y1="212" x2="125" y2="206" stroke="#888" stroke-width="2" stroke-linecap="round"/>
+            <line x1="131" y1="212" x2="131" y2="204" stroke="#aaa" stroke-width="2" stroke-linecap="round"/>
+            <line x1="137" y1="212" x2="137" y2="207" stroke="#e74c3c" stroke-width="2" stroke-linecap="round"/>
+            <!-- Name badge -->
+            <rect x="48" y="212" width="46" height="32" rx="5" fill="rgba(41,128,185,0.18)" stroke="rgba(41,128,185,0.5)" stroke-width="1.5"/>
+            <text x="71" y="226" text-anchor="middle" fill="#7ed6f7" font-size="6.5" font-family="monospace" font-weight="bold">PENELITI</text>
+            <text x="71" y="236" text-anchor="middle" fill="#95a5a6" font-size="5.5" font-family="monospace">BIOVINE</text>
+          </svg>
+          <div class="synopsis-avatar-name">Dr. Ana Wijaya</div>
+        </div>
+
+        <!-- Text content panel -->
+        <div class="synopsis-content" id="synopsis-content-panel">
+          <button id="btn-syn-skip" class="synopsis-btn-skip">Lewati ⟶</button>
+          <div id="syn-seg-tag"   class="synopsis-segment-tag">Bagian 1 dari 3</div>
+          <div id="syn-seg-title" class="synopsis-segment-title">Industri Etanol di Desa Bekonang</div>
+          <div id="syn-seg-text"  class="synopsis-text"></div>
+          <div id="syn-dots" class="synopsis-dots"></div>
+          <div class="synopsis-nav">
+            <button id="btn-syn-prev" class="synopsis-btn-prev">← Kembali</button>
+            <button id="btn-syn-next" class="synopsis-btn-next">Lanjutkan →</button>
+          </div>
+        </div>
       </div>
     </div>
 
