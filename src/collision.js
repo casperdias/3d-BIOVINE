@@ -157,42 +157,12 @@ export const OBSLAB_OBSTACLES = [
   box( (OBSLAB_W5/2 - 1.0),  12,  1.5, 1.5 ),
 ];
 
-// ─── Static obstacle list – Classroom (Level 6) ───────
-// HALL_W=60, HALL_D=48, podium at (0, 0, -16)
-const HALL_W6 = 60;
-const HALL_D6 = 48;
-
-export const CLASSROOM_OBSTACLES = [
-  // Room walls
-  box(  0,            -(HALL_D6/2),  HALL_W6/2 + 2, 1.5 ),
-  box(  0,             (HALL_D6/2),  HALL_W6/2 + 2, 1.5 ),
-  box( -(HALL_W6/2),   0,            1.5, HALL_D6/2 + 2 ),
-  box(  (HALL_W6/2),   0,            1.5, HALL_D6/2 + 2 ),
-  // Desk rows (5 rows × approx width)
-  box(  0, 4,   16, 1.5 ),
-  box(  0, 9,   16, 1.5 ),
-  box(  0, 14,  16, 1.5 ),
-  box(  0, 19,  16, 1.5 ),
-  box(  0, 24,  16, 1.5 ),
-  // Podium at (0, 0, -16)
-  box(  0, -16,  1.8, 1.0 ),
-  // Projection screen area (back wall shelf)
-  box(  0, -(HALL_D6/2 - 0.5),  HALL_W6/2 + 1, 0.5 ),
-  // Plants at stage
-  box( -18, -(HALL_D6/2 - 3),  1.2, 1.2 ),
-  box(  18, -(HALL_D6/2 - 3),  1.2, 1.2 ),
-];
-
 export function setWorkshopObstacles() {
   OBSTACLES = WORKSHOP_OBSTACLES;
 }
 
 export function setObsLabObstacles() {
   OBSTACLES = OBSLAB_OBSTACLES;
-}
-
-export function setClassroomObstacles() {
-  OBSTACLES = CLASSROOM_OBSTACLES;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

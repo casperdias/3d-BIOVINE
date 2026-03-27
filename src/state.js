@@ -51,11 +51,6 @@ export const state = {
   stage5: {
     scopeDone: false,
   },
-
-  // Level 6 – presentation state
-  stage6: {
-    podiumDone: false,
-  },
 };
 
 export function resetLevelState() {
@@ -103,10 +98,6 @@ export function resetStage5State() {
   state.stage5 = { scopeDone: false };
 }
 
-export function resetStage6State() {
-  state.stage6 = { podiumDone: false };
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Per-level score recording
 // Call at the moment a level's scoring is finalised (before transitioning).
@@ -117,7 +108,6 @@ export const LEVEL_LABELS = {
   3: 'Level 3 – Kolam Remediasi',
   4: 'Level 4 – Workshop IPAL',
   5: 'Level 5 – Lab Observasi',
-  6: 'Level 6 – Aula Presentasi',
 };
 
 /**

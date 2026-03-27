@@ -933,7 +933,6 @@ export function showInstructions(cb) {
       { num:3, icon:'🌿', name:'Kolam Remediasi',       desc:'Pilih mikroorganisme yang tepat di toko, hitung dosis, lalu buka kran vinasse.' },
       { num:4, icon:'🔧', name:'Workshop IPAL',         desc:'Rancang prototype reaktor IPAL: pilih alat & bahan, ikuti prosedur, evaluasi hasilnya.' },
       { num:5, icon:'🔭', name:'Lab Observasi',         desc:'Analisis kegagalan reaktor dari Level 4 dan jawab soal evaluasi mikroskop.' },
-      { num:6, icon:'🎤', name:'Aula Presentasi',       desc:'Presentasikan temuanmu dalam 5 slide, lakukan quiz akhir, dan tampilkan produk POC.' },
     ];
     levelGuideEl.innerHTML = levels.map(l => `
       <div class="level-guide-card">
