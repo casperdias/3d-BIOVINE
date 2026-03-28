@@ -1370,9 +1370,6 @@ function renderLevel2Phenomenon(idx, onComplete, onDismiss, standalone = false) 
   const phenom = stage2.phenomena[idx];
   const screen = $('stage-screen');
 
-  // Reset wrong-answer counter for this question
-  state.wrongAnswers = 0;
-
   const existing = screen.querySelector('.stage-panel');
   if (existing) existing.remove();
 
@@ -1402,75 +1399,26 @@ function renderLevel2Phenomenon(idx, onComplete, onDismiss, standalone = false) 
     }, 0);
   }
 
-  // Context
+  // Station info text
   const ctxDiv = document.createElement('div');
   ctxDiv.className = 'question-text';
   ctxDiv.innerHTML = phenom.context;
   panel.appendChild(ctxDiv);
 
-  // Optional question image
+  // Optional image
   if (phenom.image) {
     const imgWrap = document.createElement('div');
     imgWrap.style.cssText = 'text-align:center;margin:10px 0';
     const img = document.createElement('img');
     img.src = phenom.image;
-    img.alt = phenom.title || 'Gambar soal';
+    img.alt = phenom.title || 'Gambar stasiun';
     img.style.cssText = 'max-width:100%;max-height:260px;border-radius:10px;border:2px solid rgba(255,255,255,.15);object-fit:contain';
     imgWrap.appendChild(img);
     panel.appendChild(imgWrap);
   }
 
-  // Question
-  const qDiv = document.createElement('div');
-  qDiv.className = 'question-text';
-  qDiv.style.marginTop = '4px';
-  qDiv.style.borderLeftColor = '#e67e22';
-  qDiv.innerHTML = `<strong>❓ Pertanyaan:</strong><br>${phenom.question}`;
-  panel.appendChild(qDiv);
-
-  // Answer options
-  const optionsDiv = document.createElement('div');
-  optionsDiv.className = 'answer-options';
-
-  let answered = false;
-
-  phenom.options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'answer-btn';
-    btn.innerHTML = `<strong>${opt.label}.</strong> ${opt.text}`;
-
-    btn.onclick = () => {
-      if (answered) return;
-      if (opt.correct) {
-        answered = true;
-        btn.classList.add('correct');
-        // Award points immediately for this question
-        const pts = state.wrongAnswers === 0 ? 100 : state.wrongAnswers <= 1 ? 50 : 25;
-        state.totalPoints += pts;
-        updateHUD();
-        showFeedback(panel, true, phenom.explanation + `<br><strong>+${pts} poin!</strong>`);
-        nextBtn.classList.add('visible');
-        optionsDiv.querySelectorAll('.answer-btn').forEach(b => (b.disabled = true));
-      } else {
-        btn.classList.add('wrong');
-        btn.disabled = true;
-        state.wrongAnswers++;
-        updateHUD();
-        showFeedback(panel, false, '❌ Jawaban kurang tepat. Coba pilihan lain!');
-      }
-    };
-    optionsDiv.appendChild(btn);
-  });
-
-  panel.appendChild(optionsDiv);
-
-  const feedbackDiv = document.createElement('div');
-  feedbackDiv.className = 'feedback-box';
-  feedbackDiv.id = 'feedback-box';
-  panel.appendChild(feedbackDiv);
-
   const nextBtn = document.createElement('button');
-  nextBtn.className = 'next-btn';
+  nextBtn.className = 'next-btn visible';
   const isLast = idx >= stage2.phenomena.length - 1;
   nextBtn.textContent = standalone
     ? '✅ Selesai'

@@ -21,7 +21,6 @@ import {
   updateHUD,
   setInteractPrompt,
   showLevelComplete,
-  showLevel2QuizComplete,
   showGameComplete,
 } from './ui.js';
 import { showSimulation } from './simulation.js';
@@ -355,11 +354,9 @@ function openQuiz(obj) {
         if (state.currentLevel === 1) {
           setTimeout(() => showLevelComplete(() => startLevel2()), 600);
         } else if (state.currentLevel === 2) {
-          setTimeout(() => showLevel2QuizComplete(() => {
-            showSimulation(() => {
-              // Simulation done — go to Level 3
-              setTimeout(() => showLevelComplete(() => startLevel3()), 600);
-            });
+          setTimeout(() => showSimulation(() => {
+            // Simulation done — go to Level 3
+            setTimeout(() => showLevelComplete(() => startLevel3()), 600);
           }), 600);
         }
       }
