@@ -1104,16 +1104,12 @@ export function showLevel2QuestionPanel(phenomenonIdx, onDone, onDismiss) {
 // Level Complete banner (all 3 phenomena done)
 // ─────────────────────────────────────────────────────
 export function showLevelComplete(onAdvance) {
-  // Calculate score based on total wrong answers across all phenomena
-  const wrong = state.wrongAnswers ?? 0;
-  let points = wrong === 0 ? 100 : wrong <= 2 ? 50 : 25;
-  state.totalPoints += points;
   state.levelAttempts++;
-  updateHUD();
-  // Record how many points were earned this level
+  // Record how many points were earned this level (already added per-question)
   recordLevelPoints(state.currentLevel);
+  const earned = state.levelBreakdown.at(-1)?.points ?? 0;
   const nextLevelNum = state.currentLevel + 1;
-  showLevelResult(points, `Lanjut ke Level ${nextLevelNum} →`, () => {
+  showLevelResult(earned, `Lanjut ke Level ${nextLevelNum} →`, () => {
     state.currentLevel = nextLevelNum;
     state.pointsAtLevelStart = state.totalPoints; // reset baseline for next level
     resetLevelState();
@@ -1126,13 +1122,9 @@ export function showLevelComplete(onAdvance) {
 // Level 2 Complete (after quiz panels — before simulation)
 // ─────────────────────────────────────────────────────
 export function showLevel2QuizComplete(onAdvance) {
-  // no points awarded yet — simulation will award them
-  const wrong = state.wrongAnswers ?? 0;
-  let points = wrong === 0 ? 100 : wrong <= 2 ? 50 : 25;
-  state.totalPoints += points;
+  // Points already awarded per-question; just show transition screen
   state.levelAttempts++;
-  updateHUD();
-  showLevelResult(points, '🔬 Mulai Simulasi Pengolahan →', () => {
+  showLevelResult(0, '🔬 Mulai Simulasi Pengolahan →', () => {
     if (onAdvance) onAdvance();
   });
 }
@@ -1228,6 +1220,9 @@ function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
   const phenom = stage1.phenomena[idx];
   const screen = $('stage-screen');
 
+  // Reset wrong-answer counter for this question
+  state.wrongAnswers = 0;
+
   // Clear previous panel
   const existing = screen.querySelector('.stage-panel');
   if (existing) existing.remove();
@@ -1318,7 +1313,11 @@ function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
         answered = true;
         correct = true;
         btn.classList.add('correct');
-        showFeedback(panel, true, phenom.explanation);
+        // Award points immediately for this question
+        const pts = state.wrongAnswers === 0 ? 100 : state.wrongAnswers <= 1 ? 50 : 25;
+        state.totalPoints += pts;
+        updateHUD();
+        showFeedback(panel, true, phenom.explanation + `<br><strong>+${pts} poin!</strong>`);
         nextBtn.classList.add('visible');
         // Disable all
         optionsDiv.querySelectorAll('.answer-btn').forEach(b => (b.disabled = true));
@@ -1370,6 +1369,9 @@ function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
 function renderLevel2Phenomenon(idx, onComplete, onDismiss, standalone = false) {
   const phenom = stage2.phenomena[idx];
   const screen = $('stage-screen');
+
+  // Reset wrong-answer counter for this question
+  state.wrongAnswers = 0;
 
   const existing = screen.querySelector('.stage-panel');
   if (existing) existing.remove();
@@ -1442,7 +1444,11 @@ function renderLevel2Phenomenon(idx, onComplete, onDismiss, standalone = false) 
       if (opt.correct) {
         answered = true;
         btn.classList.add('correct');
-        showFeedback(panel, true, phenom.explanation);
+        // Award points immediately for this question
+        const pts = state.wrongAnswers === 0 ? 100 : state.wrongAnswers <= 1 ? 50 : 25;
+        state.totalPoints += pts;
+        updateHUD();
+        showFeedback(panel, true, phenom.explanation + `<br><strong>+${pts} poin!</strong>`);
         nextBtn.classList.add('visible');
         optionsDiv.querySelectorAll('.answer-btn').forEach(b => (b.disabled = true));
       } else {
