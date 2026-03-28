@@ -116,10 +116,37 @@ function buildSimHTML() {
             <div class="tit-ep-notice hidden" id="tit-ep-notice">
               🎯 <b>Titik Akhir!</b> Warna merah muda muncul pertama kali — semua bahan organik telah teroksidasi oleh KMnO₄!
             </div>
-            <div class="tit-drop-row">
-              <button class="tit-btn tit-primary" id="btn-add-drop">💧 +1 Tetes</button>
-              <button class="tit-btn tit-secondary" id="btn-fast-drops">⚡ +5 Tetes</button>
+            <!-- Valve controls -->
+            <div class="tit-valve-section">
+              <div class="tit-valve-visual">
+                <div class="tit-valve-wheel closed" id="tit-valve-wheel"></div>
+                <div class="tit-valve-info">
+                  <div class="tit-valve-label" id="tit-valve-label">TUTUP</div>
+                  <div class="tit-valve-sublabel">Tahan tombol untuk membuka katup reagen</div>
+                </div>
+              </div>
+              <div class="tit-hold-row">
+                <button class="tit-valve-slow" id="btn-valve-slow">💧 Tahan: Tetes Pelan</button>
+                <button class="tit-valve-fast" id="btn-valve-fast">💦 Tahan: Aliran Cepat</button>
+              </div>
+              <div class="tit-flow-indicator">
+                <span id="tit-flow-dot">⬜</span>
+                <span id="tit-flow-text">Katup TUTUP — tahan tombol untuk mengalirkan KMnO₄</span>
+              </div>
             </div>
+
+            <div class="tit-warning hidden" id="tit-warning">
+              ⚠️ Mendekati titik akhir! Gunakan <b>tetes pelan</b> saja.
+            </div>
+            <div class="tit-overflow hidden" id="tit-overflow">
+              <div class="tit-overflow-msg">💥 OVERFLOW! Terlalu banyak reagen — titrasi gagal.</div>
+              <div class="tit-overflow-sub">KMnO₄ berlebih merusak warna titik akhir. Mulai ulang dan teteskan lebih hati-hati di akhir!</div>
+              <button class="tit-btn" id="btn-tit-retry"
+                style="margin-top:4px;background:linear-gradient(135deg,#4a1010,#6a2010);color:#ff9090;border:1px solid #aa3020">
+                🔄 Coba Lagi Titrasi
+              </button>
+            </div>
+
             <button class="sim-btn hidden" id="btn-confirm-endpoint"
               style="margin-top:14px;width:100%;background:linear-gradient(135deg,#1a6040,#2a9060)">
               ✅ Catat Titik Akhir Titrasi
@@ -274,69 +301,176 @@ function wireSimulation(overlay, onDone) {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Titration mini-game — runs during Step 2
-// Drops of KMnO₄ are added; at endpointDrops the flask turns pink (endpoint).
-// More vinasse volume → higher COD → more drops needed (proportional).
+// Hold the valve buttons to flow KMnO₄ into the flask.
+// Release to stop. Go past the endpoint → OVERFLOW failure.
 // ─────────────────────────────────────────────────────────────────────────────
 function initTitration(vol, data) {
-  const endpointDrops = Math.round(vol / 50);   // 4 drops (200 mL) … 20 drops (1000 mL)
-  const dropVolMl     = 0.05;                    // 0.05 mL per drop
-  let currentDrops    = 0;
-  let pendingAnim     = false;
+  const endpointVol     = Math.max(0.20, vol * 0.001); // 200 mL→0.20, 1000 mL→1.00 mL
+  const overflowVol     = endpointVol * 1.40;          // 40% over endpoint = failure
+  const warnThreshold   = endpointVol * 0.80;          // show caution warning
+  const dangerThreshold = endpointVol * 0.92;          // disable fast button
+  const TICK_MS         = 50;
+  const SLOW_RATE = Math.max(0.0004, endpointVol / 350); // ~17 s to endpoint at slow
+  const FAST_RATE = Math.max(0.003,  endpointVol / 60);  // ~3 s to endpoint at fast
 
-  // Initialise flask colour: dark brown proportional to dilution
+  let currentVol    = 0;
+  let flowInterval  = null;
+  let currentRate   = 0;
+  let dropVisualTick = 0;
+  let failed        = false;
+  let completed     = false;
+
   const d = data.dilutionFactor;
-  $('tit-flask-liquid').style.background =
-    `rgb(${Math.round(55 + d * 55)}, ${Math.round(15 + d * 15)}, 3)`;
-  $('tit-burette-liquid').style.height = '90%';
 
-  function addDrops(n) {
-    if (pendingAnim) return;
-    const toAdd = Math.min(n, endpointDrops - currentDrops);
-    if (toAdd <= 0) return;
-    pendingAnim    = true;
-    currentDrops  += toAdd;
+  // ── Reset / init UI ──
+  $('tit-flask-liquid').style.background  = `rgb(${Math.round(55+d*55)},${Math.round(15+d*15)},3)`;
+  $('tit-flask-liquid').style.transition  = 'background 0.3s';
+  $('tit-burette-liquid').style.height    = '90%';
+  $('tit-vol-reading').textContent        = '0,00';
+  $('tit-status').style.display           = '';
+  $('tit-ep-notice').classList.add('hidden');
+  $('btn-confirm-endpoint').classList.add('hidden');
+  $('tit-warning').classList.add('hidden');
+  $('tit-overflow').classList.add('hidden');
+  $('tit-flask').classList.remove('overflow-shake');
+  $('btn-valve-slow').disabled            = false;
+  $('btn-valve-fast').disabled            = false;
+  $('tit-flask').querySelectorAll('.overflow-particle').forEach(p => p.remove());
+  updateValveVisual(0);
 
-    // Animate a drop falling from the burette tip
-    const dropEl = $('tit-drop');
-    dropEl.classList.remove('falling');
-    void dropEl.offsetWidth;           // force reflow so animation restarts
-    dropEl.classList.add('falling');
-
-    setTimeout(() => {
-      pendingAnim = false;
-
-      // Deplete burette level
-      const pct = Math.max(8, 90 - (currentDrops / endpointDrops) * 78);
-      $('tit-burette-liquid').style.height = pct + '%';
-
-      // Update mL reading
-      $('tit-vol-reading').textContent =
-        (currentDrops * dropVolMl).toFixed(2).replace('.', ',');
-
-      // Ripple in flask
-      triggerRipple();
-
-      if (currentDrops >= endpointDrops) {
-        // Endpoint: flask turns light pink
-        $('tit-flask-liquid').style.background = 'rgba(255, 155, 185, 0.88)';
-        $('tit-status').style.display          = 'none';
-        $('tit-ep-notice').classList.remove('hidden');
-        $('btn-add-drop').disabled             = true;
-        $('btn-fast-drops').disabled           = true;
-        $('btn-confirm-endpoint').classList.remove('hidden');
-      }
-    }, 560);
+  // ── Helpers ──
+  function updateValveVisual(rate) {
+    const wheel = $('tit-valve-wheel');
+    const label = $('tit-valve-label');
+    const dot   = $('tit-flow-dot');
+    const txt   = $('tit-flow-text');
+    wheel.className = 'tit-valve-wheel';
+    if (rate <= 0) {
+      wheel.classList.add('closed');
+      label.textContent = 'TUTUP'; label.style.color = '#6080a0';
+      dot.textContent   = '⬜';
+      txt.textContent   = 'Katup TUTUP — tahan tombol untuk mengalirkan KMnO₄';
+    } else if (rate === SLOW_RATE) {
+      wheel.classList.add('slow');
+      label.textContent = 'PELAN'; label.style.color = '#00aaff';
+      dot.textContent   = '🔵';
+      txt.textContent   = 'Mengalir PELAN — ideal untuk mendekati titik akhir';
+    } else {
+      wheel.classList.add('fast');
+      label.textContent = 'CEPAT'; label.style.color = '#ff5500';
+      dot.textContent   = '🔴';
+      txt.textContent   = 'Aliran CEPAT ⚠️ — hati-hati mendekati titik akhir!';
+    }
   }
 
-  $('btn-add-drop').onclick   = () => addDrops(1);
-  $('btn-fast-drops').onclick = () => addDrops(5);
+  function doDropAnimation() {
+    const dropEl = $('tit-drop');
+    dropEl.classList.remove('falling');
+    void dropEl.offsetWidth;
+    dropEl.classList.add('falling');
+    triggerRipple();
+  }
+
+  function updateDisplay() {
+    const pct = Math.max(8, 90 - (currentVol / endpointVol) * 78);
+    $('tit-burette-liquid').style.height = pct + '%';
+    $('tit-vol-reading').textContent = currentVol.toFixed(2).replace('.', ',');
+
+    if (!failed && currentVol <= endpointVol) {
+      const p  = Math.min(1, currentVol / endpointVol);
+      const r  = Math.round((55 + d*55) * (1-p) + 255 * p);
+      const g  = Math.round((15 + d*15) * (1-p) + 155 * p);
+      const b  = Math.round(3 * (1-p) + 185 * p);
+      $('tit-flask-liquid').style.background = `rgb(${r},${g},${b})`;
+    }
+
+    if (!completed && !failed) {
+      if (currentVol >= warnThreshold)   $('tit-warning').classList.remove('hidden');
+      if (currentVol >= dangerThreshold) {
+        $('btn-valve-fast').disabled = true;
+        if (currentRate === FAST_RATE) stopFlow();
+      }
+    }
+  }
+
+  function startFlow(rate) {
+    if (failed || completed || flowInterval) return;
+    currentRate    = rate;
+    dropVisualTick = 0;
+    updateValveVisual(rate);
+    const dropEvery = rate === SLOW_RATE ? 10 : 3; // ticks between drop animations
+    flowInterval = setInterval(() => {
+      currentVol += rate;
+      dropVisualTick++;
+      updateDisplay();
+      if (dropVisualTick % dropEvery === 0) doDropAnimation();
+      if (currentVol >= overflowVol) { stopFlow(); triggerOverflow(); return; }
+      if (currentVol >= endpointVol) { stopFlow(); triggerEndpoint(); }
+    }, TICK_MS);
+  }
+
+  function stopFlow() {
+    if (flowInterval) { clearInterval(flowInterval); flowInterval = null; }
+    currentRate = 0;
+    if (!failed && !completed) updateValveVisual(0);
+  }
+
+  function triggerEndpoint() {
+    completed = true;
+    $('tit-flask-liquid').style.background = 'rgba(255,155,185,0.88)';
+    $('tit-warning').classList.add('hidden');
+    $('tit-status').style.display = 'none';
+    $('tit-ep-notice').classList.remove('hidden');
+    $('btn-valve-slow').disabled = true;
+    $('btn-valve-fast').disabled = true;
+    $('btn-confirm-endpoint').classList.remove('hidden');
+    updateValveVisual(0);
+  }
+
+  function triggerOverflow() {
+    failed = true;
+    $('tit-flask-liquid').style.background = 'rgba(180,20,20,0.85)';
+    $('tit-warning').classList.add('hidden');
+    $('tit-overflow').classList.remove('hidden');
+    $('btn-valve-slow').disabled = true;
+    $('btn-valve-fast').disabled = true;
+    updateValveVisual(0);
+    const flask = $('tit-flask');
+    flask.classList.remove('overflow-shake');
+    void flask.offsetWidth;
+    flask.classList.add('overflow-shake');
+    for (let i = 0; i < 8; i++) {
+      const p = document.createElement('div');
+      p.className = 'overflow-particle';
+      p.style.left = (10 + Math.random() * 80) + '%';
+      p.style.animationDelay = (Math.random() * 0.4) + 's';
+      flask.appendChild(p);
+      setTimeout(() => p.remove(), 2000);
+    }
+  }
+
+  // ── Wire hold buttons (= assignment so retry safely overwrites) ──
+  $('btn-valve-slow').onmousedown   = e => { e.preventDefault(); startFlow(SLOW_RATE); };
+  $('btn-valve-slow').onmouseup     = stopFlow;
+  $('btn-valve-slow').onmouseleave  = stopFlow;
+  $('btn-valve-slow').ontouchstart  = e => { e.preventDefault(); startFlow(SLOW_RATE); };
+  $('btn-valve-slow').ontouchend    = stopFlow;
+  $('btn-valve-slow').ontouchcancel = stopFlow;
+
+  $('btn-valve-fast').onmousedown   = e => { e.preventDefault(); startFlow(FAST_RATE); };
+  $('btn-valve-fast').onmouseup     = stopFlow;
+  $('btn-valve-fast').onmouseleave  = stopFlow;
+  $('btn-valve-fast').ontouchstart  = e => { e.preventDefault(); startFlow(FAST_RATE); };
+  $('btn-valve-fast').ontouchend    = stopFlow;
+  $('btn-valve-fast').ontouchcancel = stopFlow;
 
   $('btn-confirm-endpoint').onclick = () => {
-    const res = $('tit-results');
-    res.classList.remove('hidden');
+    $('tit-results').classList.remove('hidden');
     renderInitialParams(data, vol);
-    setTimeout(() => res.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+    setTimeout(() => $('tit-results').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
   };
+
+  $('btn-tit-retry').onclick = () => { stopFlow(); initTitration(vol, data); };
 }
 
 function triggerRipple() {
@@ -940,6 +1074,105 @@ function injectSimulationCSS() {
     .tit-results-heading {
       font-size: 14px; font-weight: 700; color: #60b0d0;
       margin-bottom: 12px; padding-top: 16px; border-top: 1px solid #1a3a5a;
+    }
+
+    /* ── Valve titration controls ─────────────────────────── */
+    .tit-valve-section { display:flex; flex-direction:column; gap:10px; }
+    .tit-valve-visual {
+      display:flex; align-items:center; gap:14px;
+      background:rgba(5,15,30,0.7); border:1px solid #1a3a5a;
+      border-radius:10px; padding:10px 14px;
+    }
+    .tit-valve-wheel {
+      width:46px; height:46px; border-radius:50%;
+      border:3px solid #2a4a6a; background:rgba(10,25,45,0.9);
+      position:relative; flex-shrink:0;
+      transition:border-color 0.2s, box-shadow 0.2s;
+    }
+    .tit-valve-wheel::before {
+      content:''; position:absolute;
+      width:80%; height:4px; background:#2a4a6a;
+      top:50%; left:10%; transform:translateY(-50%);
+      border-radius:2px; transition:background 0.2s;
+    }
+    .tit-valve-wheel::after {
+      content:''; position:absolute;
+      width:4px; height:80%; background:#2a4a6a;
+      left:50%; top:10%; transform:translateX(-50%);
+      border-radius:2px; transition:background 0.2s;
+    }
+    .tit-valve-wheel.slow {
+      border-color:#0088ff;
+      animation:valveSpin 1.4s linear infinite;
+    }
+    .tit-valve-wheel.slow::before, .tit-valve-wheel.slow::after { background:#0088ff; }
+    .tit-valve-wheel.fast {
+      border-color:#ff4400;
+      animation:valveSpin 0.28s linear infinite;
+      box-shadow:0 0 12px rgba(255,80,0,0.5);
+    }
+    .tit-valve-wheel.fast::before, .tit-valve-wheel.fast::after { background:#ff6600; }
+    @keyframes valveSpin { from { transform:rotate(0deg); } to { transform:rotate(360deg); } }
+    .tit-valve-info { flex:1; min-width:0; }
+    .tit-valve-label {
+      font-size:13px; font-weight:800; color:#6080a0;
+      letter-spacing:1px; transition:color 0.2s; margin-bottom:2px;
+    }
+    .tit-valve-sublabel { font-size:11px; color:#405060; line-height:1.4; }
+    .tit-flow-indicator { font-size:12px; color:#5070a0; display:flex; align-items:center; gap:6px; }
+    .tit-hold-row { display:flex; gap:8px; }
+    .tit-valve-slow, .tit-valve-fast {
+      flex:1; padding:10px 12px; border-radius:9px;
+      font-size:13px; font-weight:700; cursor:pointer;
+      transition:all 0.15s; user-select:none; -webkit-user-select:none;
+    }
+    .tit-valve-slow {
+      background:linear-gradient(135deg,#0a3060,#0a5080);
+      color:#70ccff; border:1px solid #0a60a0;
+    }
+    .tit-valve-slow:active { background:linear-gradient(135deg,#0a4080,#0a70b0); box-shadow:0 0 10px rgba(0,150,255,0.4); }
+    .tit-valve-fast {
+      background:linear-gradient(135deg,#3a1010,#6a2010);
+      color:#ff9060; border:1px solid #802010;
+    }
+    .tit-valve-fast:active { background:linear-gradient(135deg,#502020,#9a3020); box-shadow:0 0 10px rgba(255,100,0,0.4); }
+    .tit-valve-slow:disabled, .tit-valve-fast:disabled { opacity:0.35; cursor:default; }
+    .tit-warning {
+      background:rgba(80,50,0,0.3); border:1px solid #c08020;
+      color:#ffc040; border-radius:7px; padding:8px 12px;
+      font-size:13px; font-weight:600;
+    }
+    .tit-warning.hidden { display:none; }
+    .tit-overflow {
+      background:rgba(100,10,10,0.35); border:1px solid #cc2020;
+      border-radius:8px; padding:12px 14px;
+      display:flex; flex-direction:column; gap:8px;
+    }
+    .tit-overflow.hidden { display:none; }
+    .tit-overflow-msg { font-size:13px; font-weight:700; color:#ff7070; }
+    .tit-overflow-sub { font-size:12px; color:#ff9090; line-height:1.5; }
+    @keyframes flaskShake {
+      0%,100% { transform:translateX(0); }
+      15%  { transform:translateX(-5px) rotate(-1.5deg); }
+      30%  { transform:translateX(5px)  rotate( 1.5deg); }
+      50%  { transform:translateX(-4px) rotate(-1deg); }
+      70%  { transform:translateX(4px); }
+    }
+    .tit-flask.overflow-shake {
+      animation:flaskShake 0.5s ease-in-out;
+      border-color:#cc2020 !important;
+      box-shadow:0 0 18px rgba(200,30,30,0.6);
+    }
+    .overflow-particle {
+      position:absolute; width:5px; height:9px;
+      background:rgba(160,0,220,0.75); border-radius:50%;
+      pointer-events:none;
+      animation:overflowSpill 1.2s ease-out forwards;
+    }
+    @keyframes overflowSpill {
+      0%   { transform:translateY(0)     scaleY(1);   opacity:0.85; }
+      50%  { transform:translateY(-20px) scaleY(1.3); opacity:0.5; }
+      100% { transform:translateY(-50px) scaleY(0.4); opacity:0; }
     }
   `;
 
