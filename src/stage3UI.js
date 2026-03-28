@@ -147,7 +147,7 @@ function showShopPanel(onComplete) {
     const canAfford = state.totalPoints >= micro.price;
 
     card.innerHTML = `
-      <div class="s3-micro-emoji">${micro.emoji}</div>
+      <div class="s3-micro-img-wrap"><img src="${micro.image}" alt="${micro.name}" class="s3-micro-img"></div>
       <div class="s3-micro-name">${micro.name}</div>
       <div class="s3-micro-pigment">🔬 Pigmen: ${micro.pigment}</div>
       <div class="s3-micro-desc">${micro.description}</div>
@@ -554,7 +554,8 @@ function injectStage3CSS() {
       flex-direction: column; gap: 6px; transition: border-color 0.2s;
     }
     .s3-micro-card.chosen { border-color: #00e870; background: rgba(0,60,30,0.25); }
-    .s3-micro-emoji  { font-size: 32px; text-align: center; }
+    .s3-micro-img-wrap { text-align: center; margin-bottom: 2px; }
+    .s3-micro-img { width: 100%; max-height: 110px; object-fit: cover; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); }
     .s3-micro-name   { font-size: 15px; font-weight: 700; color: #c0e8d8; text-align: center; }
     .s3-micro-pigment { font-size: 11px; color: #6090a0; font-style: italic; }
     .s3-micro-desc   { font-size: 12px; color: #8090a0; line-height: 1.5; flex: 1; }
