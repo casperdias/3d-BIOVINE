@@ -1549,35 +1549,15 @@ function buildStandardTable(std) {
 // Rice harvest bar chart
 // ─────────────────────────────────────────────────────
 function buildRiceGraph() {
-  const data = [
-    { label: 'Tahun 1', value: 62, color: '#3498db' },
-    { label: 'Tahun 2', value: 78, color: '#2ecc71' },
-    { label: 'Tahun 3', value: 34, color: '#e74c3c' },
-  ];
-  const maxVal = 100;
-
   const wrap = document.createElement('div');
   wrap.className = 'rice-graph-wrap';
 
-  let html = `<div class="rice-graph-title">📊 Produktivitas Panen Padi (% baseline)</div>`;
-  html += '<div class="bar-chart">';
+  const img = document.createElement('img');
+  img.src = '/rice-graph.png';
+  img.alt = 'Grafik produktivitas panen padi';
+  img.style.cssText = 'width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);display:block;';
 
-  for (const d of data) {
-    const heightPct = (d.value / maxVal) * 100;
-    html += `
-      <div class="bar-item">
-        <div class="bar-val">${d.value}%</div>
-        <div class="bar" style="height:${heightPct}px; background:${d.color};"></div>
-        <div class="bar-label">${d.label}</div>
-      </div>
-    `;
-  }
-  html += '</div>';
-  html += `<div class="info-label" style="margin-top:8px; text-align:center;">
-    Tahun 1: Sebelum paparan | Tahun 2: Paparan awal | Tahun 3: Akumulasi kronis
-  </div>`;
-
-  wrap.innerHTML = html;
+  wrap.appendChild(img);
   return wrap;
 }
 

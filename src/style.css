@@ -570,33 +570,37 @@ body {
 }
 
 .data-table-wrap {
-  overflow-x: auto;
   margin: 4px 0;
 }
 
 .data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 11px;
+  table-layout: fixed;
 }
 
 .data-table th {
   background: rgba(46,204,113,0.15);
   color: var(--primary-light);
-  padding: 6px 10px;
+  padding: 4px 5px;
   text-align: center;
   border: 1px solid var(--border);
   font-weight: 700;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: break-word;
+  font-size: 10px;
+  line-height: 1.3;
 }
 
 .data-table td {
-  padding: 6px 10px;
+  padding: 4px 5px;
   border: 1px solid rgba(255,255,255,0.07);
   text-align: center;
   color: var(--text-muted);
-  white-space: nowrap;
-  font-size: 12px;
+  white-space: normal;
+  word-break: break-word;
+  font-size: 11px;
 }
 
 .data-table td.red {
@@ -1057,7 +1061,7 @@ body {
     position: fixed;
     right: 0; left: 0; top: 48px;
     width: 100%;
-    max-height: calc(100vh - 48px - 190px); /* leave room for controls */
+    max-height: calc(100vh - 48px - 130px); /* leave room for controls */
     border-left: none;
     border-radius: 0;
     padding: 16px;
