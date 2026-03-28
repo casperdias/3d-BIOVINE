@@ -34,7 +34,7 @@ export const failureScenarios = [
     title: 'Peringatan: pH Terlalu Asam di Awal',
     emoji: '⚗️',
     condition: r => !r.hasBuffer,
-    symptom: 'Azolla tumbuh lambat pada minggu pertama. Beberapa tanaman mengalami klorosis (daun kuning) karena stres pH asam.',
+    symptom: cfg => `Azolla tumbuh lambat ${cfg && cfg.duration <= 5 ? 'di hari-hari pertama percobaan' : 'pada minggu pertama'}. Beberapa tanaman mengalami klorosis (daun kuning) karena stres pH asam.`,
     cause: 'Vinasse murni memiliki pH 3–4. Azolla bekerja optimal pada pH 5–7. Tanpa buffer pH, fase adaptasi berlangsung lama.',
     theory: 'Enzim nitrogenase pada simbiont Anabaena azollae sangat sensitif terhadap pH rendah. Pada pH < 4.5, aktivitas nitrogenase menurun drastis sehingga fiksasi N₂ dan produksi eksudat berhenti. Penambahan NaHCO₃ (buffer) membantu menstabilkan pH ke 5.5–6.5 pada fase awal.',
     fix: 'Tambahkan NaHCO₃ atau air kapur secukupnya hingga pH vinasse mencapai 5.5–6 sebelum inokulasi Azolla.',
@@ -57,7 +57,7 @@ export const failureScenarios = [
 export const stage5Questions = [
   {
     id: 'q1',
-    question: `Setelah 7 hari percobaan, warna vinasse berubah dari hitam pekat menjadi
+    question: `Setelah {DURATION} hari percobaan, warna vinasse berubah dari hitam pekat menjadi
       coklat kekuningan. Namun nilai COD akhir masih 12.000 mg/L (baku mutu: 300 mg/L).
       Apa penyebab paling logis berdasarkan desain reaktormu?`,
     options: [

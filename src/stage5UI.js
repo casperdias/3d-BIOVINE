@@ -59,8 +59,10 @@ function showFailureAnalysis(onComplete) {
   document.body.appendChild(ov);
 
   if (found.length > 0) {
+    const cfg = state.stage4?.concentrationCfg || null;
     const list = $('s5-scen-list');
     found.forEach((s, i) => {
+      const symptomText = typeof s.symptom === 'function' ? s.symptom(cfg) : s.symptom;
       const card = document.createElement('div');
       card.className = 's5-scenario-card';
       card.innerHTML = `
@@ -70,7 +72,7 @@ function showFailureAnalysis(onComplete) {
           <span class="s5-scen-chevron">▼</span>
         </div>
         <div class="s5-scen-body">
-          <div class="s5-scen-row"><span class="s5-scen-lbl">🔎 Gejala</span><p>${s.symptom}</p></div>
+          <div class="s5-scen-row"><span class="s5-scen-lbl">🔎 Gejala</span><p>${symptomText}</p></div>
           <div class="s5-scen-row"><span class="s5-scen-lbl">⚙️ Penyebab</span><p>${s.cause}</p></div>
           <div class="s5-scen-row"><span class="s5-scen-lbl">📚 Teori</span><p>${s.theory}</p></div>
           <div class="s5-scen-row fix"><span class="s5-scen-lbl">✅ Solusi</span><p>${s.fix}</p></div>
@@ -94,7 +96,10 @@ function showEvalMCQ(onComplete) {
   let totalEarned = 0;
 
   function renderQuestion() {
-    const q = stage5Questions[currentQ];
+    const rawQ = stage5Questions[currentQ];
+    // Substitute dynamic placeholders
+    const dur = state.stage4?.concentrationCfg?.duration || 7;
+    const q = { ...rawQ, question: rawQ.question.replace('{DURATION}', dur) };
     const ov = document.getElementById('s5-overlay');
 
     ov.querySelector('.s5-card').innerHTML = `
@@ -165,6 +170,19 @@ function showEvalMCQ(onComplete) {
 // ─────────────────────────────────────────────────────────────────────────────
 function showDebrief(onDone) {
   const result = state.stage4.reactorResult || {};
+  const cfg    = state.stage4?.concentrationCfg || null;
+
+  // Build per-concentration rows if available
+  const percRows = (result.perConcentration || []).map((row, i) => `
+    <tr>
+      <td>T${i+1}</td>
+      <td>${row.conc}%</td>
+      <td>${(200 * row.conc / 100).toFixed(1)} g/L</td>
+      <td style="color:${result.gradeColor||'#40cc80'}">${row.cod}%</td>
+      <td style="color:${result.gradeColor||'#40cc80'}">${row.bod}%</td>
+      <td style="font-size:11px;color:#6090a0">${row.note}</td>
+    </tr>
+  `).join('');
 
   const ov = makeOverlay();
   ov.innerHTML = `
@@ -178,12 +196,12 @@ function showDebrief(onDone) {
       <div class="s5-debrief-grid">
         <div class="s5-debrief-card">
           <div class="s5-deb-icon">📉</div>
-          <div class="s5-deb-label">Efisiensi COD</div>
+          <div class="s5-deb-label">Efisiensi COD (rata-rata)</div>
           <div class="s5-deb-value" style="color:${result.gradeColor||'#a0e8d8'}">${result.codReduction || 0}%</div>
         </div>
         <div class="s5-debrief-card">
           <div class="s5-deb-icon">💧</div>
-          <div class="s5-deb-label">Efisiensi BOD</div>
+          <div class="s5-deb-label">Efisiensi BOD (rata-rata)</div>
           <div class="s5-deb-value" style="color:${result.gradeColor||'#a0e8d8'}">${result.bodReduction || 0}%</div>
         </div>
         <div class="s5-debrief-card">
@@ -197,6 +215,26 @@ function showDebrief(onDone) {
           <div class="s5-deb-value" style="color:#ffe040">${state.totalPoints}</div>
         </div>
       </div>
+
+      ${cfg ? `
+        <div class="s5-conc-recap">
+          <div class="s5-conc-recap-title">🧪 Rancangan Percobaan yang Digunakan</div>
+          <div class="s5-info-box">
+            Konsentrasi: <b>${cfg.concentrations.join('%, ')}%</b>
+            &nbsp;·&nbsp; Ulangan: <b>${cfg.repetitions}×</b>
+            &nbsp;·&nbsp; Durasi: <b>${cfg.duration} hari</b>
+          </div>
+          ${percRows ? `
+            <table class="s5-conc-table">
+              <thead><tr>
+                <th>Taraf</th><th>Konsentrasi</th><th>Dosis (g/L)</th>
+                <th>COD turun</th><th>BOD turun</th><th>Keterangan</th>
+              </tr></thead>
+              <tbody>${percRows}</tbody>
+            </table>
+          ` : ''}
+        </div>
+      ` : ''}
 
       <div class="s5-conclusion">
         <h4>💡 Kesimpulan Ilmiah</h4>
@@ -400,6 +438,28 @@ function injectCSS() {
     .s5-level-complete h3 { color:#a090ff;margin:0 0 8px;font-size:20px; }
     .s5-level-complete p  { font-size:13px;color:#6070a0;line-height:1.6;margin:0 0 10px; }
     .s5-final-score { font-size:18px;font-weight:700;color:#ffe040;margin-bottom:8px; }
+
+    /* Concentration recap in debrief */
+    .s5-conc-recap { margin:12px 0; }
+    .s5-conc-recap-title {
+      font-size:13px;font-weight:700;color:#60aaff;margin-bottom:6px;
+    }
+    .s5-info-box {
+      background:rgba(0,40,80,0.2);border-left:4px solid #0070c0;
+      padding:8px 14px;border-radius:6px;font-size:13px;color:#80b8e0;
+      margin-bottom:10px;line-height:1.6;
+    }
+    .s5-conc-table {
+      width:100%;border-collapse:collapse;font-size:12px;margin-top:6px;
+    }
+    .s5-conc-table th {
+      background:rgba(0,40,80,0.4);color:#60aaff;
+      padding:6px 8px;border:1px solid #1a3a5a;text-align:left;
+    }
+    .s5-conc-table td {
+      padding:5px 8px;border:1px solid #0e2040;color:#90b8d0;
+    }
+    .s5-conc-table tr:nth-child(even) td { background:rgba(0,20,40,0.2); }
   `;
   document.head.appendChild(style);
 }
