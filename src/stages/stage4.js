@@ -3,50 +3,6 @@
 // Siswa merancang eksperimen menggunakan alat & bahan yang tersedia
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ── Challenge question (opening MCQ before the builder) ──────────────────────
-export const stage4Challenge = {
-  title: '🔧 Tantangan Sebelum Merancang Reaktor',
-  context: `
-    Seorang siswa akan merancang reaktor sederhana untuk mengolah limbah vinasse
-    dengan menggunakan <b>Azolla microphylla</b> hasil pemilihan di Level 3.<br><br>
-    Azolla membutuhkan <b>cahaya matahari</b> untuk melakukan fotosintesis dan
-    menghasilkan O₂ yang membantu degradasi polutan. Selain itu, proses aerasi
-    dengan gelembung udara sangat membantu distribusi oksigen di seluruh cairan.<br><br>
-    Siswa tersebut berencana:<br>
-    <ol style="margin:6px 0 0 16px">
-      <li>Menggunakan <b>aquarium tertutup</b> tanpa celah cahaya</li>
-      <li>Memasang <b>3 aerator</b> sekaligus</li>
-      <li><b>Tidak memasang lampu</b> karena mengira Azolla cukup hidup dari
-        udara saja</li>
-    </ol>
-  `,
-  question: `Evaluasi rancangan siswa tersebut — mengapa rancangannya kurang tepat untuk
-    mengoptimalkan kinerja Azolla sebagai agen bioremediasi?`,
-  options: [
-    {
-      label: 'A',
-      text: 'Aquarium tertutup tanpa cahaya menyebabkan Azolla tidak dapat berfotosintesis, sehingga produksi O₂ terhenti dan kapasitas degradasi polutan menurun signifikan.',
-      correct: true,
-    },
-    {
-      label: 'B',
-      text: '3 aerator terlalu banyak sehingga arus udara yang kuat akan menggulung dan menenggelamkan Azolla ke dasar aquarium.',
-      correct: false,
-    },
-    {
-      label: 'C',
-      text: 'Aquarium tertutup justru lebih baik karena mencegah kontaminasi udara luar dan menjaga suhu optimal untuk Azolla.',
-      correct: false,
-    },
-  ],
-  explanation: `✅ <strong>Benar!</strong> Azolla adalah tanaman fotosintetik — ia <em>wajib</em>
-    mendapat cahaya yang cukup (> 1000 lux) untuk menghasilkan O₂ dan menjalankan proses
-    fitoremediasi secara efektif. Aquarium tertutup rapat tanpa pencahayaan tambahan akan
-    menghentikan fotosintesis, membuat Azolla mati, dan proses bioremediasi gagal total.
-    Rancangan yang benar: gunakan wadah terbuka/transparan + pasang lampu grow-light jika
-    pencahayaan alami kurang.`,
-};
-
 // ── Equipment catalogue (alat) ────────────────────────────────────────────────
 export const equipmentList = [
   {
@@ -227,8 +183,9 @@ export const procedureSteps = [
 ];
 
 // ── Reactor outcome evaluator ─────────────────────────────────────────────────
-// Evaluates which items the student selected and computes reactor performance
-export function evaluateReactor(selectedIds) {
+// Evaluates which items the student selected and computes reactor performance.
+// concConfig = { concentrations: [c1,c2,c3] (% of 200 g/L), repetitions, duration }
+export function evaluateReactor(selectedIds, concConfig) {
   const sel = new Set(selectedIds);
 
   const hasContainer = sel.has('aquarium');
@@ -289,6 +246,26 @@ export function evaluateReactor(selectedIds) {
   else if (codReduction >= 70) { grade = 'Baik ⭐⭐'; gradeColor = '#a0c840'; }
   else { grade = 'Cukup ⭐'; gradeColor = '#e0a020'; }
 
+  // Per-concentration breakdown
+  // Higher concentration → slightly closer to max reduction (diminishing returns above 100%)
+  const concentrations = (concConfig && concConfig.concentrations) || [10, 50, 100];
+  const duration       = (concConfig && concConfig.duration) || 7;
+  const durationFactor = Math.min(1, 0.6 + duration / 25); // 7d → 0.88, 14d → 1.0
+
+  const perConcentration = concentrations.map(conc => {
+    // Scale factor: 10% conc → ~40% efficacy; 50% → ~75%; 100% → 100%
+    const scale   = Math.min(1, 0.4 + (conc / 100) * 0.6) * durationFactor;
+    const codTier = Math.round(codReduction * scale);
+    const bodTier = Math.round(bodReduction * scale);
+    let note;
+    if (conc <= 15)       note = 'Dosis sangat rendah; penurunan terbatas';
+    else if (conc <= 40)  note = 'Dosis rendah; penurunan sedang';
+    else if (conc <= 80)  note = 'Dosis moderat; efisiensi cukup baik';
+    else if (conc <= 110) note = 'Dosis optimal; performa terbaik';
+    else                  note = 'Dosis lebih; tidak banyak tambahan manfaat';
+    return { conc, cod: codTier, bod: bodTier, note };
+  });
+
   return {
     success: true,
     aerationLvl,
@@ -300,6 +277,7 @@ export function evaluateReactor(selectedIds) {
     grade,
     gradeColor,
     missing: [],
-    feedback: `✅ Reaktor berhasil dirancang! Perkiraan penurunan COD: <b>${codReduction}%</b>, BOD: <b>${bodReduction}%</b>.`,
+    feedback: `✅ Reaktor berhasil dirancang! Perkiraan penurunan COD rata-rata: <b>${codReduction}%</b>, BOD: <b>${bodReduction}%</b>.`,
+    perConcentration,
   };
 }
