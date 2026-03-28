@@ -13,9 +13,9 @@ const CHECKPOINT_KEY = 'biovine_checkpoint';
  * Append a completed-game record to the leaderboard.
  * @param {{ playerName:string, totalPoints:number, levelBreakdown:object[], completedAt:string }} record
  */
-export function saveScore({ playerName, totalPoints, levelBreakdown, completedAt }) {
+export function saveScore({ playerName, totalPoints, levelBreakdown, completedAt, essayAnswer }) {
   const scores = getAllScores();
-  scores.push({ playerName, totalPoints, levelBreakdown, completedAt });
+  scores.push({ playerName, totalPoints, levelBreakdown, completedAt, essayAnswer });
   // Keep at most 200 entries so localStorage doesn't grow unbounded
   if (scores.length > 200) scores.splice(0, scores.length - 200);
   try {

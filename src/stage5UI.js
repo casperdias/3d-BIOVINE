@@ -2,7 +2,7 @@
 // Stage 5 UI – Melakukan Evaluasi
 // Steps: Failure Analysis → MCQ Evaluation → Debrief
 // ─────────────────────────────────────────────────────────────────────────────
-import { failureScenarios, stage5Questions } from './stages/stage5.js';
+import { failureScenarios } from './stages/stage5.js';
 import { state } from './state.js';
 import { updateHUD } from './ui.js';
 
@@ -52,7 +52,7 @@ function showFailureAnalysis(onComplete) {
       `}
 
       <button class="s5-btn" id="s5-btn-to-mcq">
-        🧪 Lanjut ke Evaluasi MCQ →
+        ✏️ Lanjut ke Evaluasi Esai →
       </button>
     </div>
   `;
@@ -88,81 +88,43 @@ function showFailureAnalysis(onComplete) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step 2 – Evaluation MCQ (3 questions)
+// Step 2 – Evaluation Essay (textarea)
 // ─────────────────────────────────────────────────────────────────────────────
 function showEvalMCQ(onComplete) {
-  let currentQ  = 0;
-  let wrongCount = 0;
-  let totalEarned = 0;
-
-  function renderQuestion() {
-    const rawQ = stage5Questions[currentQ];
-    // Substitute dynamic placeholders
-    const dur = state.stage4?.concentrationCfg?.duration || 7;
-    const q = { ...rawQ, question: rawQ.question.replace('{DURATION}', dur) };
-    const ov = document.getElementById('s5-overlay');
-
-    ov.querySelector('.s5-card').innerHTML = `
-      <div class="s5-header">
-        <span class="s5-badge">🧪 EVALUASI MCQ</span>
-        <h2 class="s5-title">Soal ${currentQ + 1} / ${stage5Questions.length}</h2>
-      </div>
-      ${stepBar(2)}
-      <div class="s5-question">${q.question}</div>
-      <div class="s5-options" id="s5-opts"></div>
-      <div class="s5-feedback hidden" id="s5-fb"></div>
-      <button class="s5-btn hidden" id="s5-btn-next">
-        ${currentQ < stage5Questions.length - 1 ? '→ Soal Berikutnya' : '✅ Selesai Evaluasi'}
-      </button>
-    `;
-
-    let answered = false;
-    const opts = $('s5-opts');
-
-    q.options.forEach(opt => {
-      const btn = document.createElement('button');
-      btn.className = 's5-option';
-      btn.innerHTML = `<strong>${opt.label}.</strong> ${opt.text}`;
-      btn.onclick = () => {
-        if (answered) return;
-        if (opt.correct) {
-          answered = true;
-          btn.classList.add('correct');
-          opts.querySelectorAll('.s5-option').forEach(b => b.disabled = true);
-          const pts = wrongCount === 0 ? 50 : wrongCount <= 1 ? 25 : 10;
-          state.totalPoints += pts;
-          totalEarned += pts;
-          wrongCount = 0;
-          updateHUD();
-          showFeedback('s5-fb', true, q.explanation + `<br><br>🎉 +${pts} poin!`);
-          $('s5-btn-next').classList.remove('hidden');
-        } else {
-          btn.classList.add('wrong');
-          btn.disabled = true;
-          wrongCount++;
-          state.wrongAnswers = (state.wrongAnswers ?? 0) + 1;
-          updateHUD();
-          showFeedback('s5-fb', false, '❌ Bukan jawaban yang paling tepat. Coba pilihan lain!');
-        }
-      };
-      opts.appendChild(btn);
-    });
-
-    $('s5-btn-next').onclick = () => {
-      currentQ++;
-      if (currentQ < stage5Questions.length) {
-        renderQuestion();
-      } else {
-        removeOverlay();
-        onComplete();
-      }
-    };
-  }
+  const ESSAY_QUESTION = `Dalam proyek yang telah kalian buat, limbah vinasse dari industri etanol di Bekonang memiliki karakteristik pH yang sangat asam, kadar COD dan BOD yang sangat tinggi, serta mengandung pigmen melanoidin dan senyawa fenol.
+Berdasarkan konsep bioremediasi yang telah kalian pelajari, analisislah mengapa penggunaan bakteri pengurai seringkali gagal dalam memulihkan limbah vinasse ini? Selanjutnya, jelaskan mekanisme pemilihan agen biologis dapat secara efektif menurunkan kadar polutan dalam proses valorisasi limbah tersebut menjadi Pupuk Organik Cair (POC) yang aman bagi lingkungan`;
 
   const ov = makeOverlay();
-  ov.innerHTML = '<div class="s5-card"></div>';
+  ov.innerHTML = `
+    <div class="s5-card">
+      <div class="s5-header">
+        <span class="s5-badge">✏️ EVALUASI ESAI</span>
+        <h2 class="s5-title">Jawab Pertanyaan Berikut</h2>
+      </div>
+      ${stepBar(2)}
+      <div class="s5-question s5-essay-question">${ESSAY_QUESTION.replace(/\n/g, '<br>')}</div>
+      <textarea class="s5-essay-textarea" id="s5-essay-input"
+        placeholder="Tuliskan jawaban analisismu di sini..."
+        rows="8"></textarea>
+      <div class="s5-essay-hint">Jawaban akan ditampilkan di halaman ringkasan akhir.</div>
+      <button class="s5-btn" id="s5-btn-essay-submit" disabled>✅ Simpan Jawaban</button>
+    </div>
+  `;
   document.body.appendChild(ov);
-  renderQuestion();
+
+  const textarea = $('s5-essay-input');
+  const submitBtn = $('s5-btn-essay-submit');
+
+  textarea.oninput = () => {
+    submitBtn.disabled = textarea.value.trim().length < 10;
+  };
+
+  submitBtn.onclick = () => {
+    state.stage5 = state.stage5 || {};
+    state.stage5.essayAnswer = textarea.value.trim();
+    removeOverlay();
+    onComplete();
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -253,6 +215,13 @@ function showDebrief(onDone) {
         <div class="s5-final-score">Total Poin: <span>${state.totalPoints}</span></div>
       </div>
 
+      ${state.stage5?.essayAnswer ? `
+        <div class="s5-essay-recap">
+          <div class="s5-essay-recap-title">✏️ Jawaban Esaimu</div>
+          <div class="s5-essay-recap-body">${state.stage5.essayAnswer.replace(/\n/g, '<br>')}</div>
+        </div>
+      ` : ''}
+
       <button class="s5-btn" id="s5-btn-finish">🏁 Lihat Hasil Akhir →</button>
     </div>
   `;
@@ -266,7 +235,7 @@ function showDebrief(onDone) {
 function stepBar(active) {
   const steps = [
     { n: 1, label: 'Analisis' },
-    { n: 2, label: 'MCQ' },
+    { n: 2, label: 'Esai' },
     { n: 3, label: 'Kesimpulan' },
   ];
   return `<div class="s5-step-indicator">
@@ -460,6 +429,34 @@ function injectCSS() {
       padding:5px 8px;border:1px solid #0e2040;color:#90b8d0;
     }
     .s5-conc-table tr:nth-child(even) td { background:rgba(0,20,40,0.2); }
+
+    /* Essay step */
+    .s5-essay-question {
+      white-space: pre-line;
+    }
+    .s5-essay-textarea {
+      width:100%;box-sizing:border-box;margin-top:12px;
+      background:rgba(5,10,25,0.9);border:1px solid #2a3a6a;
+      border-radius:8px;color:#c8d8f8;font-size:13px;
+      line-height:1.7;padding:12px 14px;resize:vertical;
+      font-family:inherit;outline:none;transition:border-color 0.2s;
+    }
+    .s5-essay-textarea:focus { border-color:#6050cc; }
+    .s5-essay-hint {
+      font-size:11px;color:#404870;margin-top:6px;margin-bottom:2px;
+    }
+
+    /* Essay answer recap in debrief */
+    .s5-essay-recap {
+      margin:12px 0;background:rgba(5,10,30,0.85);
+      border-left:4px solid #5040cc;border-radius:6px;padding:12px 16px;
+    }
+    .s5-essay-recap-title {
+      font-size:13px;font-weight:700;color:#9080ff;margin-bottom:8px;
+    }
+    .s5-essay-recap-body {
+      font-size:13px;color:#8090b8;line-height:1.8;white-space:pre-wrap;
+    }
   `;
   document.head.appendChild(style);
 }

@@ -326,7 +326,7 @@
 
   <script>
     // ── Constants ──────────────────────────────────────────────────────────────
-    const ADMIN_PASSWORD = 'biovine2024';   // static admin password
+    const ADMIN_PASSWORD = 'biovine2026';   // static admin password
     const SCORES_KEY     = 'biovine_scores';
 
     const LEVEL_LABELS = {
@@ -335,7 +335,6 @@
       3: 'Level 3 – Kolam',
       4: 'Level 4 – IPAL',
       5: 'Level 5 – Obs. Lab',
-      6: 'Level 6 – Aula',
     };
 
     const LEVEL_COLORS = {
@@ -344,7 +343,6 @@
       3: '#2ecc71',
       4: '#9b59b6',
       5: '#1abc9c',
-      6: '#e74c3c',
     };
 
     // ── Auth ───────────────────────────────────────────────────────────────────
@@ -425,8 +423,8 @@
           <div class="stat-lbl">Rata-rata Skor</div>
         </div>
         <div class="stat-card">
-          <div class="stat-val" style="color:#9b59b6">${scores.filter(s => Array.isArray(s.levelBreakdown) && s.levelBreakdown.length === 6).length}</div>
-          <div class="stat-lbl">Tamat (6 Level)</div>
+          <div class="stat-val" style="color:#9b59b6">${scores.filter(s => Array.isArray(s.levelBreakdown) && s.levelBreakdown.length === 5).length}</div>
+          <div class="stat-lbl">Tamat (5 Level)</div>
         </div>
       `;
     }
@@ -440,7 +438,7 @@
 
       // Detect which level columns actually have data
       const usedLevels = [];
-      for (let l = 1; l <= 6; l++) {
+      for (let l = 1; l <= 5; l++) {
         if (data.some(s => Array.isArray(s.levelBreakdown) &&
             s.levelBreakdown.find(e => e.level === l))) {
           usedLevels.push(l);
@@ -536,6 +534,14 @@
                 <td>${score.totalPoints || 0}</td>
               </tr>
             </table>
+            ${score.essayAnswer ? `
+              <div style="margin-top:12px;padding:10px 14px;
+                background:rgba(80,60,180,0.1);border-left:3px solid #7060cc;
+                border-radius:6px;">
+                <div style="font-size:11px;font-weight:700;color:#9080ff;
+                  letter-spacing:.5px;margin-bottom:6px">✏️ JAWABAN ESAI</div>
+                <div style="font-size:13px;color:#9090c0;line-height:1.7;white-space:pre-wrap">${escHtml(score.essayAnswer)}</div>
+              </div>` : ''}
           </td>
         `;
         tbody.appendChild(dtr);

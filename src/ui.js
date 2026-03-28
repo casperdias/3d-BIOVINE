@@ -77,19 +77,16 @@ export function showSynopsis(cb) {
     {
       tag:    'Bagian 1 dari 3',
       title:  'Industri Etanol di Desa Bekonang',
-      bubble: 'Halo! Yuk, kenali industri yang melahirkan masalah lingkungan ini.',
       text:   `Industri etanol di Desa Bekonang, Sukoharjo, adalah warisan <strong>turun-temurun</strong> yang sudah ada sejak zaman kolonial. Banyak pabrik di sini memproduksi minuman keras tradisional bernama <strong>ciu</strong> dibuat dari tetes tebu, tape singkong, atau nira aren melalui proses fermentasi dan penyulingan.<br><br>Seiring waktu, industri ini berkembang menjadi produksi <strong>etanol medis</strong> yang digunakan untuk kebutuhan rumah sakit dan dunia kesehatan.`,
     },
     {
       tag:    'Bagian 2 dari 3',
       title:  'Masalah: Limbah Vinasse',
-      bubble: 'Ini masalah serius yang mencemari lingkungan sekitar!',
       text:   `Proses produksi etanol menghasilkan limbah cair bernama <strong>vinasse</strong>. Setiap harinya, satu pabrik bisa menghasilkan <strong>150–200 liter</strong> limbah ini tanpa sistem pengolahan yang memadai.<br><br>Vinasse berwarna <strong>hitam pekat</strong>, berbau menyengat, dan sangat berbahaya jika dibuang langsung ke sungai. Vinasse <strong>menyerap oksigen</strong> di dalam air, menyebabkan ikan-ikan mati dan sungai tercemar parah.`,
     },
     {
       tag:    'Bagian 3 dari 3',
       title:  'Solusi: Vinasse → Pupuk Organik Cair',
-      bubble: 'Kita bisa mengubah limbah menjadi sesuatu yang bermanfaat!',
       text:   `Kabar baiknya, limbah vinasse bisa diolah menjadi <strong>Pupuk Organik Cair (POC)</strong>! Caranya dengan menambahkan <strong>mikroorganisme berupa ragi</strong> ke dalam vinasse yang sudah diaerasi minimal 24 jam.<br><br>Setelah ditumbuhkan selama <strong>15 hari</strong> dalam bak terbuka beraeasi, limbah berubah menjadi pupuk: tidak berbau asam, berwarna coklat muda. Diaplikasikan ke tanaman dengan perbandingan <strong>1 : 10</strong> (POC : air). Ukur kadar COD, BOD, dan pH untuk memastikan kualitasnya!`,
     },
   ];
@@ -105,7 +102,6 @@ export function showSynopsis(cb) {
   const prevBtn   = $('btn-syn-prev');
   const nextBtn   = $('btn-syn-next');
   const skipBtn   = $('btn-syn-skip');
-  const bubbleEl  = $('syn-bubble');
   const panel     = $('synopsis-content-panel');
   const mouthPath = $('syn-mouth');
 
@@ -146,7 +142,6 @@ export function showSynopsis(cb) {
     tagEl.textContent    = seg.tag;
     titleEl.textContent  = seg.title;
     textEl.innerHTML     = seg.text;
-    bubbleEl.textContent = seg.bubble;
 
     // Dots
     dotsEl.innerHTML = SEGMENTS.map((_, k) =>
@@ -1316,6 +1311,7 @@ export function showGameComplete() {
     totalPoints:    state.totalPoints,
     levelBreakdown: state.levelBreakdown,
     completedAt:    new Date().toISOString(),
+    essayAnswer:    state.stage5?.essayAnswer || '',
   });
   clearCheckpoint();
 
@@ -1741,7 +1737,7 @@ export function buildUIHTML() {
       </div>
       <div id="hud-center">
         <div class="progress-bar-wrap" id="level-progress">
-          ${[1,2,3,4,5,6].map((l, i) => `<div class="prog-dot ${i === 0 ? 'active' : ''}" title="Level ${l}"></div>`).join('')}
+          ${[1,2,3,4,5].map((l, i) => `<div class="prog-dot ${i === 0 ? 'active' : ''}" title="Level ${l}"></div>`).join('')}
         </div>
       </div>
       <div id="hud-right">
@@ -1844,7 +1840,6 @@ export function buildUIHTML() {
       <div class="synopsis-container">
         <!-- Avatar panel -->
         <div class="synopsis-avatar-wrap">
-          <div id="syn-bubble" class="synopsis-bubble">Halo! Yuk, kenali masalah lingkungan ini bersama saya.</div>
           <svg viewBox="0 0 200 400" class="synopsis-avatar" xmlns="http://www.w3.org/2000/svg">
             <!-- Shadow -->
             <ellipse cx="100" cy="393" rx="52" ry="6" fill="rgba(0,0,0,0.18)"/>
