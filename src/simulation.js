@@ -70,17 +70,70 @@ function buildSimHTML() {
         <button class="sim-btn" id="btn-titrate" disabled>🧪 Lakukan Titrasi →</button>
       </div>
 
-      <!-- Step 2: Titration results -->
+      <!-- Step 2: Interactive titration -->
       <div class="sim-step hidden" id="sim-step-2">
         <div class="step-title">
           <span class="step-num">2</span>
-          Hasil Titrasi — Parameter Awal Sampel
+          Titrasi COD — Uji Konsumsi KMnO₄
         </div>
-        <div class="param-grid" id="initial-params">
-          <!-- populated by JS -->
+        <div class="titration-layout">
+          <!-- Left: lab apparatus (burette above flask) -->
+          <div class="tit-apparatus">
+            <div class="tit-label-sm">Buret KMnO₄</div>
+            <div class="tit-burette" id="tit-burette">
+              <div class="tit-burette-liquid" id="tit-burette-liquid"></div>
+              <div class="tit-burette-scale">
+                ${[0,5,10,15,20,25].map(v => `<span>${v}</span>`).join('')}
+              </div>
+            </div>
+            <div class="tit-tip-col">
+              <div class="tit-tip-line"></div>
+              <div class="tit-drop" id="tit-drop"></div>
+            </div>
+            <div class="tit-flask" id="tit-flask">
+              <div class="tit-flask-liquid" id="tit-flask-liquid"></div>
+              <div class="tit-ripple" id="tit-ripple"></div>
+            </div>
+            <div class="tit-label-sm" style="margin-top:5px">Sampel Vinasse (Erlenmeyer)</div>
+            <div class="tit-vol-display">
+              <span id="tit-vol-reading">0,00</span> mL terpakai
+            </div>
+          </div>
+
+          <!-- Right: controls & status -->
+          <div class="tit-panel">
+            <div class="tit-reagent-box">
+              <div class="tit-reagent-dot"></div>
+              <div>
+                <b>KMnO₄</b> — Kalium Permanganat<br>
+                <span>Reagen pengoksidasi (ungu). Langsung terdekolorisasi saat bertemu bahan organik sampel, hingga semua teroksidasi — itulah titik akhir titrasi.</span>
+              </div>
+            </div>
+            <div class="tit-status" id="tit-status">
+              <span style="color:#b070d8">●</span>
+              KMnO₄ langsung terdekolorisasi — masih ada bahan organik yang belum teroksidasi
+            </div>
+            <div class="tit-ep-notice hidden" id="tit-ep-notice">
+              🎯 <b>Titik Akhir!</b> Warna merah muda muncul pertama kali — semua bahan organik telah teroksidasi oleh KMnO₄!
+            </div>
+            <div class="tit-drop-row">
+              <button class="tit-btn tit-primary" id="btn-add-drop">💧 +1 Tetes</button>
+              <button class="tit-btn tit-secondary" id="btn-fast-drops">⚡ +5 Tetes</button>
+            </div>
+            <button class="sim-btn hidden" id="btn-confirm-endpoint"
+              style="margin-top:14px;width:100%;background:linear-gradient(135deg,#1a6040,#2a9060)">
+              ✅ Catat Titik Akhir Titrasi
+            </button>
+          </div>
         </div>
-        <div class="titration-note" id="titration-note"></div>
-        <button class="sim-btn" id="btn-go-aerate">💨 Lanjut ke Simulasi Aerasi →</button>
+
+        <!-- Revealed after endpoint is confirmed -->
+        <div class="tit-results hidden" id="tit-results">
+          <div class="tit-results-heading">📊 Hasil Pengukuran Parameter Awal</div>
+          <div class="param-grid" id="initial-params"></div>
+          <div class="titration-note" id="titration-note"></div>
+          <button class="sim-btn" id="btn-go-aerate">💨 Lanjut ke Simulasi Aerasi →</button>
+        </div>
       </div>
 
       <!-- Step 3: Aeration -->
@@ -138,16 +191,7 @@ function buildSimHTML() {
         <div class="compliance-banner" id="compliance-banner"></div>
         <div class="sim-conclusion" id="sim-conclusion"></div>
 
-        <div class="sim-question-wrap">
-          <div class="step-title" style="margin-top:12px">
-            <span class="step-num">❓</span>
-            Pertanyaan Evaluasi
-          </div>
-          <div class="sim-question" id="sim-question-text"></div>
-          <div class="sim-options" id="sim-question-options"></div>
-          <div class="sim-feedback hidden" id="sim-feedback"></div>
-          <button class="sim-btn hidden" id="btn-sim-finish">✅ Selesai Level 2 →</button>
-        </div>
+        <button class="sim-btn hidden" id="btn-sim-finish" style="margin-top:8px">✅ Selesai Level 2 →</button>
       </div>
 
     </div>
@@ -174,11 +218,11 @@ function wireSimulation(overlay, onDone) {
     };
   });
 
-  // ── Step 1 → 2: Titrate ──
+  // ── Step 1 → 2: Titrate (launches interactive titration) ──
   $('btn-titrate').onclick = () => {
     initialData = calcInitialParams(selectedVol);
     transitionStep('sim-step-1', 'sim-step-2');
-    renderInitialParams(initialData, selectedVol);
+    initTitration(selectedVol, initialData);
   };
 
   // ── Step 2 → 3: Go to aeration ──
@@ -220,8 +264,87 @@ function wireSimulation(overlay, onDone) {
     const result = calcAfterAeration(initialData, selectedHours);
     transitionStep('sim-step-3', 'sim-step-4');
     renderResults(initialData, result, selectedVol, selectedHours);
-    renderEvalQuestion(result, onDone);
+    $('btn-sim-finish').classList.remove('hidden');
+    $('btn-sim-finish').onclick = () => {
+      $('sim-overlay').remove();
+      if (onDone) onDone();
+    };
   };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Titration mini-game — runs during Step 2
+// Drops of KMnO₄ are added; at endpointDrops the flask turns pink (endpoint).
+// More vinasse volume → higher COD → more drops needed (proportional).
+// ─────────────────────────────────────────────────────────────────────────────
+function initTitration(vol, data) {
+  const endpointDrops = Math.round(vol / 50);   // 4 drops (200 mL) … 20 drops (1000 mL)
+  const dropVolMl     = 0.05;                    // 0.05 mL per drop
+  let currentDrops    = 0;
+  let pendingAnim     = false;
+
+  // Initialise flask colour: dark brown proportional to dilution
+  const d = data.dilutionFactor;
+  $('tit-flask-liquid').style.background =
+    `rgb(${Math.round(55 + d * 55)}, ${Math.round(15 + d * 15)}, 3)`;
+  $('tit-burette-liquid').style.height = '90%';
+
+  function addDrops(n) {
+    if (pendingAnim) return;
+    const toAdd = Math.min(n, endpointDrops - currentDrops);
+    if (toAdd <= 0) return;
+    pendingAnim    = true;
+    currentDrops  += toAdd;
+
+    // Animate a drop falling from the burette tip
+    const dropEl = $('tit-drop');
+    dropEl.classList.remove('falling');
+    void dropEl.offsetWidth;           // force reflow so animation restarts
+    dropEl.classList.add('falling');
+
+    setTimeout(() => {
+      pendingAnim = false;
+
+      // Deplete burette level
+      const pct = Math.max(8, 90 - (currentDrops / endpointDrops) * 78);
+      $('tit-burette-liquid').style.height = pct + '%';
+
+      // Update mL reading
+      $('tit-vol-reading').textContent =
+        (currentDrops * dropVolMl).toFixed(2).replace('.', ',');
+
+      // Ripple in flask
+      triggerRipple();
+
+      if (currentDrops >= endpointDrops) {
+        // Endpoint: flask turns light pink
+        $('tit-flask-liquid').style.background = 'rgba(255, 155, 185, 0.88)';
+        $('tit-status').style.display          = 'none';
+        $('tit-ep-notice').classList.remove('hidden');
+        $('btn-add-drop').disabled             = true;
+        $('btn-fast-drops').disabled           = true;
+        $('btn-confirm-endpoint').classList.remove('hidden');
+      }
+    }, 560);
+  }
+
+  $('btn-add-drop').onclick   = () => addDrops(1);
+  $('btn-fast-drops').onclick = () => addDrops(5);
+
+  $('btn-confirm-endpoint').onclick = () => {
+    const res = $('tit-results');
+    res.classList.remove('hidden');
+    renderInitialParams(data, vol);
+    setTimeout(() => res.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+  };
+}
+
+function triggerRipple() {
+  const r = $('tit-ripple');
+  if (!r) return;
+  r.classList.remove('ripple-active');
+  void r.offsetWidth;
+  r.classList.add('ripple-active');
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -395,7 +518,9 @@ function renderResults(initial, result, vol, hours) {
 // ─────────────────────────────────────────────────────────────────────────────
 // Evaluation MCQ at the end of simulation
 // ─────────────────────────────────────────────────────────────────────────────
-const evalQuestion = {
+// (eval question removed)
+// ─────────────────────────────────────────────────────────────────────────────
+const _unused_evalQuestion = {
   text: `Berdasarkan simulasi aerasi yang kamu lakukan, faktor utama apa yang menentukan seberapa besar penurunan BOD/COD limbah vinasse?`,
   options: [
     {
@@ -416,56 +541,6 @@ const evalQuestion = {
   ],
   explanation: `✅ <strong>Benar!</strong> Aerasi menyuplai oksigen bagi bakteri aerob untuk mengurai bahan organik (BOD/COD). Semakin lama waktu aerasi (dan pasokan O₂ cukup), semakin besar persentase removal yang dicapai, mendekati batas kemampuan biodegradasi aerobik (~55–60% COD, ~90%+ BOD pada aerasi optimal).`,
 };
-
-function renderEvalQuestion(result, onDone) {
-  const qText    = $('sim-question-text');
-  const qOptions = $('sim-question-options');
-  const qFeedback = $('sim-feedback');
-  const finishBtn = $('btn-sim-finish');
-
-  qText.innerHTML = `<strong>❓ Pertanyaan:</strong><br>${evalQuestion.text}`;
-
-  let answered = false;
-
-  evalQuestion.options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'sim-option-btn';
-    btn.innerHTML = `<strong>${opt.label}.</strong> ${opt.text}`;
-
-    btn.onclick = () => {
-      if (answered) return;
-      if (opt.correct) {
-        answered = true;
-        btn.classList.add('correct');
-        qFeedback.innerHTML = evalQuestion.explanation;
-        qFeedback.className = 'sim-feedback correct';
-        finishBtn.classList.remove('hidden');
-
-        // Award points — if 0 wrong answers in simulation context: 100pts
-        const wrong = state.wrongAnswers || 0;
-        const pts   = wrong === 0 ? 100 : wrong <= 2 ? 50 : 25;
-        state.totalPoints += pts;
-        state.levelAttempts++;
-      } else {
-        btn.classList.add('wrong');
-        btn.disabled = true;
-        state.wrongAnswers = (state.wrongAnswers || 0) + 1;
-        qFeedback.innerHTML = '❌ Kurang tepat. Coba pilihan lain!';
-        qFeedback.className = 'sim-feedback wrong';
-      }
-      qOptions.querySelectorAll('.sim-option-btn').forEach(b => {
-        if (opt.correct || b === btn) b.disabled = true;
-      });
-    };
-
-    qOptions.appendChild(btn);
-  });
-
-  finishBtn.onclick = () => {
-    $('sim-overlay').remove();
-    if (onDone) onDone();
-  };
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Step transition helper
@@ -762,6 +837,110 @@ function injectSimulationCSS() {
     .sim-feedback.hidden  { display: none; }
     .sim-feedback.correct { background: rgba(30, 100, 40, 0.2); border-left: 4px solid #2ecc71; color: #a0e8a0; }
     .sim-feedback.wrong   { background: rgba(100, 20, 20, 0.2); border-left: 4px solid #e74c3c; color: #ff9090; }
+
+    /* ── Titration step ───────────────────────────────── */
+    .titration-layout {
+      display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+    .tit-apparatus {
+      display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
+    }
+    .tit-label-sm { font-size: 11px; color: #6080a0; text-align: center; margin-bottom: 4px; }
+    .tit-burette {
+      width: 30px; height: 150px;
+      border: 2px solid #5a7a9a; border-radius: 3px 3px 0 0;
+      position: relative; overflow: hidden;
+      background: rgba(5, 10, 20, 0.5);
+    }
+    .tit-burette-liquid {
+      position: absolute; top: 0; left: 0; right: 0;
+      background: linear-gradient(180deg, rgba(80,0,150,.9), rgba(160,0,230,.9));
+      transition: height .4s ease;
+    }
+    .tit-burette-scale {
+      position: absolute; right: 2px; top: 0; bottom: 0;
+      display: flex; flex-direction: column; justify-content: space-between;
+      font-size: 7px; color: rgba(255,255,255,.35); pointer-events: none; padding: 2px 0;
+    }
+    .tit-tip-col {
+      display: flex; flex-direction: column; align-items: center; position: relative;
+    }
+    .tit-tip-line { width: 7px; height: 26px; background: linear-gradient(180deg,#4a6a8a,#3a5a7a); }
+    .tit-drop {
+      position: absolute; top: 18px;
+      width: 10px; height: 13px;
+      background: rgba(160, 0, 240, 0.9);
+      border-radius: 50% 50% 60% 60%;
+      opacity: 0;
+    }
+    @keyframes titDropFall {
+      0%   { opacity: 1; transform: translateY(0)    scaleY(1);   }
+      40%  { opacity: 1; transform: translateY(28px) scaleY(1.1); }
+      100% { opacity: 0; transform: translateY(82px) scaleY(0.7); }
+    }
+    .tit-drop.falling { animation: titDropFall .55s ease-in forwards; }
+    .tit-flask {
+      width: 120px; height: 88px;
+      border: 2px solid #5a7a9a; border-radius: 4px 4px 12px 12px;
+      position: relative; overflow: hidden;
+      background: rgba(5, 15, 25, 0.4);
+    }
+    .tit-flask-liquid {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 65%;
+      transition: background 1s ease;
+    }
+    .tit-ripple {
+      position: absolute; bottom: 62%; left: 50%; transform: translateX(-50%);
+      width: 10px; height: 5px;
+      border: 1.5px solid rgba(255,255,255,.45); border-radius: 50%;
+      opacity: 0; pointer-events: none;
+    }
+    @keyframes rippleSpread {
+      0%   { opacity: .8; transform: translateX(-50%) scale(1); }
+      100% { opacity: 0;  transform: translateX(-50%) scale(5); }
+    }
+    .tit-ripple.ripple-active { animation: rippleSpread .5s ease-out forwards; }
+    .tit-vol-display { font-size: 12px; color: #7090a0; margin-top: 7px; text-align: center; }
+    .tit-vol-display span { font-size: 15px; font-weight: 700; color: #90b8d0; }
+    .tit-panel { flex: 1; min-width: 200px; }
+    .tit-reagent-box {
+      display: flex; gap: 10px; align-items: flex-start;
+      background: rgba(70,0,120,.12); border: 1px solid rgba(120,0,200,.3);
+      border-radius: 8px; padding: 10px 12px; margin-bottom: 14px;
+      font-size: 13px; color: #b0a0d0; line-height: 1.5;
+    }
+    .tit-reagent-dot {
+      width: 18px; height: 18px; border-radius: 50%;
+      background: rgba(140,0,220,.85); border: 1px solid rgba(200,100,255,.5);
+      flex-shrink: 0; margin-top: 2px;
+    }
+    .tit-status {
+      background: rgba(10,25,45,.7); border-left: 3px solid rgba(120,0,200,.5);
+      padding: 9px 12px; border-radius: 5px;
+      font-size: 13px; color: #a090c0; margin-bottom: 14px; line-height: 1.5;
+    }
+    .tit-ep-notice {
+      background: rgba(30,80,40,.25); border: 1px solid #2ecc71; color: #80ee90;
+      padding: 9px 12px; border-radius: 7px; font-size: 13px; margin-bottom: 14px;
+    }
+    .tit-ep-notice.hidden { display: none; }
+    .tit-drop-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .tit-btn {
+      padding: 10px 18px; border-radius: 9px; border: none; cursor: pointer;
+      font-size: 14px; font-weight: 700; transition: all .2s;
+    }
+    .tit-primary   { background: linear-gradient(135deg,#1a4a8a,#1a6aaa); color: #fff; }
+    .tit-primary:hover:not(:disabled)   { filter: brightness(1.2); }
+    .tit-secondary { background: rgba(50,20,80,.7); border: 1px solid rgba(120,0,200,.5); color:#c090e0; }
+    .tit-secondary:hover:not(:disabled) { border-color: rgba(180,60,255,.7); color:#d8b0ff; }
+    .tit-btn:disabled { opacity: .4; cursor: default; }
+    .tit-results { margin-top: 20px; }
+    .tit-results.hidden { display: none; }
+    .tit-results-heading {
+      font-size: 14px; font-weight: 700; color: #60b0d0;
+      margin-bottom: 12px; padding-top: 16px; border-top: 1px solid #1a3a5a;
+    }
   `;
 
   const style = document.createElement('style');

@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { createScene, buildWorld, createQuestionObjects, animateQuestionObjects } from './world.js';
-import { createFactoryScene, buildFactory, createFactoryQuestionObjects, animateFactoryObjects } from './world2.js';
+import { createFactoryScene, buildFactory } from './world2.js';
 import { createPondScene, buildPond, createValveObject, animateValveObject } from './world3.js';
 import { createWorkshopScene, buildWorkshop, createTerminalObject, animateTerminalObject } from './world4.js';
 import { createObsLabScene, buildObsLab, createScopeObject, animateScopeObject } from './world5.js';
@@ -16,7 +16,6 @@ import {
   startBgMusic,
   initPauseMenu,
   showQuestionPanel,
-  showLevel2QuestionPanel,
   initHUD,
   updateHUD,
   setInteractPrompt,
@@ -78,8 +77,6 @@ const player = new PlayerCharacter(labScene);
 
 // Level 1 question objects
 let questionObjects    = createQuestionObjects(labScene);
-// Level 2 factory station objects (created but held back until Level 2 loads)
-let factoryQuestionObjects = null;
 // Level 3 valve object
 let valveObject = null;
 // Level 4 terminal object
@@ -335,7 +332,7 @@ function openQuiz(obj) {
     return;
   }
 
-  const panelFn = state.currentLevel === 2 ? showLevel2QuestionPanel : showQuestionPanel;
+  const panelFn = showQuestionPanel;
 
   panelFn(obj.idx,
     () => {
@@ -353,11 +350,6 @@ function openQuiz(obj) {
       if (activeQuestionObjects.every(o => o.done)) {
         if (state.currentLevel === 1) {
           setTimeout(() => showLevelComplete(() => startLevel2()), 600);
-        } else if (state.currentLevel === 2) {
-          setTimeout(() => showSimulation(() => {
-            // Simulation done — go to Level 3
-            setTimeout(() => showLevelComplete(() => startLevel3()), 600);
-          }), 600);
         }
       }
     },
@@ -399,12 +391,13 @@ function startLevel2() {
   player.addToScene(factoryScene);
   player.position.set(0, 0, 18);
 
-  // Create factory question objects
-  factoryQuestionObjects = createFactoryQuestionObjects(factoryScene);
-  activeQuestionObjects  = factoryQuestionObjects;
-
+  // No factory tour — jump straight to simulation
+  activeQuestionObjects = [];
   nearObject = null;
   updateHUD();
+  setTimeout(() => showSimulation(() => {
+    setTimeout(() => showLevelComplete(() => startLevel3()), 600);
+  }), 400);
 }
 
 // ─────────────────────────────────────────────────────
@@ -561,8 +554,10 @@ function resumeToLevel(checkpoint) {
     camBoundsX = 30; camBoundsZ = 20;
     player.addToScene(factoryScene);
     player.position.set(0, 0, 18);
-    factoryQuestionObjects = createFactoryQuestionObjects(factoryScene);
-    activeQuestionObjects  = factoryQuestionObjects;
+    activeQuestionObjects = [];
+    setTimeout(() => showSimulation(() => {
+      setTimeout(() => showLevelComplete(() => startLevel3()), 600);
+    }), 400);
   } else if (lvl === 3) {
     activeScene = pondScene;
     setPondObstacles();
@@ -644,8 +639,6 @@ function animate() {
   // Animate question objects for current level
   if (state.currentLevel === 1) {
     animateQuestionObjects(questionObjects, t);
-  } else if (state.currentLevel === 2 && factoryQuestionObjects) {
-    animateFactoryObjects(factoryQuestionObjects, t);
   } else if (state.currentLevel === 3 && valveObject) {
     animateValveObject(valveObject, t);
   } else if (state.currentLevel === 4 && terminalObject) {
