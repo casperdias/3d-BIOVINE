@@ -249,11 +249,11 @@ function showDebrief(onDone) {
       <div class="s5-level-complete">
         <div class="s5-complete-icon">🎉</div>
         <h3>Level 5 Selesai!</h3>
-        <p>Evaluasi percobaan selesai. Sekarang saatnya mempresentasikan hasil dan memberikan rekomendasi!</p>
+        <p>Selamat! Kamu telah menyelesaikan seluruh tahap percobaan bioremediasi vinasse.</p>
         <div class="s5-final-score">Total Poin: <span>${state.totalPoints}</span></div>
       </div>
 
-      <button class="s5-btn" id="s5-btn-finish">🎤 Lanjut ke Level 6 – Presentasi →</button>
+      <button class="s5-btn" id="s5-btn-finish">🏁 Lihat Hasil Akhir →</button>
     </div>
   `;
   document.body.appendChild(ov);

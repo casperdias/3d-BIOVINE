@@ -78,13 +78,13 @@ export function showSynopsis(cb) {
       tag:    'Bagian 1 dari 3',
       title:  'Industri Etanol di Desa Bekonang',
       bubble: 'Halo! Yuk, kenali industri yang melahirkan masalah lingkungan ini.',
-      text:   `Industri etanol di Desa Bekonang, Sukoharjo, adalah warisan <strong>turun-temurun</strong> yang sudah ada sejak zaman kolonial. Banyak pabrik di sini memproduksi minuman keras tradisional bernama <strong>ciu</strong> — dibuat dari tetes tebu, tape singkong, atau nira aren melalui proses fermentasi dan penyulingan.<br><br>Seiring waktu, industri ini berkembang menjadi produksi <strong>etanol medis</strong> yang digunakan untuk kebutuhan rumah sakit dan dunia kesehatan.`,
+      text:   `Industri etanol di Desa Bekonang, Sukoharjo, adalah warisan <strong>turun-temurun</strong> yang sudah ada sejak zaman kolonial. Banyak pabrik di sini memproduksi minuman keras tradisional bernama <strong>ciu</strong> dibuat dari tetes tebu, tape singkong, atau nira aren melalui proses fermentasi dan penyulingan.<br><br>Seiring waktu, industri ini berkembang menjadi produksi <strong>etanol medis</strong> yang digunakan untuk kebutuhan rumah sakit dan dunia kesehatan.`,
     },
     {
       tag:    'Bagian 2 dari 3',
       title:  'Masalah: Limbah Vinasse',
       bubble: 'Ini masalah serius yang mencemari lingkungan sekitar!',
-      text:   `Proses produksi etanol menghasilkan limbah cair bernama <strong>vinasse</strong>. Setiap harinya, satu pabrik bisa menghasilkan <strong>150–200 liter</strong> limbah ini — tanpa sistem pengolahan yang memadai.<br><br>Vinasse berwarna <strong>hitam pekat</strong>, berbau menyengat, dan sangat berbahaya jika dibuang langsung ke sungai. Vinasse <strong>menyerap oksigen</strong> di dalam air, menyebabkan ikan-ikan mati dan sungai tercemar parah.`,
+      text:   `Proses produksi etanol menghasilkan limbah cair bernama <strong>vinasse</strong>. Setiap harinya, satu pabrik bisa menghasilkan <strong>150–200 liter</strong> limbah ini tanpa sistem pengolahan yang memadai.<br><br>Vinasse berwarna <strong>hitam pekat</strong>, berbau menyengat, dan sangat berbahaya jika dibuang langsung ke sungai. Vinasse <strong>menyerap oksigen</strong> di dalam air, menyebabkan ikan-ikan mati dan sungai tercemar parah.`,
     },
     {
       tag:    'Bagian 3 dari 3',
@@ -1306,7 +1306,7 @@ export function showLevel2QuizComplete(onAdvance) {
 }
 
 // ─────────────────────────────────────────────────────
-// Game Complete — after Level 6, back to start
+// Game Complete — after Level 5, back to start
 // ─────────────────────────────────────────────────────
 export function showGameComplete() {
   // ── Persist the final level's points & save to leaderboard ──
