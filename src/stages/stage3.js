@@ -6,17 +6,11 @@
 export const stage3Challenge = {
   title: '🧫 Tantangan Sebelum Belanja Mikroorganisme',
   context: `
-    Limbah vinasse dikenal memiliki <b>warna hitam pekat</b> karena kandungan pigmen
-    <em>melanoidin</em> yang sulit terurai dan <em>senyawa fenolik</em> yang bersifat
-    antimikroba.<br><br>
-    Seorang siswa mencoba membuat <b>POC (Pupuk Organik Cair)</b> dari vinasse dengan
-    memasukkan biostarter berisi <em>Staphylococcus aureus</em> dan <em>Streptococcus sp.</em>
-    — dengan alasan bahwa kedua bakteri ini dikenal dapat menguraikan jaringan pada infeksi,
-    sehingga dianggap juga mampu menguraikan bahan organik limbah dengan cepat.<br><br>
-    Setelah <b>21 hari</b>, kadar COD dalam vinasse <b>tidak turun secara signifikan</b>
-    dan warna cairan tetap hitam pekat — menandakan proses penguraian <b>gagal total</b>.
+    Limbah vinasse dikenal memiliki warna hitam pekat karena kandungan pigmen melanoidin yang sulit terurai dan senyawa fenolik yang bersifat antimikroba.<br><br>
+    Seorang siswa mencoba membuat POC (Pupuk Organik Cair) dari vinasse dengan memasukkan biostarter yang berisi <em>Staphylococcus aureus</em> dan <em>Streptococcus sp.</em>, dengan alasan bahwa kedua bakteri ini dikenal dapat menguraikan jaringan pada infeksi, sehingga dianggap juga mampu menguraikan bahan organik limbah dengan cepat.<br><br>
+    Setelah 21 hari, kadar pencemaran (COD) dalam vinasse tidak turun secara signifikan dan warna cairan tetap hitam pekat, menandakan proses penguraian gagal total.
   `,
-  question: `Berdasarkan karakteristik limbah dan fisiologi mikroba, evaluasi kesalahan yang dilakukan siswa tersebut dalam memilih mikroorganisme adalah…`,
+  question: `Berdasarkan karakteristik limbah dan fisiologi mikroba, berikan evaluasi kesalahan yang dilakukan siswa tersebut dalam memilih mikroorganisme adalah…`,
   options: [
     {
       label: 'A',
@@ -34,11 +28,7 @@ export const stage3Challenge = {
       correct: false,
     },
   ],
-  explanation: `✅ <strong>Benar!</strong> Vinasse mengandung <b>Melanoidin</b> dan <b>Fenol</b>.
-    Senyawa fenolik bersifat bakterisidal bagi mikroba biasa yang tidak memiliki mekanisme
-    pertahanan diri. Pengolahan vinasse membutuhkan mikroba yang mampu bertahan hidup di
-    lingkungan mengandung racun fenol dengan kadar COD, BOD, dan pH yang tinggi.
-    <em>S. aureus</em> dan <em>Streptococcus</em> tidak memiliki adaptasi tersebut.`,
+  explanation: `✅ <strong>Benar!</strong> Vinasse mengandung Melanoidin dan Fenol. Senyawa fenolik bersifat bakterisidal bagi mikroba biasa yang tidak memiliki mekanisme pertahanan diri. Pengolahan vinasse membutuhkan mikroba yang mampu bertahan hidup di lingkungan yang mengandung racun fenol dengan kadar COD, BOD, pH yang tinggi.`,
 };
 
 // ── Microorganism shop catalogue ─────────────────────────────────────────────
