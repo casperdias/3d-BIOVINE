@@ -88,6 +88,25 @@ let scopeObject = null;
 let activeQuestionObjects = questionObjects;
 
 // ─────────────────────────────────────────────────────
+// Utility — dispose an interactive object's GPU resources
+// and remove it from its scene to prevent memory leaks.
+// ─────────────────────────────────────────────────────
+function disposeInteractiveObj(obj, scene) {
+  if (!obj) return;
+  if (obj.glowMesh) {
+    scene.remove(obj.glowMesh);
+    obj.glowMesh.geometry?.dispose();
+  }
+  if (obj.glowMat) {
+    obj.glowMat.dispose();
+  }
+  if (obj.doneSprite) {
+    scene.remove(obj.doneSprite);
+    obj.doneSprite.material?.dispose();
+  }
+}
+
+// ─────────────────────────────────────────────────────
 // Camera — follow player in 3rd person
 // ─────────────────────────────────────────────────────
 const CAM_DIST_L1 = 22;   // lab  – smaller room
@@ -430,7 +449,8 @@ function startLevel3() {
   player.addToScene(pondScene);
   player.position.set(0, 0, 16);
 
-  // Create valve interactive object
+  // Create valve interactive object (dispose any previous instance first)
+  disposeInteractiveObj(valveObject, pondScene);
   valveObject = createValveObject(pondScene);
   activeQuestionObjects = [valveObject];
 
@@ -464,6 +484,7 @@ function startLevel4() {
   player.addToScene(workshopScene);
   player.position.set(0, 0, 14);
 
+  disposeInteractiveObj(terminalObject, workshopScene);
   terminalObject = createTerminalObject(workshopScene);
   activeQuestionObjects = [terminalObject];
 
@@ -497,6 +518,7 @@ function startLevel5() {
   player.addToScene(obsLabScene);
   player.position.set(0, 0, 12);
 
+  disposeInteractiveObj(scopeObject, obsLabScene);
   scopeObject = createScopeObject(obsLabScene);
   activeQuestionObjects = [scopeObject];
 
@@ -564,6 +586,7 @@ function resumeToLevel(checkpoint) {
     camBoundsX = 26; camBoundsZ = 21;
     player.addToScene(pondScene);
     player.position.set(0, 0, 16);
+    disposeInteractiveObj(valveObject, pondScene);
     valveObject = createValveObject(pondScene);
     activeQuestionObjects = [valveObject];
   } else if (lvl === 4) {
@@ -572,6 +595,7 @@ function resumeToLevel(checkpoint) {
     camBoundsX = 24; camBoundsZ = 18;
     player.addToScene(workshopScene);
     player.position.set(0, 0, 14);
+    disposeInteractiveObj(terminalObject, workshopScene);
     terminalObject = createTerminalObject(workshopScene);
     activeQuestionObjects = [terminalObject];
   } else if (lvl === 5) {
@@ -580,6 +604,7 @@ function resumeToLevel(checkpoint) {
     camBoundsX = 22; camBoundsZ = 16;
     player.addToScene(obsLabScene);
     player.position.set(0, 0, 12);
+    disposeInteractiveObj(scopeObject, obsLabScene);
     scopeObject = createScopeObject(obsLabScene);
     activeQuestionObjects = [scopeObject];
   }
