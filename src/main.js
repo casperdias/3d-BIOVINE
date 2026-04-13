@@ -11,6 +11,7 @@ import {
   buildUIHTML,
   showProfileScreen,
   showSynopsis,
+  showYoutubeVideos,
   showInstructions,
   showIntroVideo,
   startBgMusic,
@@ -626,16 +627,18 @@ showProfileScreen(
     player.setName(name);
     startBgMusic();
     showSynopsis(() => {
-      showIntroVideo(() => {
-        showInstructions(() => {
-          gameStarted = true;
-          document.getElementById('hud').style.display = 'block';
-          initHUD();
-          updateHUD();
-          initPauseMenu(
-            () => { resumeToLevel(loadCheckpoint()); },
-            () => { location.reload(); }
-          );
+      showYoutubeVideos(() => {
+        showIntroVideo(() => {
+          showInstructions(() => {
+            gameStarted = true;
+            document.getElementById('hud').style.display = 'block';
+            initHUD();
+            updateHUD();
+            initPauseMenu(
+              () => { resumeToLevel(loadCheckpoint()); },
+              () => { location.reload(); }
+            );
+          });
         });
       });
     });

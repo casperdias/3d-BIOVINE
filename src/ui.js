@@ -176,6 +176,59 @@ export function showSynopsis(cb) {
 }
 
 // ─────────────────────────────────────────────────────
+// YouTube Videos Screen (shown after synopsis, before 3D IPAL sim)
+// ─────────────────────────────────────────────────────
+const YT_VIDEOS = [
+  {
+    id: 'c4gsn1rkK1g',
+    title: 'Video Edukasi 1: Limbah Vinasse & Dampak Lingkungan',
+    subtitle: 'Pelajari dampak pencemaran vinasse terhadap lingkungan sekitar',
+  },
+  {
+    id: 'ajNZ7FcnZvU',
+    title: 'Video Edukasi 2: Teknologi Bioremediasi Azolla',
+    subtitle: 'Kenali solusi bioremediasi berbasis tanaman Azolla',
+  },
+];
+
+export function showYoutubeVideos(cb) {
+  const screen = $('youtube-screen');
+  screen.classList.remove('hidden');
+
+  let idx = 0;
+
+  function showVideo(i) {
+    const v = YT_VIDEOS[i];
+    $('yt-title').textContent    = v.title;
+    $('yt-subtitle').textContent = v.subtitle;
+    $('yt-counter').textContent  = `${i + 1} / ${YT_VIDEOS.length}`;
+
+    const iframe = $('yt-iframe');
+    // Using youtube-nocookie for privacy; enablejsapi=0 keeps it simple
+    iframe.src = `https://www.youtube-nocookie.com/embed/${v.id}?rel=0&modestbranding=1`;
+
+    const btn = $('btn-yt-next');
+    btn.textContent = i < YT_VIDEOS.length - 1 ? 'Video Berikutnya →' : 'Lanjutkan ke Simulasi →';
+  }
+
+  showVideo(0);
+
+  $('btn-yt-next').onclick = () => {
+    idx += 1;
+    if (idx < YT_VIDEOS.length) {
+      // Stop current video by blanking src before switching
+      $('yt-iframe').src = '';
+      showVideo(idx);
+    } else {
+      // All videos watched — stop the last video and proceed
+      $('yt-iframe').src = '';
+      screen.classList.add('hidden');
+      cb();
+    }
+  };
+}
+
+// ─────────────────────────────────────────────────────
 // Intro Video Screen (shown once after profile is created)
 // ─────────────────────────────────────────────────────
 let _introAssetRenderer = null;  // keep ref so we can dispose it
@@ -1756,6 +1809,29 @@ export function buildUIHTML() {
             <button id="btn-syn-next" class="synopsis-btn-next">Lanjutkan →</button>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- YOUTUBE VIDEOS SCREEN (shown before 3D IPAL sim) -->
+    <div class="screen hidden" id="youtube-screen">
+      <div class="youtube-container">
+        <div class="youtube-header">
+          <div class="youtube-logo">🎬</div>
+          <div>
+            <div class="youtube-title" id="yt-title">Video Edukasi</div>
+            <div class="youtube-subtitle" id="yt-subtitle">Tonton video berikut sebelum melanjutkan</div>
+          </div>
+          <div class="youtube-counter" id="yt-counter">1 / 2</div>
+        </div>
+        <div class="youtube-frame-wrap">
+          <iframe
+            id="yt-iframe"
+            src=""
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowfullscreen
+          ></iframe>
+        </div>
+        <button class="btn-primary youtube-btn-next" id="btn-yt-next">Lanjutkan →</button>
       </div>
     </div>
 
