@@ -191,11 +191,40 @@ const YT_VIDEOS = [
   },
 ];
 
+// YouTube IFrame API loader — resolves once the API script is ready
+let _ytApiReady = false;
+const _ytApiQueue = [];
+window.onYouTubeIframeAPIReady = () => {
+  _ytApiReady = true;
+  _ytApiQueue.splice(0).forEach(fn => fn());
+};
+function _loadYTApi() {
+  return new Promise(resolve => {
+    if (_ytApiReady) { resolve(); return; }
+    _ytApiQueue.push(resolve);
+    if (!document.getElementById('yt-api-script')) {
+      const s = document.createElement('script');
+      s.id  = 'yt-api-script';
+      s.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(s);
+    }
+  });
+}
+
 export function showYoutubeVideos(cb) {
   const screen = $('youtube-screen');
   screen.classList.remove('hidden');
 
+  // Pause background music while YouTube videos play
+  if (_bgAudio) _bgAudio.pause();
+
   let idx = 0;
+  let ytPlayer = null;
+
+  function resetContainer() {
+    const wrap = screen.querySelector('.youtube-frame-wrap');
+    wrap.innerHTML = '<div id="yt-player-container"><div class="yt-loading">Memuat video…</div></div>';
+  }
 
   function showVideo(i) {
     const v = YT_VIDEOS[i];
@@ -203,12 +232,29 @@ export function showYoutubeVideos(cb) {
     $('yt-subtitle').textContent = v.subtitle;
     $('yt-counter').textContent  = `${i + 1} / ${YT_VIDEOS.length}`;
 
-    const iframe = $('yt-iframe');
-    // Using youtube-nocookie for privacy; enablejsapi=0 keeps it simple
-    iframe.src = `https://www.youtube-nocookie.com/embed/${v.id}?rel=0&modestbranding=1`;
-
     const btn = $('btn-yt-next');
     btn.textContent = i < YT_VIDEOS.length - 1 ? 'Video Berikutnya →' : 'Lanjutkan ke Simulasi →';
+    btn.disabled = true;
+    btn.title    = 'Tonton video hingga selesai untuk melanjutkan';
+
+    // Destroy previous player and reset the container div
+    if (ytPlayer) { ytPlayer.destroy(); ytPlayer = null; }
+    resetContainer();
+
+    _loadYTApi().then(() => {
+      ytPlayer = new YT.Player('yt-player-container', {
+        videoId: v.id,
+        playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
+        events: {
+          onStateChange: e => {
+            if (e.data === YT.PlayerState.ENDED) {
+              btn.disabled = false;
+              btn.title    = '';
+            }
+          },
+        },
+      });
+    });
   }
 
   showVideo(0);
@@ -216,13 +262,12 @@ export function showYoutubeVideos(cb) {
   $('btn-yt-next').onclick = () => {
     idx += 1;
     if (idx < YT_VIDEOS.length) {
-      // Stop current video by blanking src before switching
-      $('yt-iframe').src = '';
       showVideo(idx);
     } else {
-      // All videos watched — stop the last video and proceed
-      $('yt-iframe').src = '';
+      if (ytPlayer) { ytPlayer.destroy(); ytPlayer = null; }
       screen.classList.add('hidden');
+      // Resume background music
+      if (_bgAudio) _bgAudio.play().catch(() => {});
       cb();
     }
   };
@@ -1803,6 +1848,11 @@ export function buildUIHTML() {
           <div id="syn-seg-tag"   class="synopsis-segment-tag">Bagian 1 dari 3</div>
           <div id="syn-seg-title" class="synopsis-segment-title">Industri Etanol di Desa Bekonang</div>
           <div id="syn-seg-text"  class="synopsis-text"></div>
+          <div class="synopsis-photos">
+            <img src="/synopsis/Synopsis-1.jpeg" alt="Desa Bekonang" class="synopsis-photo" />
+            <img src="/synopsis/Synopsis-2.jpeg" alt="Desa Bekonang" class="synopsis-photo" />
+            <img src="/synopsis/Synopsis-3.jpeg" alt="Desa Bekonang" class="synopsis-photo" />
+          </div>
           <div id="syn-dots" class="synopsis-dots"></div>
           <div class="synopsis-nav">
             <button id="btn-syn-prev" class="synopsis-btn-prev">← Kembali</button>
@@ -1824,12 +1874,7 @@ export function buildUIHTML() {
           <div class="youtube-counter" id="yt-counter">1 / 2</div>
         </div>
         <div class="youtube-frame-wrap">
-          <iframe
-            id="yt-iframe"
-            src=""
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen
-          ></iframe>
+          <div id="yt-player-container"><div class="yt-loading">Memuat video…</div></div>
         </div>
         <button class="btn-primary youtube-btn-next" id="btn-yt-next">Lanjutkan →</button>
       </div>
