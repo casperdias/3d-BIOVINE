@@ -1849,9 +1849,9 @@ export function buildUIHTML() {
           <div id="syn-seg-title" class="synopsis-segment-title">Industri Etanol di Desa Bekonang</div>
           <div id="syn-seg-text"  class="synopsis-text"></div>
           <div class="synopsis-photos">
-            <img src="/synopsis/Synopsis-1.jpeg" alt="Desa Bekonang" class="synopsis-photo" />
-            <img src="/synopsis/Synopsis-2.jpeg" alt="Desa Bekonang" class="synopsis-photo" />
-            <img src="/synopsis/Synopsis-3.jpeg" alt="Desa Bekonang" class="synopsis-photo" />
+            <img src="synopsis/Synopsis-1.jpeg" alt="Desa Bekonang" class="synopsis-photo" />
+            <img src="synopsis/Synopsis-2.jpeg" alt="Desa Bekonang" class="synopsis-photo" />
+            <img src="synopsis/Synopsis-3.jpeg" alt="Desa Bekonang" class="synopsis-photo" />
           </div>
           <div id="syn-dots" class="synopsis-dots"></div>
           <div class="synopsis-nav">

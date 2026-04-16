@@ -1718,35 +1718,88 @@ body {
 
 /* Responsive */
 @media (max-width: 700px) {
+  #synopsis-screen {
+    align-items: flex-start;
+    overflow-y: auto;
+  }
   .synopsis-container {
     flex-direction: column;
-    gap: 20px;
-    padding: 20px 16px;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 12px 24px;
+    height: auto;
+    min-height: 100%;
   }
   .synopsis-avatar-wrap {
     flex: 0 0 auto;
     padding-top: 0;
+    flex-direction: row;
+    gap: 12px;
+    width: 100%;
+    align-items: flex-start;
   }
   .synopsis-avatar {
-    width: 140px;
-  }
-  .synopsis-content {
-    padding: 24px 20px;
-  }
-  .synopsis-segment-title {
-    font-size: 18px;
-  }
-  .synopsis-text {
-    font-size: 13px;
-    min-height: 80px;
+    width: 90px;
+    flex-shrink: 0;
+    animation: none;
   }
   .synopsis-bubble {
     position: static;
     transform: none;
     animation: none;
-    margin-bottom: 8px;
+    max-width: none;
+    flex: 1;
+    border-radius: 8px 16px 16px 8px;
+    font-size: 12px;
+    padding: 8px 12px;
+    text-align: left;
   }
   .synopsis-bubble::after {
     display: none;
+  }
+  .synopsis-avatar-name {
+    display: none;
+  }
+  .synopsis-content {
+    padding: 20px 16px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .synopsis-segment-title {
+    font-size: 17px;
+    margin-bottom: 12px;
+  }
+  .synopsis-text {
+    font-size: 13px;
+    line-height: 1.7;
+    min-height: unset;
+  }
+  .synopsis-photos {
+    gap: 6px;
+    margin-top: 12px;
+  }
+  .synopsis-photo {
+    height: 70px;
+  }
+  .synopsis-dots {
+    margin-top: 16px;
+  }
+  .synopsis-nav {
+    margin-top: 16px;
+  }
+}
+
+@media (max-width: 400px) {
+  .synopsis-avatar {
+    width: 70px;
+  }
+  .synopsis-content {
+    padding: 16px 12px;
+  }
+  .synopsis-segment-title {
+    font-size: 15px;
+  }
+  .synopsis-photo {
+    height: 58px;
   }
 }
