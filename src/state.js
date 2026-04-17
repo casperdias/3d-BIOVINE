@@ -51,6 +51,9 @@ export const state = {
   stage5: {
     scopeDone: false,
   },
+
+  // Room hub — tracks which rooms (1–5) the player has completed
+  completedRooms: [],
 };
 
 export function resetLevelState() {

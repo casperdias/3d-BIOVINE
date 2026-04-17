@@ -1206,14 +1206,92 @@ export function showLevelComplete(onAdvance) {
   // Record how many points were earned this level (already added per-question)
   recordLevelPoints(state.currentLevel);
   const earned = state.levelBreakdown.at(-1)?.points ?? 0;
-  const nextLevelNum = state.currentLevel + 1;
-  showLevelResult(earned, `Lanjut ke Level ${nextLevelNum} →`, () => {
-    state.currentLevel = nextLevelNum;
-    state.pointsAtLevelStart = state.totalPoints; // reset baseline for next level
+  showLevelResult(earned, `🏠 Kembali ke Pilihan Ruangan →`, () => {
     resetLevelState();
     updateHUD();
     if (onAdvance) onAdvance();
   });
+}
+
+// ─────────────────────────────────────────────────────
+// Room Hub — player picks which level/room to enter
+// ─────────────────────────────────────────────────────
+const ROOM_CONFIG = [
+  {
+    level: 1,
+    icon: '🔬',
+    name: 'Lab Sains',
+    desc: 'Analisis fenomena pencemaran vinasse melalui kuis MCQ',
+    color: '#2980b9',
+  },
+  {
+    level: 2,
+    icon: '🏭',
+    name: 'Pabrik Etanol',
+    desc: 'Simulasi pengukuran COD, BOD & pH limbah vinasse',
+    color: '#e67e22',
+  },
+  {
+    level: 3,
+    icon: '🌿',
+    name: 'Kolam Remediasi',
+    desc: 'Pilih mikroorganisme & buka kran bioremediasi',
+    color: '#27ae60',
+  },
+  {
+    level: 4,
+    icon: '⚙️',
+    name: 'Workshop IPAL',
+    desc: 'Rancang reaktor pengolahan limbah IPAL',
+    color: '#8e44ad',
+  },
+  {
+    level: 5,
+    icon: '🔭',
+    name: 'Lab Observasi',
+    desc: 'Analisis hasil reaktor & evaluasi akhir',
+    color: '#c0392b',
+  },
+];
+
+export function showRoomSelect(onSelectRoom) {
+  const overlay = document.getElementById('room-select-overlay');
+  overlay.classList.remove('hidden');
+
+  function render() {
+    const grid = document.getElementById('room-select-grid');
+    grid.innerHTML = ROOM_CONFIG.map(r => {
+      const done = state.completedRooms.includes(r.level);
+      return `
+        <button class="room-card ${done ? 'room-card--done' : ''}" data-level="${r.level}"
+          style="--room-color:${r.color}">
+          <div class="room-card-icon">${r.icon}</div>
+          <div class="room-card-body">
+            <div class="room-card-name">Level ${r.level} — ${r.name}</div>
+            <div class="room-card-desc">${r.desc}</div>
+          </div>
+          <div class="room-card-status">${done ? '✅ Selesai' : '▶ Mulai'}</div>
+        </button>
+      `;
+    }).join('');
+
+    // Update total points display
+    document.getElementById('room-hub-points').textContent = `🪙 ${state.totalPoints} poin`;
+    document.getElementById('room-hub-progress').textContent =
+      `${state.completedRooms.length} / 5 ruangan selesai`;
+
+    grid.querySelectorAll('.room-card').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const lvl = parseInt(btn.dataset.level);
+        overlay.classList.add('hidden');
+        onSelectRoom(lvl);
+      });
+    });
+  }
+
+  render();
+  // Expose re-render so main.js can refresh after room completion
+  overlay._refresh = render;
 }
 
 // ─────────────────────────────────────────────────────
@@ -1904,6 +1982,23 @@ export function buildUIHTML() {
 
     <!-- STAGE SCREEN (quiz panel appended dynamically) -->
     <div class="screen hidden" id="stage-screen" style="background:transparent; pointer-events:none;"></div>
+
+    <!-- ROOM SELECT HUB -->
+    <div class="popup-overlay hidden" id="room-select-overlay">
+      <div class="room-hub-card">
+        <div class="room-hub-header">
+          <div>
+            <div class="room-hub-title">🏫 Pilih Ruangan</div>
+            <div class="room-hub-sub">Kamu bisa masuk ke ruangan mana saja, dalam urutan bebas</div>
+          </div>
+          <div class="room-hub-meta">
+            <div id="room-hub-points">🪙 0 poin</div>
+            <div id="room-hub-progress">0 / 5 ruangan selesai</div>
+          </div>
+        </div>
+        <div id="room-select-grid" class="room-select-grid"></div>
+      </div>
+    </div>
 
     <!-- RESULT POPUP -->
     <div class="popup-overlay hidden" id="result-overlay">

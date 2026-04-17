@@ -21,6 +21,7 @@ import {
   updateHUD,
   setInteractPrompt,
   showLevelComplete,
+  showRoomSelect,
   showGameComplete,
 } from './ui.js';
 import { showSimulation } from './simulation.js';
@@ -314,7 +315,7 @@ function openQuiz(obj) {
       quizOpen   = false;
       nearObject = null;
       state.stage3.valveOpened = true;
-      setTimeout(() => showLevelComplete(() => startLevel4()), 600);
+      setTimeout(() => showLevelComplete(() => returnToHub(3)), 600);
     });
     return;
   }
@@ -330,7 +331,7 @@ function openQuiz(obj) {
       quizOpen   = false;
       nearObject = null;
       state.stage4.terminalDone = true;
-      setTimeout(() => showLevelComplete(() => startLevel5()), 600);
+      setTimeout(() => showLevelComplete(() => returnToHub(4)), 600);
     });
     return;
   }
@@ -346,8 +347,7 @@ function openQuiz(obj) {
       quizOpen   = false;
       nearObject = null;
       state.stage5.scopeDone = true;
-      // Stage 5 is the final stage — go straight to game complete
-      setTimeout(() => showLevelComplete(() => showGameComplete()), 600);
+      setTimeout(() => showLevelComplete(() => returnToHub(5)), 600);
     });
     return;
   }
@@ -369,7 +369,7 @@ function openQuiz(obj) {
 
       if (activeQuestionObjects.every(o => o.done)) {
         if (state.currentLevel === 1) {
-          setTimeout(() => showLevelComplete(() => startLevel2()), 600);
+          setTimeout(() => showLevelComplete(() => returnToHub(1)), 600);
         }
       }
     },
@@ -383,31 +383,96 @@ function openQuiz(obj) {
 }
 
 // ─────────────────────────────────────────────────────
+// Room Hub — mark room done, save, return to hub or end game
+// ─────────────────────────────────────────────────────
+function returnToHub(completedLevel) {
+  // Mark this room as completed (avoid duplicates)
+  if (!state.completedRooms.includes(completedLevel)) {
+    state.completedRooms.push(completedLevel);
+  }
+
+  // Persist progress
+  saveCheckpoint({
+    playerName:     state.playerName,
+    currentLevel:   completedLevel,
+    totalPoints:    state.totalPoints,
+    levelBreakdown: state.levelBreakdown,
+    completedRooms: state.completedRooms,
+  });
+
+  // All 5 rooms done → game complete
+  if (state.completedRooms.length >= 5) {
+    showGameComplete();
+    return;
+  }
+
+  // Show hub so player can pick next room
+  enterRoomHub();
+}
+
+// ─────────────────────────────────────────────────────
+// Room Hub entry point
+// ─────────────────────────────────────────────────────
+function enterRoomHub() {
+  // Pause gameplay while hub is shown
+  quizOpen   = true;
+  nearObject = null;
+  setInteractPrompt(null);
+
+  showRoomSelect(lvl => {
+    quizOpen = false;
+    enterRoom(lvl);
+  });
+}
+
+// ─────────────────────────────────────────────────────
+// Route to the correct level
+// ─────────────────────────────────────────────────────
+function enterRoom(lvl) {
+  state.currentLevel      = lvl;
+  state.pointsAtLevelStart = state.totalPoints;
+
+  if      (lvl === 1) startLevel1();
+  else if (lvl === 2) startLevel2();
+  else if (lvl === 3) startLevel3();
+  else if (lvl === 4) startLevel4();
+  else if (lvl === 5) startLevel5();
+}
+
+// ─────────────────────────────────────────────────────
+// Level 1 transition
+// ─────────────────────────────────────────────────────
+function startLevel1() {
+  // Remove player from whatever scene they're in and place in lab
+  [labScene, factoryScene, pondScene, workshopScene, obsLabScene].forEach(s => {
+    try { player.removeFromScene(s); } catch (_) {}
+  });
+  player.addToScene(labScene);
+  player.position.set(0, 0, 12);
+
+  activeScene = labScene;
+  // Reset lab question objects so already-answered ones can be redone
+  questionObjects = createQuestionObjects(labScene);
+  activeQuestionObjects = questionObjects;
+
+  setCamBounds(27, 17);
+  nearObject = null;
+  updateHUD();
+}
+
+// ─────────────────────────────────────────────────────
 // Level 2 transition
 // ─────────────────────────────────────────────────────
 function startLevel2() {
-  // Save checkpoint — player is starting Level 2
-  saveCheckpoint({
-    playerName:     state.playerName,
-    currentLevel:   2,
-    totalPoints:    state.totalPoints,
-    levelBreakdown: state.levelBreakdown,
-  });
-  state.pointsAtLevelStart = state.totalPoints;
-
   // Swap scene
   activeScene = factoryScene;
-
-  // Switch collision obstacles to factory layout
   setFactoryObstacles();
-
-  // Expand camera bounds to fit the bigger factory room
-  // FAC_W=70, FAC_D=50 → keep camera 5 units inside each wall
   camBoundsX = 30;
   camBoundsZ = 20;
 
-  // Move player to factory spawn
-  player.removeFromScene(labScene);
+  [labScene, pondScene, workshopScene, obsLabScene].forEach(s => {
+    try { player.removeFromScene(s); } catch (_) {}
+  });
   player.addToScene(factoryScene);
   player.position.set(0, 0, 18);
 
@@ -416,7 +481,7 @@ function startLevel2() {
   nearObject = null;
   updateHUD();
   setTimeout(() => showSimulation(() => {
-    setTimeout(() => showLevelComplete(() => startLevel3()), 600);
+    setTimeout(() => showLevelComplete(() => returnToHub(2)), 600);
   }), 400);
 }
 
@@ -424,33 +489,17 @@ function startLevel2() {
 // Level 3 transition
 // ─────────────────────────────────────────────────────
 function startLevel3() {
-  state.currentLevel = 3;
-
-  // Save checkpoint
-  saveCheckpoint({
-    playerName:     state.playerName,
-    currentLevel:   3,
-    totalPoints:    state.totalPoints,
-    levelBreakdown: state.levelBreakdown,
-  });
-  state.pointsAtLevelStart = state.totalPoints;
-
-  // Swap to pond scene
   activeScene = pondScene;
-
-  // Switch collision obstacles
   setPondObstacles();
-
-  // Camera bounds for pond area (POND_W=60, POND_D=50)
   camBoundsX = 26;
   camBoundsZ = 21;
 
-  // Move player to pond spawn
-  player.removeFromScene(factoryScene);
+  [labScene, factoryScene, workshopScene, obsLabScene].forEach(s => {
+    try { player.removeFromScene(s); } catch (_) {}
+  });
   player.addToScene(pondScene);
   player.position.set(0, 0, 16);
 
-  // Create valve interactive object (dispose any previous instance first)
   disposeInteractiveObj(valveObject, pondScene);
   valveObject = createValveObject(pondScene);
   activeQuestionObjects = [valveObject];
@@ -463,25 +512,14 @@ function startLevel3() {
 // Level 4 transition
 // ─────────────────────────────────────────────────────
 function startLevel4() {
-  state.currentLevel = 4;
-
-  // Save checkpoint
-  saveCheckpoint({
-    playerName:     state.playerName,
-    currentLevel:   4,
-    totalPoints:    state.totalPoints,
-    levelBreakdown: state.levelBreakdown,
-  });
-  state.pointsAtLevelStart = state.totalPoints;
-
   activeScene = workshopScene;
   setWorkshopObstacles();
-
-  // WORKSHOP_W=56, WORKSHOP_D=44
   camBoundsX = 24;
   camBoundsZ = 18;
 
-  player.removeFromScene(pondScene);
+  [labScene, factoryScene, pondScene, obsLabScene].forEach(s => {
+    try { player.removeFromScene(s); } catch (_) {}
+  });
   player.addToScene(workshopScene);
   player.position.set(0, 0, 14);
 
@@ -497,25 +535,14 @@ function startLevel4() {
 // Level 5 transition
 // ─────────────────────────────────────────────────────
 function startLevel5() {
-  state.currentLevel = 5;
-
-  // Save checkpoint
-  saveCheckpoint({
-    playerName:     state.playerName,
-    currentLevel:   5,
-    totalPoints:    state.totalPoints,
-    levelBreakdown: state.levelBreakdown,
-  });
-  state.pointsAtLevelStart = state.totalPoints;
-
   activeScene = obsLabScene;
   setObsLabObstacles();
-
-  // OBSLAB_W=52, OBSLAB_D=40
   camBoundsX = 22;
   camBoundsZ = 16;
 
-  player.removeFromScene(workshopScene);
+  [labScene, factoryScene, pondScene, workshopScene].forEach(s => {
+    try { player.removeFromScene(s); } catch (_) {}
+  });
   player.addToScene(obsLabScene);
   player.position.set(0, 0, 12);
 
@@ -547,78 +574,47 @@ canvas.addEventListener('touchend',    e => e.preventDefault(), { passive: false
 buildUIHTML();
 
 // ─────────────────────────────────────────────────────
-// Resume from checkpoint — bypass profile+instructions, jump to saved level
+// Common boot finalizer — called after name set + HUD ready
 // ─────────────────────────────────────────────────────
-function resumeToLevel(checkpoint) {
-  // Restore saved state
-  state.playerName        = checkpoint.playerName;
-  state.currentLevel      = checkpoint.currentLevel;
-  state.totalPoints       = checkpoint.totalPoints;
-  state.levelBreakdown    = checkpoint.levelBreakdown || [];
-  state.pointsAtLevelStart = checkpoint.totalPoints;
-
-  // Name the player character
-  player.setName(state.playerName);
-
-  // The player group starts in labScene (constructor). Remove it cleanly.
-  player.removeFromScene(labScene);
-
-  const lvl = checkpoint.currentLevel;
-
-  if (lvl === 1) {
-    // Resume in lab scene — put player back
-    player.addToScene(labScene);
-    player.position.set(0, 0, 12);
-    activeScene = labScene;
-    activeQuestionObjects = questionObjects;
-  } else if (lvl === 2) {
-    activeScene = factoryScene;
-    setFactoryObstacles();
-    camBoundsX = 30; camBoundsZ = 20;
-    player.addToScene(factoryScene);
-    player.position.set(0, 0, 18);
-    activeQuestionObjects = [];
-    setTimeout(() => showSimulation(() => {
-      setTimeout(() => showLevelComplete(() => startLevel3()), 600);
-    }), 400);
-  } else if (lvl === 3) {
-    activeScene = pondScene;
-    setPondObstacles();
-    camBoundsX = 26; camBoundsZ = 21;
-    player.addToScene(pondScene);
-    player.position.set(0, 0, 16);
-    disposeInteractiveObj(valveObject, pondScene);
-    valveObject = createValveObject(pondScene);
-    activeQuestionObjects = [valveObject];
-  } else if (lvl === 4) {
-    activeScene = workshopScene;
-    setWorkshopObstacles();
-    camBoundsX = 24; camBoundsZ = 18;
-    player.addToScene(workshopScene);
-    player.position.set(0, 0, 14);
-    disposeInteractiveObj(terminalObject, workshopScene);
-    terminalObject = createTerminalObject(workshopScene);
-    activeQuestionObjects = [terminalObject];
-  } else if (lvl === 5) {
-    activeScene = obsLabScene;
-    setObsLabObstacles();
-    camBoundsX = 22; camBoundsZ = 16;
-    player.addToScene(obsLabScene);
-    player.position.set(0, 0, 12);
-    disposeInteractiveObj(scopeObject, obsLabScene);
-    scopeObject = createScopeObject(obsLabScene);
-    activeQuestionObjects = [scopeObject];
-  }
-
-  nearObject = null;
+function bootGame() {
   gameStarted = true;
   document.getElementById('hud').style.display = 'block';
   initHUD();
   updateHUD();
   initPauseMenu(
-    () => { resumeToLevel(loadCheckpoint()); },
+    () => {
+      const cp = loadCheckpoint();
+      if (cp) {
+        state.completedRooms = cp.completedRooms || [];
+        state.totalPoints    = cp.totalPoints;
+        state.levelBreakdown = cp.levelBreakdown || [];
+        updateHUD();
+      }
+      enterRoomHub();
+    },
     () => { location.reload(); }
   );
+  // Drop player into lab scene by default (background scene while hub is shown)
+  player.addToScene(labScene);
+  player.position.set(0, 0, 12);
+  activeScene = labScene;
+  activeQuestionObjects = questionObjects;
+  // Open hub immediately
+  enterRoomHub();
+}
+
+// ─────────────────────────────────────────────────────
+// Resume from checkpoint
+// ─────────────────────────────────────────────────────
+function resumeFromCheckpoint(checkpoint) {
+  state.playerName      = checkpoint.playerName;
+  state.totalPoints     = checkpoint.totalPoints;
+  state.levelBreakdown  = checkpoint.levelBreakdown || [];
+  state.completedRooms  = checkpoint.completedRooms || [];
+  state.pointsAtLevelStart = checkpoint.totalPoints;
+
+  player.setName(state.playerName);
+  bootGame();
 }
 
 showProfileScreen(
@@ -630,14 +626,7 @@ showProfileScreen(
       showYoutubeVideos(() => {
         showIntroVideo(() => {
           showInstructions(() => {
-            gameStarted = true;
-            document.getElementById('hud').style.display = 'block';
-            initHUD();
-            updateHUD();
-            initPauseMenu(
-              () => { resumeToLevel(loadCheckpoint()); },
-              () => { location.reload(); }
-            );
+            bootGame();
           });
         });
       });
@@ -646,7 +635,7 @@ showProfileScreen(
   // Resume callback
   checkpoint => {
     startBgMusic();
-    resumeToLevel(checkpoint);
+    resumeFromCheckpoint(checkpoint);
   }
 );
 

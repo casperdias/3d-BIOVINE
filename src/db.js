@@ -48,14 +48,15 @@ export function clearAllScores() {
 
 /**
  * Persist the player's mid-run progress so they can resume later.
- * @param {{ playerName:string, currentLevel:number, totalPoints:number, levelBreakdown:object[] }} data
+ * @param {{ playerName:string, currentLevel:number, totalPoints:number, levelBreakdown:object[], completedRooms:number[] }} data
  */
-export function saveCheckpoint({ playerName, currentLevel, totalPoints, levelBreakdown }) {
+export function saveCheckpoint({ playerName, currentLevel, totalPoints, levelBreakdown, completedRooms }) {
   const payload = {
     playerName,
     currentLevel,
     totalPoints,
     levelBreakdown: levelBreakdown || [],
+    completedRooms: completedRooms || [],
     savedAt: new Date().toISOString(),
   };
   try {
