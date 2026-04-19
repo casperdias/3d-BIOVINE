@@ -29,6 +29,7 @@ import { showStage3 } from './stage3UI.js';
 import { showStage4 } from './stage4UI.js';
 import { showStage5 } from './stage5UI.js';
 import { saveCheckpoint, loadCheckpoint } from './db.js';
+import { uploadLevelProgress } from './sheets.js';
 
 // ─────────────────────────────────────────────────────
 // Renderer & Scene Setup
@@ -390,6 +391,9 @@ function returnToHub(completedLevel) {
   if (!state.completedRooms.includes(completedLevel)) {
     state.completedRooms.push(completedLevel);
   }
+
+  // Upload progress to Google Sheets (fire-and-forget)
+  uploadLevelProgress(completedLevel);
 
   // Persist progress
   saveCheckpoint({
