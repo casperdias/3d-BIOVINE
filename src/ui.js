@@ -229,8 +229,8 @@ export function showYoutubeVideos(cb) {
 
     const btn = $('btn-yt-next');
     btn.textContent = i < YT_VIDEOS.length - 1 ? 'Video Berikutnya →' : 'Lanjutkan ke Simulasi →';
-    btn.disabled = true;
-    btn.title    = 'Tonton video hingga selesai untuk melanjutkan';
+    btn.disabled = false;
+    btn.title    = '';
 
     // Destroy previous player and reset the container div
     if (ytPlayer) { ytPlayer.destroy(); ytPlayer = null; }
@@ -240,14 +240,7 @@ export function showYoutubeVideos(cb) {
       ytPlayer = new YT.Player('yt-player-container', {
         videoId: v.id,
         playerVars: { rel: 0, modestbranding: 1, playsinline: 1 },
-        events: {
-          onStateChange: e => {
-            if (e.data === YT.PlayerState.ENDED) {
-              btn.disabled = false;
-              btn.title    = '';
-            }
-          },
-        },
+        events: {},
       });
     });
   }
@@ -1942,7 +1935,7 @@ export function buildUIHTML() {
           <div class="youtube-logo">🎬</div>
           <div>
             <div class="youtube-title" id="yt-title">Video Edukasi</div>
-            <div class="youtube-subtitle" id="yt-subtitle">Tonton video berikut sebelum melanjutkan</div>
+            <div class="youtube-subtitle" id="yt-subtitle">Tonton video berikut (opsional sebelum melanjutkan)</div>
           </div>
           <div class="youtube-counter" id="yt-counter">1 / 2</div>
         </div>
