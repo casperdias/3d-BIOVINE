@@ -1905,7 +1905,6 @@ export function buildUIHTML() {
             <text x="71" y="226" text-anchor="middle" fill="#7ed6f7" font-size="6.5" font-family="monospace" font-weight="bold">PENELITI</text>
             <text x="71" y="236" text-anchor="middle" fill="#95a5a6" font-size="5.5" font-family="monospace">BIOVINE</text>
           </svg>
-          <div class="synopsis-avatar-name">Dr. Ana Wijaya</div>
         </div>
 
         <!-- Text content panel -->
