@@ -1036,6 +1036,47 @@ body {
   border-color: var(--text-muted);
 }
 
+.glossary-page.hidden {
+  display: none;
+}
+
+.glossary-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  gap: 12px;
+}
+
+#glossary-page-indicator {
+  font-size: 13px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.glossary-nav-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 6px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.glossary-nav-btn:hover:not(:disabled) {
+  color: var(--text);
+  border-color: var(--text-muted);
+}
+
+.glossary-nav-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
 /* ===== RICE GRAPH ===== */
 .rice-graph-wrap {
   background: rgba(255,255,255,0.03);

@@ -11,37 +11,37 @@ export const VALVE_POS = new THREE.Vector3(0, 0, -10);
 // ─────────────────────────────────────────────────────────
 export function createPondScene() {
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1a3a1a);   // bright daylight outdoor green
-  scene.fog = new THREE.FogExp2(0x1a3010, 0.012);
+  scene.background = new THREE.Color(0x87ceeb);   // sunny-day sky blue
+  scene.fog = new THREE.FogExp2(0xb0d8f0, 0.008);
 
-  // Ambient – bright daylight fill
-  scene.add(new THREE.AmbientLight(0xc8e8c0, 1.0));
+  // Hemisphere light – sky blue top, warm ground bounce
+  scene.add(new THREE.HemisphereLight(0x9ed4f8, 0x7a9a50, 1.1));
 
-  // Overhead sun (high noon – bright)
-  const sun = new THREE.DirectionalLight(0xfff0b0, 1.8);
-  sun.position.set(20, 28, 20);
+  // Overhead sun (high noon – bright warm white)
+  const sun = new THREE.DirectionalLight(0xfff5cc, 2.4);
+  sun.position.set(25, 40, 20);
   sun.castShadow = true;
   sun.shadow.mapSize.set(1024, 1024);
   sun.shadow.camera.near = 0.5;
-  sun.shadow.camera.far  = 120;
-  sun.shadow.camera.left   = -40;
-  sun.shadow.camera.right  =  40;
-  sun.shadow.camera.top    =  40;
-  sun.shadow.camera.bottom = -40;
+  sun.shadow.camera.far  = 140;
+  sun.shadow.camera.left   = -44;
+  sun.shadow.camera.right  =  44;
+  sun.shadow.camera.top    =  44;
+  sun.shadow.camera.bottom = -44;
   scene.add(sun);
 
-  // Cool sky fill
-  const skyFill = new THREE.DirectionalLight(0xa0c0ff, 0.7);
-  skyFill.position.set(-15, 20, -15);
+  // Soft sky-blue fill from opposite side
+  const skyFill = new THREE.DirectionalLight(0xb8d8ff, 0.6);
+  skyFill.position.set(-20, 18, -15);
   scene.add(skyFill);
 
-  // Warm glow above pond
-  const pondGlow = new THREE.PointLight(0x80e060, 1.6, 40);
-  pondGlow.position.set(0, 6, 0);
+  // Subtle warm fill near pond surface
+  const pondGlow = new THREE.PointLight(0xffe090, 0.8, 35);
+  pondGlow.position.set(0, 5, 0);
   scene.add(pondGlow);
 
   // Small lamp near valve
-  const valveLamp = new THREE.PointLight(0xffee99, 1.4, 20);
+  const valveLamp = new THREE.PointLight(0xffee99, 1.0, 18);
   valveLamp.position.set(VALVE_POS.x, 8, VALVE_POS.z);
   scene.add(valveLamp);
 
@@ -317,25 +317,51 @@ function _makeFern(scene, x, z, mat) {
 
 // ── Sky dome ─────────────────────────────────────────────
 function _buildSky(scene) {
+  // Sunny-day sky dome
   const skyMat = new THREE.MeshBasicMaterial({
-    color: 0x162c0e, side: THREE.BackSide
+    color: 0x6ab4e8, side: THREE.BackSide,
   });
   const sky = new THREE.Mesh(new THREE.SphereGeometry(120, 20, 14), skyMat);
   scene.add(sky);
 
-  // Stars
-  const starGeo = new THREE.BufferGeometry();
-  const starCount = 180;
-  const positions = new Float32Array(starCount * 3);
-  for (let i = 0; i < starCount; i++) {
-    const theta = Math.random() * Math.PI * 2;
-    const phi   = Math.acos(2 * Math.random() - 1);
-    positions[i * 3]     = 100 * Math.sin(phi) * Math.cos(theta);
-    positions[i * 3 + 1] = Math.abs(100 * Math.cos(phi)) + 10;
-    positions[i * 3 + 2] = 100 * Math.sin(phi) * Math.sin(theta);
-  }
-  starGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-  scene.add(new THREE.Points(starGeo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.5 })));
+  // Sun disc — positioned in the -Z half (where player faces when approaching valve)
+  // and +Z half (visible at spawn). Primary sun toward -Z.
+  const sunMat = new THREE.MeshBasicMaterial({ color: 0xfffde0, side: THREE.DoubleSide });
+  const sunDisc = new THREE.Mesh(new THREE.CircleGeometry(8, 24), sunMat);
+  sunDisc.position.set(30, 22, -88);
+  sunDisc.lookAt(0, 14, 0); // face toward camera eye height
+  scene.add(sunDisc);
+
+  // Sun halo (slightly larger, more transparent)
+  const haloMat = new THREE.MeshBasicMaterial({ color: 0xfff5a0, transparent: true, opacity: 0.35, side: THREE.DoubleSide });
+  const halo = new THREE.Mesh(new THREE.CircleGeometry(13, 24), haloMat);
+  halo.position.copy(sunDisc.position);
+  halo.rotation.copy(sunDisc.rotation);
+  scene.add(halo);
+
+  // Cloud puffs — spread across both front and rear sky, at low elevation (y≈20-24)
+  const cloudMat = new THREE.MeshBasicMaterial({ color: 0xfafafa, transparent: true, opacity: 0.88, side: THREE.DoubleSide });
+  [
+    // in front of valve side (-Z)
+    [  0, 22, -85, 1.1],
+    [-35, 20, -78, 0.9],
+    [ 50, 21, -80, 1.0],
+    // spawn-side (+Z)
+    [-30, 22,  85, 1.0],
+    [ 35, 20,  80, 0.85],
+    // side views
+    [-90, 21,  10, 0.9],
+    [ 90, 20, -5,  0.8],
+  ].forEach(([cx, cy, cz, s]) => {
+    const normal = new THREE.Vector3(cx, cy, cz).normalize();
+    [-1, 0, 1].forEach(ox => {
+      const right = new THREE.Vector3().crossVectors(normal, new THREE.Vector3(0,1,0)).normalize();
+      const offset = right.clone().multiplyScalar(ox * 7 * s);
+      const c = new THREE.Mesh(new THREE.SphereGeometry(5 * s, 8, 6), cloudMat);
+      c.position.set(cx + offset.x, cy + (ox === 0 ? 2 * s : 0), cz + offset.z);
+      scene.add(c);
+    });
+  });
 }
 
 // ── Valve interactable object (same shape as world.js questionObjects) ────────

@@ -1994,37 +1994,52 @@ export function buildUIHTML() {
         <button class="glossary-close" id="btn-close-glossary">✕ Tutup</button>
         <h2>📖 Buku Saku Kimia Lingkungan</h2>
 
-        <div class="glossary-item">
-          <div class="term">Vinasse</div>
-          <div class="definition">Limbah cair hasil penyulingan (distilasi) fermentasi tebu menjadi etanol. Berwarna coklat kehitaman, berbau manis menyengat, sangat asam, dan kaya bahan organik seperti asam asetat, asam laktat, gliserol, fenol, dan melanoid.</div>
+        <!-- Page 1: Handbook image -->
+        <div class="glossary-page" id="glossary-page-1">
+          <img src="/HandbookVinasse.png" alt="Handbook Vinasse" style="width:100%;border-radius:8px;">
         </div>
-        <div class="glossary-item">
-          <div class="term">COD (Chemical Oxygen Demand)</div>
-          <div class="definition">Jumlah oksigen yang diperlukan untuk mengurai <em>seluruh</em> bahan organik dalam air secara kimia. Nilai tinggi menandakan banyak polutan organik. Satuan: mg/L.</div>
+
+        <!-- Page 2: Glossary terms -->
+        <div class="glossary-page hidden" id="glossary-page-2">
+          <div class="glossary-item">
+            <div class="term">Vinasse</div>
+            <div class="definition">Limbah cair hasil penyulingan (distilasi) fermentasi tebu menjadi etanol. Berwarna coklat kehitaman, berbau manis menyengat, sangat asam, dan kaya bahan organik seperti asam asetat, asam laktat, gliserol, fenol, dan melanoid.</div>
+          </div>
+          <div class="glossary-item">
+            <div class="term">COD (Chemical Oxygen Demand)</div>
+            <div class="definition">Jumlah oksigen yang diperlukan untuk mengurai <em>seluruh</em> bahan organik dalam air secara kimia. Nilai tinggi menandakan banyak polutan organik. Satuan: mg/L.</div>
+          </div>
+          <div class="glossary-item">
+            <div class="term">BOD (Biochemical Oxygen Demand)</div>
+            <div class="definition">Jumlah oksigen terlarut yang dibutuhkan mikroorganisme untuk mengurai bahan organik secara biologis (aerobik). Nilai tinggi = air tercemar berat. Satuan: mg/L.</div>
+          </div>
+          <div class="glossary-item">
+            <div class="term">DO (Dissolved Oxygen)</div>
+            <div class="definition">Kadar oksigen yang terlarut dalam air. DO rendah (&lt;4 mg/L) berarti air tidak sehat bagi organisme akuatik. Air bersih normal memiliki DO ≥ 6 mg/L.</div>
+          </div>
+          <div class="glossary-item">
+            <div class="term">TDS (Total Dissolved Solids)</div>
+            <div class="definition">Total padatan (ion anorganik + senyawa organik terlarut) dalam air. Satuan mg/L. Baku mutu air minum: ≤ 500 mg/L. TDS tinggi mengindikasikan pencemaran berat.</div>
+          </div>
+          <div class="glossary-item">
+            <div class="term">pH</div>
+            <div class="definition">Derajat keasaman air. pH &lt; 7 = asam; pH 7 = netral; pH &gt; 7 = basa. Limbah vinasse bersifat sangat asam (pH rendah), merusak ekosistem perairan dan tanah pertanian.</div>
+          </div>
+          <div class="glossary-item">
+            <div class="term">Bakteri Coliform</div>
+            <div class="definition">Kelompok bakteri indikator pencemaran feses/organik. Pertumbuhannya meningkat seiring naiknya BOD & COD. Berbahaya bagi kesehatan manusia, dapat menyebabkan diare hingga kematian.</div>
+          </div>
+          <div class="glossary-item">
+            <div class="term">Bakteri Metanogenik & Asidogenik</div>
+            <div class="definition">Kelompok bakteri anaerob yang ditemukan dalam limbah vinasse. Bakteri asidogenik menghasilkan asam organik, sedangkan metanogenik menghasilkan gas metana (CH₄) dalam proses fermentasi anaerob.</div>
+          </div>
         </div>
-        <div class="glossary-item">
-          <div class="term">BOD (Biochemical Oxygen Demand)</div>
-          <div class="definition">Jumlah oksigen terlarut yang dibutuhkan mikroorganisme untuk mengurai bahan organik secara biologis (aerobik). Nilai tinggi = air tercemar berat. Satuan: mg/L.</div>
-        </div>
-        <div class="glossary-item">
-          <div class="term">DO (Dissolved Oxygen)</div>
-          <div class="definition">Kadar oksigen yang terlarut dalam air. DO rendah (&lt;4 mg/L) berarti air tidak sehat bagi organisme akuatik. Air bersih normal memiliki DO ≥ 6 mg/L.</div>
-        </div>
-        <div class="glossary-item">
-          <div class="term">TDS (Total Dissolved Solids)</div>
-          <div class="definition">Total padatan (ion anorganik + senyawa organik terlarut) dalam air. Satuan mg/L. Baku mutu air minum: ≤ 500 mg/L. TDS tinggi mengindikasikan pencemaran berat.</div>
-        </div>
-        <div class="glossary-item">
-          <div class="term">pH</div>
-          <div class="definition">Derajat keasaman air. pH &lt; 7 = asam; pH 7 = netral; pH &gt; 7 = basa. Limbah vinasse bersifat sangat asam (pH rendah), merusak ekosistem perairan dan tanah pertanian.</div>
-        </div>
-        <div class="glossary-item">
-          <div class="term">Bakteri Coliform</div>
-          <div class="definition">Kelompok bakteri indikator pencemaran feses/organik. Pertumbuhannya meningkat seiring naiknya BOD & COD. Berbahaya bagi kesehatan manusia, dapat menyebabkan diare hingga kematian.</div>
-        </div>
-        <div class="glossary-item">
-          <div class="term">Bakteri Metanogenik & Asidogenik</div>
-          <div class="definition">Kelompok bakteri anaerob yang ditemukan dalam limbah vinasse. Bakteri asidogenik menghasilkan asam organik, sedangkan metanogenik menghasilkan gas metana (CH₄) dalam proses fermentasi anaerob.</div>
+
+        <!-- Page navigation -->
+        <div class="glossary-nav">
+          <button class="glossary-nav-btn" id="btn-glossary-prev" disabled>← Kembali</button>
+          <span id="glossary-page-indicator">1 / 2</span>
+          <button class="glossary-nav-btn" id="btn-glossary-next">Berikutnya →</button>
         </div>
       </div>
     </div>
@@ -2047,9 +2062,37 @@ export function buildUIHTML() {
     if (e.key === 'Enter') $('btn-profile-start').click();
   });
 
-  // Glossary close
+  // Glossary close + pagination
   setTimeout(() => {
     const closeBtn = $('btn-close-glossary');
     if (closeBtn) closeBtn.onclick = () => toggleGlossary();
+
+    let glossaryPage = 1;
+    const GLOSSARY_PAGES = 2;
+
+    function updateGlossaryPage() {
+      $('glossary-page-1').classList.toggle('hidden', glossaryPage !== 1);
+      $('glossary-page-2').classList.toggle('hidden', glossaryPage !== 2);
+      $('glossary-page-indicator').textContent = `${glossaryPage} / ${GLOSSARY_PAGES}`;
+      $('btn-glossary-prev').disabled = glossaryPage === 1;
+      $('btn-glossary-next').disabled = glossaryPage === GLOSSARY_PAGES;
+      // Scroll card back to top on page change
+      const card = $('glossary-modal').querySelector('.glossary-card');
+      if (card) card.scrollTop = 0;
+    }
+
+    $('btn-glossary-next').onclick = () => { if (glossaryPage < GLOSSARY_PAGES) { glossaryPage++; updateGlossaryPage(); } };
+    $('btn-glossary-prev').onclick = () => { if (glossaryPage > 1) { glossaryPage--; updateGlossaryPage(); } };
+
+    // Reset to page 1 each time the modal opens
+    const origToggle = window._glossaryToggle;
+    const modal = $('glossary-modal');
+    const observer = new MutationObserver(() => {
+      if (!modal.classList.contains('hidden')) {
+        glossaryPage = 1;
+        updateGlossaryPage();
+      }
+    });
+    observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
   }, 100);
 }
