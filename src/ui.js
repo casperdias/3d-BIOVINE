@@ -1666,7 +1666,7 @@ function buildRiceGraph() {
   wrap.className = 'rice-graph-wrap';
 
   const img = document.createElement('img');
-  img.src = '/rice-graph.png';
+  img.src = 'rice-graph.png';
   img.alt = 'Grafik produktivitas panen padi';
   img.style.cssText = 'width:100%;border-radius:8px;border:1px solid rgba(255,255,255,0.1);display:block;';
 

@@ -1248,10 +1248,9 @@ body {
 #mobile-action-bar {
   display: none; /* hidden by default; shown on small screens via media query */
   position: fixed;
-  bottom: 24px;
-  left: 50%;
-  transform: translateX(-50%);
-  gap: 12px;
+  top: 10px;
+  right: 10px;
+  gap: 8px;
   z-index: 55;
   pointer-events: all;
 }
