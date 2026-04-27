@@ -1029,6 +1029,11 @@ export function showInstructions(cb) {
 export function initHUD() {
   updateHUD();
   $('btn-glossary').onclick = () => toggleGlossary();
+  // Mobile duplicate buttons
+  const mg = document.getElementById('btn-glossary-mobile');
+  const mp = document.getElementById('btn-pause-menu-mobile');
+  if (mg) mg.addEventListener('touchstart', e => { e.preventDefault(); toggleGlossary(); }, { passive: false });
+  if (mp) mp.addEventListener('touchstart', e => { e.preventDefault(); $('btn-pause-menu').click(); }, { passive: false });
 }
 
 // ─────────────────────────────────────────────────────

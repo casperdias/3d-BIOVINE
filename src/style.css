@@ -1245,6 +1245,38 @@ body {
   transform: scale(0.92);
 }
 
+#mobile-action-bar {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 12px;
+  pointer-events: all;
+}
+
+#btn-glossary-mobile,
+#btn-pause-menu-mobile {
+  background: rgba(10,25,10,0.82);
+  border: 1.5px solid rgba(255,255,255,0.25);
+  color: #e8f5e8;
+  border-radius: 10px;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  pointer-events: all;
+}
+
+#btn-glossary-mobile:active,
+#btn-pause-menu-mobile:active {
+  background: rgba(46,204,113,0.3);
+  border-color: #2ecc71;
+}
+
 /* ── Responsive screens ─────────────────────────────────── */
 @media (max-width: 600px) {
   /* HUD */
@@ -1258,9 +1290,8 @@ body {
   #hud-points  { font-size: 12px; }
   #hud-right   { gap: 8px; }
   #hud-attempts { display: none; }
-  .btn-label   { display: none; }
-  #btn-glossary { font-size: 16px; padding: 5px 9px; }
-  #btn-pause-menu { font-size: 16px; padding: 5px 9px; }
+  /* Hide HUD buttons on mobile — shown in bottom action bar instead */
+  #btn-glossary, #btn-pause-menu { display: none; }
   .attempt-dot { width: 9px; height: 9px; }
 
   /* Quiz panel — full width on mobile */
