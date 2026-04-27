@@ -176,13 +176,8 @@ export function showSynopsis(cb) {
 const YT_VIDEOS = [
   {
     id: 'c4gsn1rkK1g',
-    title: 'Video Edukasi 1: Limbah Vinasse & Dampak Lingkungan',
+    title: 'Video Edukasi: Limbah Vinasse & Dampak Lingkungan',
     subtitle: 'Pelajari dampak pencemaran vinasse terhadap lingkungan sekitar',
-  },
-  {
-    id: 'ajNZ7FcnZvU',
-    title: 'Video Edukasi 2: Teknologi Bioremediasi Azolla',
-    subtitle: 'Kenali solusi bioremediasi berbasis tanaman Azolla',
   },
 ];
 
@@ -272,7 +267,7 @@ let _introAssetRenderer = null;  // keep ref so we can dispose it
 let _bgAudio = null;
 export function startBgMusic() {
   if (_bgAudio) return;          // already playing
-  _bgAudio = new Audio('/intro-music.mp3');
+  _bgAudio = new Audio('intro-music.mp3');
   _bgAudio.loop   = true;
   _bgAudio.volume = 0.45;
   _bgAudio.play().catch(() => {}); // silently handle autoplay block
@@ -838,19 +833,13 @@ export function showIntroVideo(cb) {
   // ANIMATION
   // ====================================================================
   let rafId = null;
-  let introDone = false;
   const clock = new THREE.Clock();
   const continueBtn = $('btn-intro-continue');
-  continueBtn.disabled = true;
+  continueBtn.disabled = false;
 
   function animate() {
     rafId = requestAnimationFrame(animate);
     const t = clock.getElapsedTime();
-
-    if (!introDone && t >= TOTAL_DUR) {
-      introDone = true;
-      continueBtn.disabled = false;
-    }
 
     // Segmented camera
     const cyc    = t % TOTAL_DUR;

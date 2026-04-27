@@ -37,7 +37,7 @@ export const microorganisms = [
   {
     id: 'azolla',
     name: 'Azolla microphylla',
-    image: '/Azolla-microphylla.png',
+    image: 'Azolla-microphylla.png',
     price: 50,
     pigment: 'Klorofil a+b (hijau)',
     description: `Paku air (fern) akuatik yang bersimbiosis dengan sianobakteri
@@ -54,7 +54,7 @@ export const microorganisms = [
   {
     id: 'nannochloropsis',
     name: 'Nannochloropsis',
-    image: '/Nannochlopsis.png',
+    image: 'Nannochlopsis.png',
     price: 30,
     pigment: 'Klorofil a + karotenoid (hijau kekuningan)',
     description: `Mikroalga laut berukuran sangat kecil (~2–5 µm) dengan dinding sel
@@ -70,7 +70,7 @@ export const microorganisms = [
   {
     id: 'spirulina',
     name: 'Spirulina platensis',
-    image: '/Spirulina-plantesis.png',
+    image: 'Spirulina-plantesis.png',
     price: 40,
     pigment: 'Fikosianin (biru), klorofil a (hijau)',
     description: `Sianobakteri filamen dengan pertumbuhan relatif cepat. Bersifat
@@ -86,7 +86,7 @@ export const microorganisms = [
   {
     id: 'chlorella',
     name: 'Chlorella vulgaris',
-    image: '/Chlorella-vulgaris.png',
+    image: 'Chlorella-vulgaris.png',
     price: 40,
     pigment: 'Klorofil a+b, karotenoid (hijau)',
     description: `Mikroalga <em>kosmopolitan</em> yang toleran terhadap lingkungan tercemar.
