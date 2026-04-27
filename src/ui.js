@@ -1725,8 +1725,8 @@ export function buildUIHTML() {
       <div id="hud-right">
         <span id="hud-points">0</span>
         <div id="hud-attempts"></div>
-        <button id="btn-glossary">📖 Buku Saku</button>
-        <button id="btn-pause-menu">⚙️ Menu</button>
+        <button id="btn-glossary"><span class="btn-icon">📖</span><span class="btn-label"> Buku Saku</span></button>
+        <button id="btn-pause-menu"><span class="btn-icon">⚙️</span><span class="btn-label"> Menu</span></button>
       </div>
     </div>
   `;
@@ -1996,7 +1996,7 @@ export function buildUIHTML() {
 
         <!-- Page 1: Handbook image -->
         <div class="glossary-page" id="glossary-page-1">
-          <img src="/HandbookVinasse.png" alt="Handbook Vinasse" style="width:100%;border-radius:8px;">
+          <img src="HandbookVinasse.png" alt="Handbook Vinasse" style="width:100%;border-radius:8px;">
         </div>
 
         <!-- Page 2: Glossary terms -->

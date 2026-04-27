@@ -1249,13 +1249,18 @@ body {
 @media (max-width: 600px) {
   /* HUD */
   #hud-bar {
-    padding: 6px 12px;
-    gap: 8px;
+    padding: 6px 10px;
+    gap: 6px;
   }
-  #hud-player  { font-size: 12px; }
-  #hud-level   { font-size: 11px; padding: 2px 8px; }
+  #hud-center { display: none; }
+  #hud-player  { font-size: 11px; max-width: 80px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #hud-level   { font-size: 10px; padding: 2px 7px; }
   #hud-points  { font-size: 12px; }
-  #btn-glossary { font-size: 11px; padding: 4px 8px; }
+  #hud-right   { gap: 8px; }
+  #hud-attempts { display: none; }
+  .btn-label   { display: none; }
+  #btn-glossary { font-size: 16px; padding: 5px 9px; }
+  #btn-pause-menu { font-size: 16px; padding: 5px 9px; }
   .attempt-dot { width: 9px; height: 9px; }
 
   /* Quiz panel — full width on mobile */
