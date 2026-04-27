@@ -1246,12 +1246,13 @@ body {
 }
 
 #mobile-action-bar {
-  position: absolute;
+  display: none; /* hidden by default; shown on small screens via media query */
+  position: fixed;
   bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  display: flex;
   gap: 12px;
+  z-index: 55;
   pointer-events: all;
 }
 
@@ -1292,6 +1293,8 @@ body {
   #hud-attempts { display: none; }
   /* Hide HUD buttons on mobile — shown in bottom action bar instead */
   #btn-glossary, #btn-pause-menu { display: none; }
+  /* Show standalone mobile action bar */
+  #mobile-action-bar { display: flex; }
   .attempt-dot { width: 9px; height: 9px; }
 
   /* Quiz panel — full width on mobile */
