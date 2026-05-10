@@ -3,6 +3,7 @@ import { state, resetLevelState, recordLevelPoints } from './state.js';
 import { stage1 } from './stages/stage1.js';
 import { stage2 } from './stages/stage2.js';
 import { loadCheckpoint, clearCheckpoint, saveScore } from './db.js';
+import { showExperimentForm } from './experimentUI.js';
 
 // ─────────────────────────────────────────────────────
 // DOM helpers
@@ -1078,6 +1079,11 @@ export function initPauseMenu(onResumeCheckpoint, onNewGame) {
     }
   };
 
+  $('btn-pm-experiment').onclick = () => {
+    overlay.classList.add('hidden');
+    showExperimentForm();
+  };
+
   // Close on backdrop click
   overlay.addEventListener('click', e => {
     if (e.target === overlay) overlay.classList.add('hidden');
@@ -1269,6 +1275,48 @@ export function showRoomSelect(onSelectRoom) {
         onSelectRoom(lvl);
       });
     });
+
+    // ── Optional upload section ──────────────────────────────────────────────
+    let optSec = document.getElementById('room-hub-optional');
+    if (!optSec) {
+      optSec = document.createElement('div');
+      optSec.id = 'room-hub-optional';
+      optSec.style.cssText = `
+        margin-top:14px;padding-top:12px;
+        border-top:1px solid rgba(255,255,255,.08);
+      `;
+      grid.parentElement.insertBefore(optSec, grid.nextSibling);
+    }
+    optSec.innerHTML = `
+      <div style="font-size:11px;font-weight:700;color:#4a6080;text-transform:uppercase;
+                  letter-spacing:.06em;margin-bottom:8px">
+        ⬇ Opsional
+      </div>
+      <button id="btn-room-upload-exp" style="
+        width:100%;display:flex;align-items:center;gap:14px;
+        background:rgba(21,101,192,.12);border:1px solid rgba(100,160,255,.25);
+        border-radius:12px;padding:12px 16px;cursor:pointer;text-align:left;
+        color:#7eb8ff;transition:background .18s;">
+        <div style="font-size:26px;line-height:1">📋</div>
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;margin-bottom:2px">Upload Hasil Percobaan Nyata</div>
+          <div style="font-size:12px;color:#4a7090">
+            Isi tabel data kelompokmu dari percobaan di laboratorium — tidak mempengaruhi poin
+          </div>
+        </div>
+        <div style="font-size:12px;color:#2a6090;white-space:nowrap">📤 Opsional</div>
+      </button>
+    `;
+    optSec.querySelector('#btn-room-upload-exp').onmouseenter = function () {
+      this.style.background = 'rgba(21,101,192,.22)';
+    };
+    optSec.querySelector('#btn-room-upload-exp').onmouseleave = function () {
+      this.style.background = 'rgba(21,101,192,.12)';
+    };
+    optSec.querySelector('#btn-room-upload-exp').onclick = () => {
+      overlay.classList.add('hidden');
+      showExperimentForm();
+    };
   }
 
   render();
@@ -1352,6 +1400,12 @@ export function showGameComplete() {
           box-shadow:0 4px 16px rgba(46,204,113,.4)">
           🔄 Main Lagi dari Awal
         </button>
+        <button id="btn-gc-experiment" style="
+          padding:12px 28px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:600;
+          background:linear-gradient(135deg,#1565c0,#0d47a1);color:#fff;
+          border:1px solid rgba(100,160,255,.35);box-shadow:0 4px 16px rgba(21,101,192,.35)">
+          📋 Upload Hasil Percobaan
+        </button>
         <button id="btn-gc-close" style="
           padding:12px 28px;border-radius:10px;border:none;cursor:pointer;font-size:15px;font-weight:600;
           background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.2)">
@@ -1372,6 +1426,10 @@ export function showGameComplete() {
     overlay.remove();
     // Full page reload — cleanest way to restart all state
     window.location.reload();
+  };
+
+  overlay.querySelector('#btn-gc-experiment').onclick = () => {
+    showExperimentForm();
   };
 }
 
@@ -1747,6 +1805,7 @@ export function buildUIHTML() {
         <button class="btn-pause-action" id="btn-pm-continue">▶ Lanjutkan Bermain</button>
         <button class="btn-pause-action btn-pause-checkpoint" id="btn-pm-resume">↩ Kembali ke Checkpoint</button>
         <button class="btn-pause-action btn-pause-newgame" id="btn-pm-newgame">🔄 Mulai Ulang (New Game)</button>
+        <button class="btn-pause-action" id="btn-pm-experiment" style="background:rgba(21,101,192,.25);border-color:rgba(100,160,255,.4);color:#7ec8ff">📋 Upload Hasil Percobaan</button>
       </div>
     </div>
 

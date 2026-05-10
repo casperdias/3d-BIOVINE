@@ -5,6 +5,7 @@
 import { failureScenarios } from './stages/stage5.js';
 import { state } from './state.js';
 import { updateHUD } from './ui.js';
+import { uploadEssayResult } from './sheets.js';
 
 const $ = id => document.getElementById(id);
 
@@ -122,6 +123,14 @@ Berdasarkan konsep bioremediasi yang telah kalian pelajari, analisislah mengapa 
   submitBtn.onclick = () => {
     state.stage5 = state.stage5 || {};
     state.stage5.essayAnswer = textarea.value.trim();
+
+    // Upload essay answer to Google Sheets "Esai" sheet (fire-and-forget)
+    uploadEssayResult({
+      playerName:  state.playerName || '',
+      essayAnswer: state.stage5.essayAnswer,
+      timestamp:   new Date().toISOString(),
+    });
+
     removeOverlay();
     onComplete();
   };
