@@ -298,11 +298,17 @@ export class PlayerCharacter {
     if (this._moving && !blocked) {
       let dx = 0, dz = 0;
 
-      const pureBackward = forward < 0 && Math.abs(strafe) < 0.2;
+      const movingBackward = forward < 0;
 
-      if (pureBackward) {
-        // Move backward relative to the character's current facing direction
-        // (S key alone: walk backward without spinning)
+      if (movingBackward && cameraAxes) {
+        // Backward (+ optional strafe): compute via camera axes but keep facing direction
+        dx = cameraAxes.fwd.x * forward + cameraAxes.right.x * strafe;
+        dz = cameraAxes.fwd.z * forward + cameraAxes.right.z * strafe;
+        const len = Math.sqrt(dx * dx + dz * dz) || 1;
+        dx = (dx / len) * this.speed;
+        dz = (dz / len) * this.speed;
+      } else if (movingBackward) {
+        // No camera axes — fall back to facing-relative backward
         dx = -Math.sin(this._facingAngle) * this.speed;
         dz = -Math.cos(this._facingAngle) * this.speed;
       } else if (cameraAxes) {
@@ -334,9 +340,8 @@ export class PlayerCharacter {
       this.group.position.x = Math.max(-HW, Math.min(HW, this.group.position.x));
       this.group.position.z = Math.max(-HD, Math.min(HD, this.group.position.z));
 
-      // Only update facing direction when moving forward or strafing (not pure backward)
-      // This prevents the 180° spin when pressing S alone
-      if (!pureBackward) {
+      // Never update facing direction when going backward — prevents 180° spin
+      if (!movingBackward) {
         this._facingAngle = Math.atan2(dx, dz);
       }
       this.group.rotation.y = this._facingAngle;

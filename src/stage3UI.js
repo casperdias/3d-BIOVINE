@@ -270,23 +270,27 @@ function showLabPanel(microId, onComplete) {
       <!-- Sprinkler scene (hidden until volume picked) -->
       <div class="s3-sprinkler-scene hidden" id="s3-sprinkler-scene">
         <div class="s3-spk-label" id="s3-spk-dose-label"></div>
-        <!-- Interactive spray zone — tahan klik + geser mouse untuk menuangkan -->
-        <div class="s3-spray-zone" id="s3-spray-zone">
-          <div class="s3-sprinkler-head" id="s3-spk-head">
-            <div class="s3-spk-body"></div>
-            <div class="s3-spk-nozzles">
-              ${Array.from({length: 7}, () => '<div class="s3-spk-nozzle"></div>').join('')}
+        <!-- Multi-glass pour scene -->
+        <div class="s3-glass-pour-layout">
+          <div class="s3-glass-side">
+            <div class="s3-glass-row" id="s3-glass-row">
+              <!-- glasses built by JS when volume is picked -->
             </div>
+            <div class="s3-glass-hint" id="s3-pour-hint">↓ Seret gelas ke kolam vinasse</div>
           </div>
-          <div class="s3-spk-particles" id="s3-spk-particles"></div>
-          <div class="s3-spk-tank">
-            <div class="s3-spk-vinasse"></div>
-            <div class="s3-spk-micro-layer" id="s3-spk-micro-layer"></div>
-            <div class="s3-spk-target-line" id="s3-spk-target-line"></div>
-            <div class="s3-spk-tank-label">Kolam Vinasse</div>
+          <div class="s3-tank-side">
+            <div class="s3-tank-drop-zone" id="s3-tank-drop-zone">
+              <div class="s3-tank-drops" id="s3-tank-drops"></div>
+              <div class="s3-spk-tank">
+                <div class="s3-spk-vinasse"></div>
+                <div class="s3-spk-micro-layer" id="s3-spk-micro-layer"></div>
+                <div class="s3-spk-target-line" id="s3-spk-target-line"></div>
+                <div class="s3-spk-tank-label">Kolam Vinasse</div>
+              </div>
+            </div>
+            <div class="s3-tank-drop-lbl" id="s3-tank-drop-lbl">Jatuhkan di sini</div>
           </div>
         </div>
-        <p class="s3-pour-hint" id="s3-pour-hint">🖱️ Tahan klik + gerakkan mouse di area ini untuk menuangkan</p>
         <div class="s3-pour-counter hidden" id="s3-pour-counter">
           Dituangkan: <b id="s3-poured-amt">0.0</b> <span id="s3-poured-unit"></span>
           &nbsp;/&nbsp; Target: <b id="s3-target-amt"></b> <span id="s3-target-unit"></span>
@@ -310,11 +314,18 @@ function showLabPanel(microId, onComplete) {
   `;
   document.body.appendChild(overlay);
 
-  let selectedVol    = null;
-  let pouredAmount   = 0;
-  let isPouring      = false;
-  let startedPouring = false;
-  let lastParticleAt = 0;
+  let selectedVol     = null;
+  let pouredAmount    = 0;
+  let startedPouring  = false;
+  let currentCalc     = null;
+  let currentDoseEach = 0;
+  let glassVolumes    = [];
+  let draggingIdx     = null;
+  let pourInterval    = null;
+  let dropIntervalS   = null;
+  let isOverTank      = false;
+  let pourCleanup     = null;
+  const NUM_GLASSES   = 6;
 
   const colourMap = {
     azolla: '#4ecb47', nannochloropsis: '#c8b820',
@@ -322,7 +333,7 @@ function showLabPanel(microId, onComplete) {
   };
   const colour = colourMap[micro.id] || '#80e880';
 
-  // ── Volume selection ──────────────────────────────────────────
+  // ── Volume selection + glass-pour setup ──────────────────────
   overlay.querySelectorAll('.s3-vol-btn').forEach(btn => {
     btn.onclick = () => {
       overlay.querySelectorAll('.s3-vol-btn').forEach(b => b.classList.remove('active'));
@@ -330,16 +341,14 @@ function showLabPanel(microId, onComplete) {
       selectedVol = parseInt(btn.dataset.vol);
       const calc  = calcMicroDose(microId, selectedVol);
 
-      // Reset all pour state
+      // Cleanup any previous drag session, then reset state
+      if (pourCleanup) { pourCleanup(); pourCleanup = null; }
       pouredAmount   = 0;
-      isPouring      = false;
       startedPouring = false;
       $('s3-lab-result').classList.add('hidden');
       $('s3-btn-to-valve').classList.add('hidden');
       $('s3-spk-micro-layer').style.transition = 'none';
       $('s3-spk-micro-layer').style.height = '0%';
-      $('s3-spk-head').classList.remove('spk-active');
-      $('s3-spk-particles').innerHTML = '';
       $('s3-pour-counter').classList.add('hidden');
       $('s3-pour-progress-wrap').classList.add('hidden');
       $('s3-pour-feedback').classList.add('hidden');
@@ -360,6 +369,152 @@ function showLabPanel(microId, onComplete) {
       $('s3-spk-dose-label').innerHTML = calc
         ? `Dosis yang dibutuhkan: <b>${calc.total} ${calc.unit}</b> untuk ${selectedVol} L vinasse`
         : `⛔ ${micro.name} tidak cocok untuk vinasse ini`;
+
+      // ── Build glasses (6 × 25% of target dose each) ─────────────
+      currentCalc     = calc;
+      const targetDose = calc ? parseFloat(calc.total) : 0;
+      currentDoseEach  = targetDose * 0.25;
+      glassVolumes     = Array(NUM_GLASSES).fill(currentDoseEach);
+      draggingIdx      = null;
+
+      const row = $('s3-glass-row');
+      row.innerHTML = '';
+      if (calc) {
+        for (let i = 0; i < NUM_GLASSES; i++) {
+          const gl = document.createElement('div');
+          gl.className   = 's3-micro-glass';
+          gl.id          = `s3-mg-${i}`;
+          gl.dataset.idx = String(i);
+          gl.innerHTML   = `<div class="s3-mg-liquid" id="s3-mg-liq-${i}" style="background:${colour};height:85%"></div><div class="s3-mg-label">¼</div>`;
+          row.appendChild(gl);
+        }
+      }
+
+      // Ghost glass (appended to body to escape overflow clipping)
+      const oldGhost = document.getElementById('s3-mg-ghost');
+      if (oldGhost) oldGhost.remove();
+      const ghost = document.createElement('div');
+      ghost.id        = 's3-mg-ghost';
+      ghost.className = 's3-mg-ghost hidden';
+      ghost.innerHTML = `<div class="s3-mg-ghost-liquid" id="s3-mg-ghost-liquid" style="background:${colour}"></div>`;
+      document.body.appendChild(ghost);
+
+      function updateGlassVis(i) {
+        const liq = document.getElementById(`s3-mg-liq-${i}`);
+        const el  = document.getElementById(`s3-mg-${i}`);
+        if (!liq || !el) return;
+        liq.style.height = currentDoseEach > 0 ? (glassVolumes[i] / currentDoseEach * 100) + '%' : '0%';
+        if (glassVolumes[i] <= 0) { el.classList.add('empty'); el.classList.remove('dragging'); }
+      }
+      function spawnMgDrop() {
+        const dz = document.getElementById('s3-tank-drops');
+        if (!dz) return;
+        const drop = document.createElement('div');
+        drop.className = 's3-mg-drop';
+        drop.style.background = colour;
+        drop.style.setProperty('--spread', ((Math.random()-0.5)*10)+'px');
+        drop.style.setProperty('--dur',    (0.26+Math.random()*0.26)+'s');
+        dz.appendChild(drop);
+        setTimeout(() => drop.remove(), 600);
+      }
+      function startPourS3() {
+        if (pourInterval || draggingIdx === null || !currentCalc) return;
+        const maxDose = targetDose * 1.5;
+        pourInterval = setInterval(() => {
+          if (draggingIdx === null || glassVolumes[draggingIdx] <= 0 || pouredAmount >= maxDose) { stopPourS3(); return; }
+          const rate = Math.max(targetDose * 0.01, 0.001);
+          const add  = Math.min(rate, glassVolumes[draggingIdx], maxDose - pouredAmount);
+          glassVolumes[draggingIdx] -= add;
+          pouredAmount = Math.min(pouredAmount + add, maxDose);
+          updateGlassVis(draggingIdx);
+          $('s3-poured-amt').textContent = pouredAmount.toFixed(1);
+          const ghostLiq = document.getElementById('s3-mg-ghost-liquid');
+          if (ghostLiq) ghostLiq.style.height = currentDoseEach > 0 ? (glassVolumes[draggingIdx] / currentDoseEach * 100) + '%' : '0%';
+          const fillH = Math.min(pouredAmount / maxDose, 1) * 30;
+          $('s3-spk-micro-layer').style.transition = 'none';
+          $('s3-spk-micro-layer').style.height     = fillH + '%';
+          $('s3-spk-micro-layer').style.background = colour;
+          const barPct = Math.min(pouredAmount / maxDose, 1) * 100;
+          $('s3-pour-bar-fill').style.width = barPct + '%';
+          const ratio = targetDose > 0 ? pouredAmount / targetDose : 0;
+          $('s3-pour-bar-fill').style.background =
+            ratio < 0.7  ? '#20a0d0' :
+            ratio < 0.8  ? '#60d060' :
+            ratio <= 1.2 ? '#00e870' :
+            ratio <= 1.5 ? '#e8a020' : '#e04020';
+        }, 80);
+        dropIntervalS = setInterval(spawnMgDrop, 55);
+      }
+      function stopPourS3() {
+        clearInterval(pourInterval); clearInterval(dropIntervalS);
+        pourInterval = dropIntervalS = null;
+      }
+      function moveGhostS3(cx, cy) {
+        ghost.style.left = (cx - 18) + 'px';
+        ghost.style.top  = (cy - 60) + 'px';
+        const dz = document.getElementById('s3-tank-drop-zone');
+        if (!dz) return;
+        const r    = dz.getBoundingClientRect();
+        const over = cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+        if (over !== isOverTank) {
+          isOverTank = over;
+          dz.classList.toggle('active', over);
+          ghost.classList.toggle('tilting', over);
+          if (over) startPourS3(); else stopPourS3();
+        }
+      }
+      function startDragS3(i, cx, cy) {
+        if (glassVolumes[i] <= 0) return;
+        draggingIdx = i; isOverTank = false;
+        document.getElementById(`s3-mg-${i}`)?.classList.add('dragging');
+        ghost.classList.remove('hidden');
+        const gl = document.getElementById('s3-mg-ghost-liquid');
+        if (gl) gl.style.height = currentDoseEach > 0 ? (glassVolumes[i] / currentDoseEach * 100) + '%' : '85%';
+        if (!startedPouring) {
+          startedPouring = true;
+          $('s3-pour-hint').classList.add('hidden');
+          $('s3-pour-counter').classList.remove('hidden');
+          $('s3-pour-progress-wrap').classList.remove('hidden');
+          $('s3-btn-confirm-pour').classList.remove('hidden');
+        }
+        moveGhostS3(cx, cy);
+      }
+      function endDragS3() {
+        if (draggingIdx === null) return;
+        stopPourS3();
+        updateGlassVis(draggingIdx);
+        document.getElementById(`s3-mg-${draggingIdx}`)?.classList.remove('dragging');
+        draggingIdx = null; isOverTank = false;
+        ghost.classList.add('hidden'); ghost.classList.remove('tilting');
+        document.getElementById('s3-tank-drop-zone')?.classList.remove('active');
+        const lbl = document.getElementById('s3-tank-drop-lbl');
+        if (lbl) lbl.textContent = pouredAmount > 0 && currentCalc
+          ? `✓ ${pouredAmount.toFixed(1)} ${currentCalc.unit} dituang`
+          : 'Jatuhkan di sini';
+      }
+      for (let i = 0; i < NUM_GLASSES; i++) {
+        const el = document.getElementById(`s3-mg-${i}`);
+        if (!el) continue;
+        el.addEventListener('mousedown',  e => { startDragS3(i, e.clientX, e.clientY); e.preventDefault(); });
+        el.addEventListener('touchstart', e => { startDragS3(i, e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+      }
+      function _onMMS3(e) { if (draggingIdx !== null) moveGhostS3(e.clientX, e.clientY); }
+      function _onMUS3()  { endDragS3(); }
+      function _onTMS3(e) { if (draggingIdx === null) return; moveGhostS3(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+      function _onTES3()  { endDragS3(); }
+      window.addEventListener('mousemove', _onMMS3);
+      window.addEventListener('mouseup',   _onMUS3);
+      window.addEventListener('touchmove', _onTMS3, { passive: false });
+      window.addEventListener('touchend',  _onTES3);
+      pourCleanup = () => {
+        endDragS3();
+        window.removeEventListener('mousemove', _onMMS3);
+        window.removeEventListener('mouseup',   _onMUS3);
+        window.removeEventListener('touchmove', _onTMS3);
+        window.removeEventListener('touchend',  _onTES3);
+        const g = document.getElementById('s3-mg-ghost');
+        if (g) g.remove();
+      };
 
       $('s3-sprinkler-scene').classList.remove('hidden');
       $('s3-sprinkler-scene').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -403,6 +558,16 @@ function showLabPanel(microId, onComplete) {
     setTimeout(() => {
       pouredAmount   = 0;
       startedPouring = false;
+      // Refill all glasses
+      if (currentDoseEach > 0) {
+        for (let i = 0; i < NUM_GLASSES; i++) {
+          glassVolumes[i] = currentDoseEach;
+          const liq = document.getElementById(`s3-mg-liq-${i}`);
+          const el  = document.getElementById(`s3-mg-${i}`);
+          if (liq) liq.style.height = '85%';
+          if (el)  el.classList.remove('empty', 'dragging');
+        }
+      }
       $('s3-spk-micro-layer').style.transition = 'none';
       $('s3-spk-micro-layer').style.height = '0%';
       $('s3-poured-amt').textContent = '0.0';
@@ -412,98 +577,10 @@ function showLabPanel(microId, onComplete) {
       $('s3-btn-confirm-pour').classList.add('hidden');
       $('s3-pour-hint').classList.remove('hidden');
       $('s3-pour-feedback').classList.add('hidden');
-      $('s3-spk-head').classList.remove('spk-active');
-      $('s3-spk-particles').innerHTML = '';
+      const lbl = document.getElementById('s3-tank-drop-lbl');
+      if (lbl) lbl.textContent = 'Jatuhkan di sini';
     }, 2500);
   }
-
-  // ── Mouse spray interaction ───────────────────────────────────
-  const sprayZone = $('s3-spray-zone');
-
-  sprayZone.addEventListener('mousedown', e => {
-    isPouring = true;
-    e.preventDefault();
-  });
-  document.addEventListener('mouseup', () => { isPouring = false; });
-  sprayZone.addEventListener('mouseleave', () => {
-    $('s3-spk-head').classList.remove('spk-active');
-  });
-
-  sprayZone.addEventListener('mousemove', e => {
-    if (!selectedVol) return;
-    const rect = sprayZone.getBoundingClientRect();
-    const relX = Math.max(0.05, Math.min(0.95, (e.clientX - rect.left) / rect.width));
-
-    // Sprinkler head tracks mouse X
-    $('s3-spk-head').style.left = (relX * 100) + '%';
-
-    if (!isPouring) return;
-
-    const calc       = calcMicroDose(microId, selectedVol);
-    const targetDose = calc ? parseFloat(calc.total) : 0;
-
-    if (!startedPouring) {
-      startedPouring = true;
-      $('s3-pour-hint').classList.add('hidden');
-      if (targetDose) {
-        $('s3-pour-counter').classList.remove('hidden');
-        $('s3-pour-progress-wrap').classList.remove('hidden');
-      }
-      $('s3-btn-confirm-pour').classList.remove('hidden');
-    }
-
-    $('s3-spk-head').classList.add('spk-active');
-
-    if (targetDose) {
-      // Each move tick adds a small dose increment (~180 ticks to reach target)
-      const gramsPerTick = targetDose / 180;
-      pouredAmount = Math.min(pouredAmount + gramsPerTick, targetDose * 2);
-      $('s3-poured-amt').textContent = pouredAmount.toFixed(1);
-
-      // Tank micro layer (0 → 30% height at double dose)
-      const fillH = Math.min(pouredAmount / (targetDose * 2), 1) * 30;
-      $('s3-spk-micro-layer').style.transition = 'none';
-      $('s3-spk-micro-layer').style.height = fillH + '%';
-      $('s3-spk-micro-layer').style.background = colour;
-
-      // Progress bar — target marker sits at ~67% of bar width (= 100% dose / 150% max)
-      const barPct = Math.min(pouredAmount / (targetDose * 1.5), 1) * 100;
-      $('s3-pour-bar-fill').style.width = barPct + '%';
-      const ratio = pouredAmount / targetDose;
-      $('s3-pour-bar-fill').style.background =
-        ratio < 0.7  ? '#20a0d0' :
-        ratio < 0.8  ? '#60d060' :
-        ratio <= 1.2 ? '#00e870' :
-        ratio <= 1.5 ? '#e8a020' : '#e04020';
-    }
-
-    // Throttled particle spawn (max ~25/sec)
-    const now = Date.now();
-    if (now - lastParticleAt > 40) {
-      lastParticleAt = now;
-      const p = document.createElement('div');
-      p.className = 's3-spk-drop';
-      const spread = -40 + Math.random() * 80;
-      const dur    = 0.45 + Math.random() * 0.35;
-      p.style.cssText = `
-        --spread-x: ${spread}px; --dur: ${dur}s;
-        background: ${colour};
-        left: calc(${relX * 100}% + ${spread * 0.2}px);
-      `;
-      $('s3-spk-particles').appendChild(p);
-      setTimeout(() => p.remove(), dur * 1000 + 80);
-    }
-  });
-
-  // Touch support (mobile)
-  sprayZone.addEventListener('touchstart',  e => { isPouring = true;  e.preventDefault(); }, { passive: false });
-  sprayZone.addEventListener('touchend',    ()  => { isPouring = false; });
-  sprayZone.addEventListener('touchmove', e => {
-    e.preventDefault();
-    const t  = e.touches[0];
-    const me = new MouseEvent('mousemove', { clientX: t.clientX, clientY: t.clientY });
-    sprayZone.dispatchEvent(me);
-  }, { passive: false });
 
   // ── Confirm button ────────────────────────────────────────────
   $('s3-btn-confirm-pour').onclick = () => {
@@ -525,7 +602,7 @@ function showLabPanel(microId, onComplete) {
     if (ratio < 0.8) {
       feedbackEl.className = 's3-pour-feedback wrong';
       feedbackEl.innerHTML = `⚠️ <b>Kurang!</b> Kamu menuangkan <b>${pouredAmount.toFixed(1)} ${calc.unit}</b>,
-        padahal target <b>${calc.total} ${calc.unit}</b>. Geser mouse lebih lama!`;
+        padahal target <b>${calc.total} ${calc.unit}</b>. Seret lebih banyak gelas!`;
       resetPourAttempt();
     } else if (ratio > 1.2) {
       feedbackEl.className = 's3-pour-feedback wrong';
@@ -535,7 +612,6 @@ function showLabPanel(microId, onComplete) {
     } else {
       feedbackEl.className = 's3-pour-feedback correct';
       feedbackEl.innerHTML = `✅ <b>Tepat!</b> <b>${pouredAmount.toFixed(1)} ${calc.unit}</b> — sesuai dosis bioremediasi!`;
-      $('s3-spk-head').classList.remove('spk-active');
       $('s3-spk-micro-layer').style.transition = 'height 1.2s ease';
       $('s3-spk-micro-layer').style.height = '30%';
       setTimeout(() => showLabResults(calc), 1500);
@@ -543,6 +619,7 @@ function showLabPanel(microId, onComplete) {
   };
 
   $('s3-btn-to-valve').onclick = () => {
+    if (pourCleanup) { pourCleanup(); pourCleanup = null; }
     removeOverlay();
     onComplete();
   };
@@ -854,105 +931,98 @@ function injectStage3CSS() {
       color: #80a8c0; line-height: 1.6;
     }
 
-    /* ── Sprinkler / spray zone ──────────────────────── */
+    /* ── Glass pour mechanic ────────────────────────── */
     .s3-sprinkler-scene { margin: 12px 0 6px; }
     .s3-sprinkler-scene.hidden { display: none; }
-    .s3-spk-label {
-      font-size: 13px; color: #80b0c8; text-align: center;
-      margin-bottom: 10px;
+    .s3-spk-label { font-size: 13px; color: #80b0c8; text-align: center; margin-bottom: 10px; }
+    /* Layout: glasses on left, tank on right */
+    .s3-glass-pour-layout {
+      display: flex; align-items: flex-end; gap: 20px;
+      flex-wrap: wrap; justify-content: center; margin: 4px 0 12px;
     }
-    /* Interactive spray zone */
-    .s3-spray-zone {
-      position: relative;
-      width: 100%; max-width: 360px; height: 200px;
-      margin: 0 auto;
-      cursor: crosshair;
-      user-select: none; -webkit-user-select: none;
-      border: 2px dashed rgba(80,160,180,0.2);
-      border-radius: 12px;
-      background: rgba(0,5,10,0.3);
-      transition: border-color 0.2s;
+    .s3-glass-side { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .s3-glass-row  { display: flex; gap: 6px; align-items: flex-end; min-height: 64px; }
+    .s3-glass-hint { font-size: 11px; color: #3a8a5a; font-style: italic; text-align: center; }
+    /* Individual micro glass */
+    .s3-micro-glass {
+      position: relative; width: 36px; height: 54px;
+      border: 2px solid #2a6a4a; border-top: none; border-radius: 0 0 6px 6px;
+      background: rgba(5, 18, 10, 0.85); overflow: hidden;
+      cursor: grab; user-select: none;
+      transition: box-shadow 0.2s, border-color 0.2s, opacity 0.3s;
     }
-    .s3-spray-zone:hover { border-color: rgba(80,160,180,0.45); }
-    /* Sprinkler head — tracks mouse X via JS */
-    .s3-spray-zone .s3-sprinkler-head {
-      position: absolute; top: 8px;
-      transform: translateX(-50%);
-      display: flex; flex-direction: column; align-items: center;
-      z-index: 3; pointer-events: none;
-      transition: left 0.04s linear;
+    .s3-micro-glass:not(.empty):hover { box-shadow: 0 0 8px rgba(0,200,80,0.4); border-color: #3a9a6a; }
+    .s3-micro-glass.empty    { opacity: 0.28; cursor: not-allowed; border-color: #1a3a2a; }
+    .s3-micro-glass.dragging { opacity: 0.45; cursor: grabbing; }
+    .s3-mg-liquid {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 85%;
+      transition: height 0.18s ease;
     }
-    .s3-spk-body {
-      width: 48px; height: 22px;
-      background: linear-gradient(180deg, #5a7a8a, #3a5060);
-      border-radius: 6px 6px 0 0; border: 2px solid #6a8a9a;
+    .s3-mg-label {
+      position: absolute; bottom: 2px; left: 0; right: 0;
+      font-size: 7px; text-align: center; color: rgba(200,255,210,0.8);
+      font-weight: 700; pointer-events: none; z-index: 2;
     }
-    .s3-spk-nozzles {
-      display: flex; gap: 4px; background: #2a3a4a;
-      padding: 4px 6px; border-radius: 0 0 8px 8px;
-      border: 2px solid #3a5060; border-top: none;
+    /* Ghost glass follows cursor */
+    .s3-mg-ghost {
+      position: fixed; z-index: 9999; pointer-events: none;
+      width: 36px; height: 54px;
+      border: 2px solid rgba(0,255,120,0.7); border-top: none; border-radius: 0 0 8px 8px;
+      background: rgba(5, 18, 10, 0.92); overflow: hidden;
+      transform-origin: bottom center; transition: transform 0.18s;
+      box-shadow: 0 0 14px rgba(0,220,80,0.6);
     }
-    .s3-spk-nozzle {
-      width: 5px; height: 8px;
-      background: #8ab0c0; border-radius: 0 0 3px 3px;
+    .s3-mg-ghost.tilting { transform: rotate(-42deg); }
+    .s3-mg-ghost-liquid { position: absolute; bottom: 0; left: 0; right: 0; transition: height 0.18s ease; }
+    /* Tank side */
+    .s3-tank-side  { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+    .s3-tank-drop-zone {
+      position: relative; padding: 8px 10px;
+      border: 2px dashed rgba(60,130,80,0.3); border-radius: 12px;
+      transition: border-color 0.2s, background 0.2s;
     }
-    .s3-sprinkler-head.spk-active .s3-spk-nozzle {
-      background: #40d8ff;
-      box-shadow: 0 0 6px rgba(60, 220, 255, 0.8);
+    .s3-tank-drop-zone.active { border-color: rgba(0,210,90,0.7); background: rgba(0,80,40,0.12); }
+    .s3-tank-drops {
+      position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+      width: 30px; height: 30px; pointer-events: none; overflow: visible;
     }
-    /* Particle container — fills the spray zone above the tank */
-    .s3-spray-zone .s3-spk-particles {
-      position: absolute; top: 55px; left: 0; right: 0; bottom: 80px;
-      overflow: hidden; pointer-events: none;
+    .s3-tank-drop-lbl { font-size: 10px; color: #3a6a4a; font-style: italic; text-align: center; }
+    /* Drop particle */
+    .s3-mg-drop {
+      position: absolute; width: 5px; height: 9px;
+      border-radius: 50% 50% 45% 45%;
+      left: calc(50% + var(--spread, 0px)); transform: translateX(-50%);
+      animation: mgDropFall var(--dur, 0.42s) ease-in forwards;
     }
-    .s3-spk-drop {
-      position: absolute; top: 0;
-      width: 5px; height: 10px;
-      border-radius: 50% 50% 60% 60%;
-      opacity: 0.85;
-      animation: spkFall var(--dur, 0.7s) ease-in forwards;
+    @keyframes mgDropFall {
+      from { transform: translateX(-50%) translateY(0);    opacity: 0.9; }
+      to   { transform: translateX(-50%) translateY(60px); opacity: 0; }
     }
-    @keyframes spkFall {
-      0%   { transform: translateY(0)  translateX(0)                scaleY(1);   opacity: .9; }
-      70%  { opacity: .8; }
-      100% { transform: translateY(65px) translateX(var(--spread-x)) scaleY(1.3); opacity: 0; }
-    }
-    /* Vinasse tank — pinned to bottom of spray zone */
-    .s3-spray-zone .s3-spk-tank {
-      position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
-      width: 240px; height: 75px;
-      border: 3px solid #4a6a7a; border-top: none;
-      border-radius: 0 0 12px 12px;
-      background: rgba(5, 15, 25, 0.6);
-      overflow: hidden;
+    /* Vinasse tank (shared) */
+    .s3-spk-tank {
+      position: relative; width: 200px; height: 75px;
+      border: 3px solid #4a6a7a; border-top: none; border-radius: 0 0 12px 12px;
+      background: rgba(5, 15, 25, 0.6); overflow: hidden;
     }
     .s3-spk-vinasse {
       position: absolute; bottom: 0; left: 0; right: 0; height: 55%;
       background: rgba(70, 28, 5, 0.85);
     }
-    .s3-spk-micro-layer {
-      position: absolute; bottom: 55%; left: 0; right: 0; height: 0%;
-    }
-    /* Target line — shows where correct dose fills to */
+    .s3-spk-micro-layer { position: absolute; bottom: 55%; left: 0; right: 0; height: 0%; }
     .s3-spk-target-line {
       position: absolute; left: 0; right: 0; bottom: 70%;
-      height: 2px; background: rgba(255, 220, 0, 0.8);
-      z-index: 4; pointer-events: none;
+      height: 2px; background: rgba(255, 220, 0, 0.8); z-index: 4; pointer-events: none;
     }
     .s3-spk-target-line::after {
-      content: 'TARGET';
-      position: absolute; right: 4px; top: -10px;
+      content: 'TARGET'; position: absolute; right: 4px; top: -10px;
       font-size: 8px; font-weight: 700; color: #ffd040; letter-spacing: 0.5px;
     }
     .s3-spk-tank-label {
       position: absolute; bottom: 4px; left: 0; right: 0;
-      text-align: center; font-size: 10px; color: rgba(255,255,255,0.3);
-      pointer-events: none;
+      text-align: center; font-size: 10px; color: rgba(255,255,255,0.3); pointer-events: none;
     }
     /* Pour status row */
-    .s3-pour-hint {
-      margin: 8px 0 0; font-size: 12px; color: #6090a8; text-align: center;
-    }
+    .s3-glass-hint { margin: 8px 0 0; font-size: 12px; color: #3a8a5a; text-align: center; }
     .s3-pour-counter {
       margin: 8px 0 0; text-align: center; font-size: 13px; color: #a0c8e0;
     }
