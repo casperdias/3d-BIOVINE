@@ -41,37 +41,52 @@ function buildSimHTML() {
         <p class="sim-subtitle">Ukur COD, BOD & pH — lalu uji efektivitas aerasi</p>
       </div>
 
-      <!-- Step 1: Volume selector -->
+      <!-- Step 1: Multi-glass drag-to-pour -->
       <div class="sim-step" id="sim-step-1">
         <div class="step-title">
           <span class="step-num">1</span>
-          Tuangkan Vinasse ke dalam Beker — klik &amp; geser untuk mengisi
+          Tuangkan Vinasse ke dalam Beker — seret gelas ke beker
         </div>
-        <div class="vol-preview" id="vol-preview">
-          <div class="beaker-wrap">
-            <div class="beaker-pour-hint" id="beaker-pour-hint">🧴 Klik &amp; geser pada beker untuk menuangkan vinasse</div>
-            <div class="beaker" id="beaker-interactive">
-              <div class="beaker-vinasse" id="beaker-vinasse"></div>
-              <div class="beaker-water"   id="beaker-water"></div>
-              <div class="beaker-level-line" id="beaker-level-line"></div>
-              <div class="beaker-scale">
-                ${[1000,800,600,400,200,0].map(l => `<span>${l}</span>`).join('')}
+        <!-- Row of vinasse glasses (5 × 200 mL) -->
+        <div class="glasses-row-wrap">
+          <div class="glasses-row" id="glasses-row">
+            ${[0,1,2,3,4].map(i => `
+              <div class="vinasse-glass" id="vglass-${i}" data-idx="${i}">
+                <div class="vg-liquid" id="vglass-liq-${i}"></div>
+                <div class="vg-label">200 mL</div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="glasses-hint">↓ Seret gelas ke beker untuk menuangkan</div>
+        </div>
+        <!-- Beaker drop target -->
+        <div class="beaker-pour-row">
+          <div class="beaker-drop-zone" id="beaker-drop-zone">
+            <div class="beaker-drops" id="beaker-drops"></div>
+            <div class="beaker-wrap">
+              <div class="beaker">
+                <div class="beaker-vinasse" id="beaker-vinasse"></div>
+                <div class="beaker-water"   id="beaker-water"></div>
+                <div class="beaker-scale">
+                  ${[1000,800,600,400,200,0].map(l => `<span>${l}</span>`).join('')}
+                </div>
               </div>
             </div>
           </div>
-          <div>
+          <div class="pour-readout">
             <div class="vol-display" id="vol-display">
               <div class="vol-display-row">
-                <span class="vol-display-icon">🪣</span>
-                <span><span id="vol-display-num">0</span> mL Vinasse</span>
+                <span class="vol-display-icon">🟤</span>
+                <span><b><span id="vol-display-num">0</span> mL</b> Vinasse</span>
               </div>
               <div class="vol-display-row secondary">
                 <span class="vol-display-icon">💧</span>
                 <span><span id="vol-display-water">1000</span> mL Air Suling</span>
               </div>
-              <div class="vol-display-tip">Geser ke atas untuk menambah vinasse</div>
             </div>
-            <div class="vol-legend">
+            <div class="beaker-drop-label" id="beaker-drop-label">Jatuhkan di sini</div>
+            <button class="sim-btn-sm" id="btn-reset-pour">🔄 Isi Ulang Gelas</button>
+            <div class="vol-legend" style="margin-top:10px">
               <span class="legend-box water-box"></span> Air suling
               <span class="legend-box vinasse-box"></span> Vinasse
             </div>
@@ -239,50 +254,172 @@ function buildSimHTML() {
 // Event wiring
 // ─────────────────────────────────────────────────────────────────────────────
 function wireSimulation(overlay, onDone) {
-  let selectedVol  = null;
-  let initialData  = null;
+  let selectedVol   = 0;
+  let initialData   = null;
   let selectedHours = null;
-  let aeratorOn    = false;
+  let aeratorOn     = false;
+  let pourCleanup   = null;  // cleanup drag listeners when leaving step 1
 
-  // ── Step 1: interactive beaker pour ──
+  // ── Step 1: multi-glass drag-to-pour ──
   {
-    const beaker = document.getElementById('beaker-interactive');
-    let isPouring = false;
+    const GLASS_COUNT = 5;
+    const GLASS_VOL   = 200;  // mL per glass
+    const POUR_RATE   = 25;   // mL added per tick
+    const TICK_MS     = 80;   // ms between ticks
+    const glassVolumes = Array(GLASS_COUNT).fill(GLASS_VOL);
 
-    function setVolFromEvent(e) {
-      const rect = beaker.getBoundingClientRect();
-      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-      const relY = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-      // Top of beaker = 1000 mL vinasse, bottom = 0 mL; snap to 50 mL increments
-      const raw = (1 - relY) * 1000;
-      const vol = Math.round(raw / 50) * 50;  // snap to 50 mL steps
-      selectedVol = Math.max(0, Math.min(1000, vol));
-      updateBeaker(selectedVol);
-      document.getElementById('vol-display-num').textContent = selectedVol;
+    selectedVol = 0;
+    updateBeaker(0);
+
+    // Ghost glass: follows cursor during drag (appended to body to escape overflow clipping)
+    const ghost = document.createElement('div');
+    ghost.id        = 'vg-ghost';
+    ghost.className = 'vg-ghost hidden';
+    ghost.innerHTML = '<div class="vg-ghost-liquid" id="vg-ghost-liquid"></div>';
+    document.body.appendChild(ghost);
+
+    let draggingIdx  = null;
+    let pourInterval = null;
+    let dropInterval = null;
+    let isOverBeaker = false;
+
+    function updateDisplay() {
+      document.getElementById('vol-display-num').textContent   = selectedVol;
       document.getElementById('vol-display-water').textContent = 1000 - selectedVol;
-      // Update level indicator line
-      const levelLine = document.getElementById('beaker-level-line');
-      if (levelLine) {
-        const pct = (selectedVol / 1000) * 100;
-        levelLine.style.bottom = pct + '%';
-        levelLine.style.display = selectedVol > 0 ? 'block' : 'none';
-      }
-      $('btn-titrate').disabled = selectedVol <= 0;
-      // Change hint text once started
-      const hint = document.getElementById('beaker-pour-hint');
-      if (hint && selectedVol > 0) hint.textContent = `↔️ ${selectedVol} mL vinasse dipilih — geser untuk menyesuaikan`;
     }
 
-    beaker.addEventListener('mousedown', e => { isPouring = true; setVolFromEvent(e); e.preventDefault(); });
-    window.addEventListener('mousemove', e => { if (isPouring) setVolFromEvent(e); });
-    window.addEventListener('mouseup',   () => { isPouring = false; });
-    beaker.addEventListener('touchstart', e => { isPouring = true; setVolFromEvent(e); e.preventDefault(); }, { passive: false });
-    window.addEventListener('touchmove',  e => { if (isPouring) { setVolFromEvent(e); e.preventDefault(); } }, { passive: false });
-    window.addEventListener('touchend',   () => { isPouring = false; });
+    function updateGlassVisual(i) {
+      const liq = document.getElementById(`vglass-liq-${i}`);
+      const el  = document.getElementById(`vglass-${i}`);
+      if (!liq || !el) return;
+      liq.style.height = (glassVolumes[i] / GLASS_VOL * 100) + '%';
+      if (glassVolumes[i] <= 0) { el.classList.add('empty'); el.classList.remove('dragging'); }
+    }
+
+    function spawnDrop() {
+      const dz = document.getElementById('beaker-drops');
+      if (!dz) return;
+      const drop = document.createElement('div');
+      drop.className = 'sim-drop';
+      drop.style.setProperty('--spread', ((Math.random() - 0.5) * 10) + 'px');
+      drop.style.setProperty('--dur',    (0.28 + Math.random() * 0.24) + 's');
+      dz.appendChild(drop);
+      setTimeout(() => drop.remove(), 600);
+    }
+
+    function startPour() {
+      if (pourInterval || draggingIdx === null) return;
+      pourInterval = setInterval(() => {
+        if (draggingIdx === null || glassVolumes[draggingIdx] <= 0 || selectedVol >= 1000) {
+          stopPour(); return;
+        }
+        const add = Math.min(POUR_RATE, glassVolumes[draggingIdx], 1000 - selectedVol);
+        glassVolumes[draggingIdx] -= add;
+        selectedVol = Math.min(1000, selectedVol + add);
+        updateBeaker(selectedVol);
+        updateDisplay();
+        $('btn-titrate').disabled = false;
+        const gl = document.getElementById('vg-ghost-liquid');
+        if (gl) gl.style.height = (glassVolumes[draggingIdx] / GLASS_VOL * 100) + '%';
+        updateGlassVisual(draggingIdx);
+      }, TICK_MS);
+      dropInterval = setInterval(spawnDrop, 55);
+    }
+
+    function stopPour() {
+      clearInterval(pourInterval);
+      clearInterval(dropInterval);
+      pourInterval = dropInterval = null;
+    }
+
+    function moveGhost(cx, cy) {
+      ghost.style.left = (cx - 18) + 'px';
+      ghost.style.top  = (cy - 64) + 'px';
+      const dz = document.getElementById('beaker-drop-zone');
+      if (!dz) return;
+      const r = dz.getBoundingClientRect();
+      const over = cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom;
+      if (over !== isOverBeaker) {
+        isOverBeaker = over;
+        dz.classList.toggle('active', over);
+        ghost.classList.toggle('tilting', over);
+        if (over) startPour(); else stopPour();
+      }
+    }
+
+    function startDrag(i, cx, cy) {
+      if (glassVolumes[i] <= 0) return;
+      draggingIdx = i;
+      isOverBeaker = false;
+      document.getElementById(`vglass-${i}`)?.classList.add('dragging');
+      ghost.classList.remove('hidden');
+      const gl = document.getElementById('vg-ghost-liquid');
+      if (gl) gl.style.height = (glassVolumes[i] / GLASS_VOL * 100) + '%';
+      moveGhost(cx, cy);
+    }
+
+    function endDrag() {
+      if (draggingIdx === null) return;
+      stopPour();
+      updateGlassVisual(draggingIdx);
+      document.getElementById(`vglass-${draggingIdx}`)?.classList.remove('dragging');
+      draggingIdx = null;
+      isOverBeaker = false;
+      ghost.classList.add('hidden');
+      ghost.classList.remove('tilting');
+      document.getElementById('beaker-drop-zone')?.classList.remove('active');
+      const lbl = document.getElementById('beaker-drop-label');
+      if (lbl) lbl.textContent = selectedVol > 0
+        ? `✓ ${selectedVol} mL dituang — seret gelas lagi untuk menambah`
+        : 'Jatuhkan di sini';
+    }
+
+    for (let i = 0; i < GLASS_COUNT; i++) {
+      const el = document.getElementById(`vglass-${i}`);
+      if (!el) continue;
+      el.addEventListener('mousedown',  e => { startDrag(i, e.clientX, e.clientY); e.preventDefault(); });
+      el.addEventListener('touchstart', e => { startDrag(i, e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, { passive: false });
+    }
+
+    function _onMouseMove(e) { if (draggingIdx !== null) moveGhost(e.clientX, e.clientY); }
+    function _onMouseUp()    { endDrag(); }
+    function _onTouchMove(e) { if (draggingIdx === null) return; moveGhost(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+    function _onTouchEnd()   { endDrag(); }
+
+    window.addEventListener('mousemove', _onMouseMove);
+    window.addEventListener('mouseup',   _onMouseUp);
+    window.addEventListener('touchmove', _onTouchMove, { passive: false });
+    window.addEventListener('touchend',  _onTouchEnd);
+
+    document.getElementById('btn-reset-pour').onclick = () => {
+      endDrag();
+      selectedVol = 0;
+      for (let i = 0; i < GLASS_COUNT; i++) {
+        glassVolumes[i] = GLASS_VOL;
+        updateGlassVisual(i);
+        document.getElementById(`vglass-${i}`)?.classList.remove('empty');
+      }
+      updateBeaker(0);
+      updateDisplay();
+      $('btn-titrate').disabled = true;
+      const lbl = document.getElementById('beaker-drop-label');
+      if (lbl) lbl.textContent = 'Jatuhkan di sini';
+    };
+
+    pourCleanup = () => {
+      endDrag();
+      window.removeEventListener('mousemove', _onMouseMove);
+      window.removeEventListener('mouseup',   _onMouseUp);
+      window.removeEventListener('touchmove', _onTouchMove);
+      window.removeEventListener('touchend',  _onTouchEnd);
+      const g = document.getElementById('vg-ghost');
+      if (g) g.remove();
+    };
   }
 
   // ── Step 1 → 2: Titrate (launches interactive titration) ──
   $('btn-titrate').onclick = () => {
+    if (pourCleanup) { pourCleanup(); pourCleanup = null; }
     initialData = calcInitialParams(selectedVol);
     transitionStep('sim-step-1', 'sim-step-2');
     initTitration(selectedVol, initialData);
@@ -791,28 +928,86 @@ function injectSimulationCSS() {
     .vol-btn:hover { border-color: #00aaff; color: #00aaff; }
     .vol-btn.active { border-color: #00d4ff; color: #00d4ff; background: rgba(0,180,255,0.1); }
 
-    /* ── Pour beaker interaction ──────────────────────── */
-    .beaker-pour-hint {
-      font-size: 11px; color: #4a8aaa; margin-bottom: 6px; text-align: center; font-style: italic;
+    /* ── Multi-glass drag-to-pour mechanic ─────────────── */
+    .glasses-row-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 16px; }
+    .glasses-row { display: flex; gap: 8px; align-items: flex-end; }
+    .glasses-hint { font-size: 11px; color: #4a7a9a; font-style: italic; text-align: center; }
+    .vinasse-glass {
+      position: relative; width: 38px; height: 56px;
+      border: 2px solid #7a3818; border-top: none; border-radius: 0 0 6px 6px;
+      background: rgba(18, 6, 0, 0.82); overflow: hidden;
+      cursor: grab; transition: box-shadow 0.2s, border-color 0.2s, opacity 0.3s;
+      user-select: none;
     }
-    #beaker-interactive { cursor: ns-resize; user-select: none; }
-    #beaker-interactive:active { border-color: #00ccff; }
-    .beaker-level-line {
-      display: none; position: absolute; left: 0; right: 0; height: 2px;
-      background: rgba(255,220,0,0.8); pointer-events: none;
-      box-shadow: 0 0 4px rgba(255,220,0,0.6);
+    .vinasse-glass:not(.empty):hover { box-shadow: 0 0 8px rgba(180,80,20,0.5); border-color: #bb6020; }
+    .vinasse-glass.empty { opacity: 0.28; cursor: not-allowed; border-color: #3a2010; }
+    .vinasse-glass.dragging { opacity: 0.45; cursor: grabbing; }
+    .vg-liquid {
+      position: absolute; bottom: 0; left: 0; right: 0; height: 85%;
+      background: linear-gradient(180deg, rgba(195,78,5,0.88) 0%, rgba(120,36,0,0.96) 100%);
+      transition: height 0.18s ease;
     }
+    .vg-label {
+      position: absolute; bottom: 2px; left: 0; right: 0;
+      font-size: 7px; text-align: center; color: rgba(255,205,145,0.85);
+      font-weight: 700; pointer-events: none; z-index: 2;
+    }
+    .vg-ghost {
+      position: fixed; z-index: 9999; pointer-events: none;
+      width: 38px; height: 56px;
+      border: 2px solid #ff7020; border-top: none; border-radius: 0 0 8px 8px;
+      background: rgba(18, 6, 0, 0.92); overflow: hidden;
+      transform-origin: bottom center; transition: transform 0.18s;
+      box-shadow: 0 0 16px rgba(220,100,20,0.7);
+    }
+    .vg-ghost.tilting { transform: rotate(-42deg); }
+    .vg-ghost-liquid {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      background: linear-gradient(180deg, rgba(200,85,5,0.9) 0%, rgba(140,40,0,0.97) 100%);
+      transition: height 0.18s ease;
+    }
+    .beaker-pour-row { display: flex; align-items: flex-end; gap: 20px; flex-wrap: wrap; margin-bottom: 16px; }
+    .beaker-drop-zone {
+      position: relative; padding: 10px 12px;
+      border: 2px dashed rgba(80,120,160,0.3); border-radius: 12px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .beaker-drop-zone.active {
+      border-color: rgba(0,210,120,0.75); background: rgba(0,80,55,0.14);
+    }
+    .beaker-drops {
+      position: absolute; top: 8px; left: 50%; transform: translateX(-50%);
+      width: 30px; height: 40px; pointer-events: none; overflow: visible;
+    }
+    .beaker-drop-label { font-size: 10px; color: #4a6a8a; font-style: italic; text-align: center; margin-top: 4px; }
+    .pour-readout { display: flex; flex-direction: column; gap: 8px; }
     .vol-display {
       background: rgba(10,25,45,0.9); border-radius: 10px; padding: 12px 16px;
-      border: 1px solid #1a4a6a; margin-bottom: 12px; min-width: 160px;
+      border: 1px solid #1a4a6a; min-width: 150px;
     }
     .vol-display-row { display: flex; align-items: center; gap: 8px; color: #a0c8e0; font-size: 14px; font-weight: 600; }
     .vol-display-row.secondary { margin-top: 6px; color: #607890; font-size: 13px; font-weight: 400; }
     .vol-display-icon { font-size: 18px; }
     .vol-display-tip { font-size: 11px; color: #4a7090; margin-top: 8px; font-style: italic; }
+    .sim-btn-sm {
+      padding: 6px 14px; border-radius: 8px;
+      background: transparent; color: #607890;
+      border: 1.5px solid #2a4a6a; font-size: 12px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .sim-btn-sm:hover { border-color: #4a7a9a; color: #aac8e0; }
+    .sim-drop {
+      position: absolute; width: 5px; height: 9px;
+      border-radius: 50% 50% 45% 45%; background: rgba(160, 65, 0, 0.92);
+      left: calc(50% + var(--spread, 0px)); transform: translateX(-50%);
+      animation: simDropFall var(--dur, 0.45s) ease-in forwards;
+    }
+    @keyframes simDropFall {
+      from { transform: translateX(-50%) translateY(0);    opacity: 1; }
+      to   { transform: translateX(-50%) translateY(80px); opacity: 0; }
+    }
 
     /* ── Beaker visualisation ─────────────────────────── */
-    .vol-preview { display: flex; align-items: center; gap: 20px; margin-bottom: 18px; }
     .beaker-wrap { display: flex; flex-direction: column; align-items: center; }
     .beaker {
       position: relative; width: 70px; height: 140px;

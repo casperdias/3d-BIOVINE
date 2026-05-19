@@ -1255,6 +1255,7 @@ body {
   pointer-events: all;
 }
 
+#btn-instructions-hud-mobile,
 #btn-glossary-mobile,
 #btn-pause-menu-mobile {
   background: rgba(10,25,10,0.82);
@@ -1271,6 +1272,7 @@ body {
   pointer-events: all;
 }
 
+#btn-instructions-hud-mobile:active,
 #btn-glossary-mobile:active,
 #btn-pause-menu-mobile:active {
   background: rgba(46,204,113,0.3);
@@ -1291,7 +1293,7 @@ body {
   #hud-right   { gap: 8px; }
   #hud-attempts { display: none; }
   /* Hide HUD buttons on mobile — shown in bottom action bar instead */
-  #btn-glossary, #btn-pause-menu { display: none; }
+  #btn-glossary, #btn-pause-menu, #btn-instructions-hud { display: none; }
   /* Show standalone mobile action bar */
   #mobile-action-bar { display: flex; }
   .attempt-dot { width: 9px; height: 9px; }

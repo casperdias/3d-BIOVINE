@@ -1040,8 +1040,10 @@ export function initHUD() {
   $('btn-glossary').onclick = () => toggleGlossary();
   $('btn-instructions-hud').onclick = () => showInstructionsModal();
   // Mobile duplicate buttons
+  const mi = document.getElementById('btn-instructions-hud-mobile');
   const mg = document.getElementById('btn-glossary-mobile');
   const mp = document.getElementById('btn-pause-menu-mobile');
+  if (mi) mi.addEventListener('touchstart', e => { e.preventDefault(); showInstructionsModal(); }, { passive: false });
   if (mg) mg.addEventListener('touchstart', e => { e.preventDefault(); toggleGlossary(); }, { passive: false });
   if (mp) mp.addEventListener('touchstart', e => { e.preventDefault(); $('btn-pause-menu').click(); }, { passive: false });
 }
