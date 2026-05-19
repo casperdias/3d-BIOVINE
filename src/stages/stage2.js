@@ -137,15 +137,15 @@ const _phenomenaInline = [
 // Simulasi vinasse: menghitung COD, BOD, pH awal berdasarkan volume yang dituang
 // lalu simulasi aerasi dan hasilnya.
 //
-// Referensi nilai berdasarkan literatur (Zahra 2023, Budiyono et al 2013):
-//   COD vinasse murni  : 90.000 mg/L
-//   BOD vinasse murni  : 45.000 mg/L  (BOD/COD ratio ~0.5)
+// Referensi nilai berdasarkan pengukuran laboratorium (Bekonang region):
+//   COD vinasse  : 879 mg/L
+//   BOD vinasse  : 635 mg/L  (BOD/COD ratio ~0.72)
 //   pH vinasse murni   : 3.8
 //   Volume beaker lab  : 1000 mL (1 L)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const VINASSE_COD  = 90000;  // mg/L
-const VINASSE_BOD  = 45000;  // mg/L
+const VINASSE_COD  = 879;   // mg/L  (nilai representatif hasil pengukuran laboratorium)
+const VINASSE_BOD  = 635;   // mg/L  (BOD/COD ratio ~0.72)
 const VINASSE_PH   = 3.8;
 const WATER_PH     = 7.0;
 const BEAKER_VOL   = 1000;   // mL

@@ -45,26 +45,36 @@ function buildSimHTML() {
       <div class="sim-step" id="sim-step-1">
         <div class="step-title">
           <span class="step-num">1</span>
-          Pilih Volume Vinasse yang Dituangkan ke Beker (1 000 mL)
-        </div>
-        <div class="volume-selector">
-          ${[200, 400, 600, 800, 1000].map(v => `
-            <button class="vol-btn" data-vol="${v}">${v} mL</button>
-          `).join('')}
+          Tuangkan Vinasse ke dalam Beker — klik &amp; geser untuk mengisi
         </div>
         <div class="vol-preview" id="vol-preview">
           <div class="beaker-wrap">
-            <div class="beaker">
+            <div class="beaker-pour-hint" id="beaker-pour-hint">🧴 Klik &amp; geser pada beker untuk menuangkan vinasse</div>
+            <div class="beaker" id="beaker-interactive">
               <div class="beaker-vinasse" id="beaker-vinasse"></div>
               <div class="beaker-water"   id="beaker-water"></div>
+              <div class="beaker-level-line" id="beaker-level-line"></div>
               <div class="beaker-scale">
                 ${[1000,800,600,400,200,0].map(l => `<span>${l}</span>`).join('')}
               </div>
             </div>
           </div>
-          <div class="vol-legend">
-            <span class="legend-box water-box"></span> Air suling
-            <span class="legend-box vinasse-box"></span> Vinasse
+          <div>
+            <div class="vol-display" id="vol-display">
+              <div class="vol-display-row">
+                <span class="vol-display-icon">🪣</span>
+                <span><span id="vol-display-num">0</span> mL Vinasse</span>
+              </div>
+              <div class="vol-display-row secondary">
+                <span class="vol-display-icon">💧</span>
+                <span><span id="vol-display-water">1000</span> mL Air Suling</span>
+              </div>
+              <div class="vol-display-tip">Geser ke atas untuk menambah vinasse</div>
+            </div>
+            <div class="vol-legend">
+              <span class="legend-box water-box"></span> Air suling
+              <span class="legend-box vinasse-box"></span> Vinasse
+            </div>
           </div>
         </div>
         <button class="sim-btn" id="btn-titrate" disabled>🧪 Lakukan Titrasi →</button>
@@ -234,16 +244,42 @@ function wireSimulation(overlay, onDone) {
   let selectedHours = null;
   let aeratorOn    = false;
 
-  // ── Step 1: volume buttons ──
-  overlay.querySelectorAll('.vol-btn').forEach(btn => {
-    btn.onclick = () => {
-      overlay.querySelectorAll('.vol-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      selectedVol = parseInt(btn.dataset.vol);
-      $('btn-titrate').disabled = false;
+  // ── Step 1: interactive beaker pour ──
+  {
+    const beaker = document.getElementById('beaker-interactive');
+    let isPouring = false;
+
+    function setVolFromEvent(e) {
+      const rect = beaker.getBoundingClientRect();
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      const relY = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+      // Top of beaker = 1000 mL vinasse, bottom = 0 mL; snap to 50 mL increments
+      const raw = (1 - relY) * 1000;
+      const vol = Math.round(raw / 50) * 50;  // snap to 50 mL steps
+      selectedVol = Math.max(0, Math.min(1000, vol));
       updateBeaker(selectedVol);
-    };
-  });
+      document.getElementById('vol-display-num').textContent = selectedVol;
+      document.getElementById('vol-display-water').textContent = 1000 - selectedVol;
+      // Update level indicator line
+      const levelLine = document.getElementById('beaker-level-line');
+      if (levelLine) {
+        const pct = (selectedVol / 1000) * 100;
+        levelLine.style.bottom = pct + '%';
+        levelLine.style.display = selectedVol > 0 ? 'block' : 'none';
+      }
+      $('btn-titrate').disabled = selectedVol <= 0;
+      // Change hint text once started
+      const hint = document.getElementById('beaker-pour-hint');
+      if (hint && selectedVol > 0) hint.textContent = `↔️ ${selectedVol} mL vinasse dipilih — geser untuk menyesuaikan`;
+    }
+
+    beaker.addEventListener('mousedown', e => { isPouring = true; setVolFromEvent(e); e.preventDefault(); });
+    window.addEventListener('mousemove', e => { if (isPouring) setVolFromEvent(e); });
+    window.addEventListener('mouseup',   () => { isPouring = false; });
+    beaker.addEventListener('touchstart', e => { isPouring = true; setVolFromEvent(e); e.preventDefault(); }, { passive: false });
+    window.addEventListener('touchmove',  e => { if (isPouring) { setVolFromEvent(e); e.preventDefault(); } }, { passive: false });
+    window.addEventListener('touchend',   () => { isPouring = false; });
+  }
 
   // ── Step 1 → 2: Titrate (launches interactive titration) ──
   $('btn-titrate').onclick = () => {
@@ -512,7 +548,7 @@ function renderInitialParams(data, vol) {
     {
       icon: '🧫', label: 'COD', value: data.cod.toLocaleString('id-ID') + ' mg/L',
       sub: 'Chemical Oxygen Demand',
-      status: data.cod > 1000 ? 'danger' : data.cod > 300 ? 'warn' : 'good',
+      status: data.cod > 600 ? 'danger' : data.cod > 200 ? 'warn' : 'good',
     },
     {
       icon: '🦠', label: 'BOD', value: data.bod.toLocaleString('id-ID') + ' mg/L',
@@ -745,7 +781,7 @@ function injectSimulationCSS() {
     .step-enter { animation: stepEnter 0.4s ease forwards; }
     .step-exit  { animation: stepExit  0.3s ease forwards; }
 
-    /* ── Volume buttons ───────────────────────────────── */
+    /* ── Volume buttons (kept for compat) ────────────── */
     .volume-selector { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
     .vol-btn {
       padding: 10px 18px; border-radius: 8px; border: 2px solid #1a4a6a;
@@ -754,6 +790,26 @@ function injectSimulationCSS() {
     }
     .vol-btn:hover { border-color: #00aaff; color: #00aaff; }
     .vol-btn.active { border-color: #00d4ff; color: #00d4ff; background: rgba(0,180,255,0.1); }
+
+    /* ── Pour beaker interaction ──────────────────────── */
+    .beaker-pour-hint {
+      font-size: 11px; color: #4a8aaa; margin-bottom: 6px; text-align: center; font-style: italic;
+    }
+    #beaker-interactive { cursor: ns-resize; user-select: none; }
+    #beaker-interactive:active { border-color: #00ccff; }
+    .beaker-level-line {
+      display: none; position: absolute; left: 0; right: 0; height: 2px;
+      background: rgba(255,220,0,0.8); pointer-events: none;
+      box-shadow: 0 0 4px rgba(255,220,0,0.6);
+    }
+    .vol-display {
+      background: rgba(10,25,45,0.9); border-radius: 10px; padding: 12px 16px;
+      border: 1px solid #1a4a6a; margin-bottom: 12px; min-width: 160px;
+    }
+    .vol-display-row { display: flex; align-items: center; gap: 8px; color: #a0c8e0; font-size: 14px; font-weight: 600; }
+    .vol-display-row.secondary { margin-top: 6px; color: #607890; font-size: 13px; font-weight: 400; }
+    .vol-display-icon { font-size: 18px; }
+    .vol-display-tip { font-size: 11px; color: #4a7090; margin-top: 8px; font-style: italic; }
 
     /* ── Beaker visualisation ─────────────────────────── */
     .vol-preview { display: flex; align-items: center; gap: 20px; margin-bottom: 18px; }

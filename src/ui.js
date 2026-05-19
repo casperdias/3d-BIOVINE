@@ -1024,12 +1024,21 @@ export function showInstructions(cb) {
   };
 }
 
+// Opens instructions as a dismissable modal (no callback needed)
+export function showInstructionsModal() {
+  showInstructions(() => {});
+  // Relabel the start button to a close button
+  const btn = $('btn-start-game');
+  btn.textContent = '✕ Tutup Petunjuk';
+}
+
 // ─────────────────────────────────────────────────────
 // HUD
 // ─────────────────────────────────────────────────────
 export function initHUD() {
   updateHUD();
   $('btn-glossary').onclick = () => toggleGlossary();
+  $('btn-instructions-hud').onclick = () => showInstructionsModal();
   // Mobile duplicate buttons
   const mg = document.getElementById('btn-glossary-mobile');
   const mp = document.getElementById('btn-pause-menu-mobile');
@@ -1788,6 +1797,7 @@ export function buildUIHTML() {
       <div id="hud-right">
         <span id="hud-points">0</span>
         <div id="hud-attempts"></div>
+        <button id="btn-instructions-hud"><span class="btn-icon">📋</span><span class="btn-label"> Petunjuk</span></button>
         <button id="btn-glossary"><span class="btn-icon">📖</span><span class="btn-label"> Buku Saku</span></button>
         <button id="btn-pause-menu"><span class="btn-icon">⚙️</span><span class="btn-label"> Menu</span></button>
       </div>

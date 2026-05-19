@@ -17,6 +17,7 @@ export class PlayerCharacter {
     this._walkCycle = 0;   // continuously advancing walk phase (radians)
     this._legAngle = 0;    // kept for back-compat (unused in new anim)
     this._armAngle = 0;
+    this._facingAngle = 0; // separate facing direction, never reverses on S key
 
     this._bindKeys();
     this._bindTouch();
@@ -297,19 +298,29 @@ export class PlayerCharacter {
     if (this._moving && !blocked) {
       let dx = 0, dz = 0;
 
-      if (cameraAxes) {
+      const pureBackward = forward < 0 && Math.abs(strafe) < 0.2;
+
+      if (pureBackward) {
+        // Move backward relative to the character's current facing direction
+        // (S key alone: walk backward without spinning)
+        dx = -Math.sin(this._facingAngle) * this.speed;
+        dz = -Math.cos(this._facingAngle) * this.speed;
+      } else if (cameraAxes) {
         // Move relative to where the camera is looking
         dx = cameraAxes.fwd.x * forward + cameraAxes.right.x * strafe;
         dz = cameraAxes.fwd.z * forward + cameraAxes.right.z * strafe;
+        // Normalise diagonal
+        const len = Math.sqrt(dx * dx + dz * dz) || 1;
+        dx = (dx / len) * this.speed;
+        dz = (dz / len) * this.speed;
       } else {
         dx = strafe;
         dz = -forward;
+        // Normalise diagonal
+        const len = Math.sqrt(dx * dx + dz * dz) || 1;
+        dx = (dx / len) * this.speed;
+        dz = (dz / len) * this.speed;
       }
-
-      // Normalise diagonal
-      const len = Math.sqrt(dx * dx + dz * dz) || 1;
-      dx = (dx / len) * this.speed;
-      dz = (dz / len) * this.speed;
 
       // Resolve collisions (AABB obstacles + walls)
       ({ dx, dz } = resolveCollision(this.group.position, dx, dz));
@@ -323,8 +334,12 @@ export class PlayerCharacter {
       this.group.position.x = Math.max(-HW, Math.min(HW, this.group.position.x));
       this.group.position.z = Math.max(-HD, Math.min(HD, this.group.position.z));
 
-      // Face the actual movement direction
-      this.group.rotation.y = Math.atan2(dx, dz);
+      // Only update facing direction when moving forward or strafing (not pure backward)
+      // This prevents the 180° spin when pressing S alone
+      if (!pureBackward) {
+        this._facingAngle = Math.atan2(dx, dz);
+      }
+      this.group.rotation.y = this._facingAngle;
 
       // ── Walk cycle accumulator ─────────────────────────
       // Advance at a rate proportional to actual speed so faster movement = faster steps
