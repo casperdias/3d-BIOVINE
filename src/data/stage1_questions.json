@@ -6,9 +6,9 @@
     "tableData": {
       "headers": ["Stasiun", "Suhu (°C)", "pH", "DO (mg/L)", "COD (mg/L)", "TDS (mg/L)"],
       "rows": [
-        { "label": "Hulu",   "values": ["30,39", "7,26", "8,38",  "80.000", "777"],   "classes": ["", "", "blue", "", ""] },
-        { "label": "Tengah", "values": ["31,17", "6,96", "1,90",  "90.000", "1.343"], "classes": ["", "", "red",  "", "red"] },
-        { "label": "Hilir",  "values": ["29,63", "7,36", "11,12", "100.000","1.300"], "classes": ["", "", "",    "red", ""] }
+        { "label": "Hulu",   "values": ["30,39", "7,26", "8,38",  "635", "777"],   "classes": ["", "", "blue", "", ""] },
+        { "label": "Tengah", "values": ["31,17", "6,96", "1,90",  "775", "1.343"], "classes": ["", "", "red",  "", "red"] },
+        { "label": "Hilir",  "values": ["29,63", "7,36", "11,12", "879","1.300"], "classes": ["", "", "",    "red", ""] }
       ],
       "note": "Biru: rata-rata terendah | Merah: rata-rata tertinggi. Sumber: Zahra, 2023"
     },
