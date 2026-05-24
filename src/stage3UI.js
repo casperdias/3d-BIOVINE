@@ -538,8 +538,6 @@ function showLabPanel(microId, onComplete) {
         { icon: '⚗️', label: 'Volume Vinasse',  value: `${selectedVol} L` },
         { icon: '🧫', label: 'Dosis Mikro',     value: `${calc.total} ${calc.unit}` },
         { icon: '⏱️', label: 'Durasi Perlakuan', value: calc.duration },
-        { icon: '📉', label: 'Penurunan COD',   value: calc.codRemoval },
-        { icon: '💧', label: 'Penurunan BOD',   value: calc.bodRemoval },
       ].map(p => `
         <div class="s3-calc-card">
           <span class="s3-calc-icon">${p.icon}</span>

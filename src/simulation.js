@@ -38,7 +38,7 @@ function buildSimHTML() {
       <div class="sim-header">
         <span class="sim-badge">🔬 SIMULASI LAB</span>
         <h2 class="sim-title">Pengolahan Limbah Vinasse</h2>
-        <p class="sim-subtitle">Ukur COD, BOD & pH — lalu uji efektivitas aerasi</p>
+        <p class="sim-subtitle">Ukur TDS, DO & pH — lalu uji efektivitas aerasi</p>
       </div>
 
       <!-- Step 1: Multi-glass drag-to-pour -->
@@ -92,99 +92,59 @@ function buildSimHTML() {
             </div>
           </div>
         </div>
-        <button class="sim-btn" id="btn-titrate" disabled>🧪 Lakukan Titrasi →</button>
+        <button class="sim-btn" id="btn-titrate" disabled>📏 Ukur Parameter →</button>
       </div>
 
-      <!-- Step 2: Interactive titration -->
+      <!-- Step 2: TDS/DO Meter dip -->
       <div class="sim-step hidden" id="sim-step-2">
         <div class="step-title">
           <span class="step-num">2</span>
-          Titrasi COD — Uji Konsumsi KMnO₄
+          Ukur Parameter — Celupkan TDS/DO Meter
         </div>
-        <div class="titration-layout">
-          <!-- Left: lab apparatus (burette above flask) -->
-          <div class="tit-apparatus">
-            <div class="tit-label-sm">Buret KMnO₄</div>
-            <div class="tit-burette" id="tit-burette">
-              <div class="tit-burette-liquid" id="tit-burette-liquid"></div>
-              <div class="tit-burette-scale">
-                ${[0,5,10,15,20,25].map(v => `<span>${v}</span>`).join('')}
+        <div class="meter-layout">
+          <!-- LEFT: Display unit stick (static, shows readings) -->
+          <div class="meter-display-unit">
+            <div class="mdu-head">
+              <div class="mdu-brand">TDS · DO · pH · SAL</div>
+              <div class="mdu-screen">
+                <div class="mr-row"><span class="mr-lbl">DO</span><span class="mr-val" id="mr-do">—</span><span class="mr-unit">ppm</span></div>
+                <div class="mr-row"><span class="mr-lbl">TDS</span><span class="mr-val" id="mr-tds">—</span><span class="mr-unit">ppm</span></div>
+                <div class="mr-row"><span class="mr-lbl">pH</span><span class="mr-val" id="mr-ph">—</span></div>
+                <div class="mr-row"><span class="mr-lbl">SAL</span><span class="mr-val" id="mr-sal">—</span><span class="mr-unit">‰</span></div>
               </div>
             </div>
-            <div class="tit-tip-col">
-              <div class="tit-tip-line"></div>
-              <div class="tit-drop" id="tit-drop"></div>
-            </div>
-            <div class="tit-flask" id="tit-flask">
-              <div class="tit-flask-liquid" id="tit-flask-liquid"></div>
-              <div class="tit-ripple" id="tit-ripple"></div>
-            </div>
-            <div class="tit-label-sm" style="margin-top:5px">Sampel Vinasse (Erlenmeyer)</div>
-            <div class="tit-vol-display">
-              <span id="tit-vol-reading">0,00</span> mL terpakai
-            </div>
+            <div class="mdu-stick"></div>
           </div>
-
-          <!-- Right: controls & status -->
-          <div class="tit-panel">
-            <div class="tit-reagent-box">
-              <div class="tit-reagent-dot"></div>
-              <div>
-                <b>KMnO₄</b> — Kalium Permanganat<br>
-                <span>Reagen pengoksidasi (ungu). Langsung terdekolorisasi saat bertemu bahan organik sampel, hingga semua teroksidasi — itulah titik akhir titrasi.</span>
+          <!-- CABLE (decorative) -->
+          <svg class="meter-cable-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
+            <path d="M0,12 C20,4 60,20 80,12" stroke="#3a7a9a" stroke-width="2.5" fill="none" stroke-dasharray="5,4"/>
+          </svg>
+          <!-- RIGHT: Draggable probe stick + beaker (drop zone) + results -->
+          <div class="meter-probe-area">
+            <div class="meter-instruction" id="meter-instruction">
+              Seret probe sensor ⤵ ke dalam larutan vinasse untuk mengukur parameter kualitas air.
+            </div>
+            <div class="meter-probe-column">
+              <div class="meter-probe-stick" id="meter-probe-stick" title="Seret ke dalam larutan">
+                <div class="mps-handle">⊕</div>
+                <div class="mps-shaft"></div>
+                <div class="mps-tip"></div>
               </div>
-            </div>
-            <div class="tit-status" id="tit-status">
-              <span style="color:#b070d8">●</span>
-              KMnO₄ langsung terdekolorisasi — masih ada bahan organik yang belum teroksidasi
-            </div>
-            <div class="tit-ep-notice hidden" id="tit-ep-notice">
-              🎯 <b>Titik Akhir!</b> Warna merah muda muncul pertama kali — semua bahan organik telah teroksidasi oleh KMnO₄!
-            </div>
-            <!-- Valve controls -->
-            <div class="tit-valve-section">
-              <div class="tit-valve-visual">
-                <div class="tit-valve-wheel closed" id="tit-valve-wheel"></div>
-                <div class="tit-valve-info">
-                  <div class="tit-valve-label" id="tit-valve-label">TUTUP</div>
-                  <div class="tit-valve-sublabel">Tahan tombol untuk membuka katup reagen</div>
+              <div class="meter-beaker-wrap">
+                <div class="meter-beaker" id="meter-beaker">
+                  <div class="meter-bk-vinasse" id="meter-bk-vinasse"></div>
+                  <div class="meter-bk-ripple" id="meter-bk-ripple"></div>
+                  <div class="meter-bk-scale">
+                    ${[1000,800,600,400,200].map(l => `<span>${l}</span>`).join('')}
+                  </div>
                 </div>
-              </div>
-              <div class="tit-hold-row">
-                <button class="tit-valve-slow" id="btn-valve-slow">💧 Tahan: Tetes Pelan</button>
-                <button class="tit-valve-fast" id="btn-valve-fast">💦 Tahan: Aliran Cepat</button>
-              </div>
-              <div class="tit-flow-indicator">
-                <span id="tit-flow-dot">⬜</span>
-                <span id="tit-flow-text">Katup TUTUP — tahan tombol untuk mengalirkan KMnO₄</span>
+                <div class="meter-bk-label" id="meter-vol-label">— mL</div>
               </div>
             </div>
-
-            <div class="tit-warning hidden" id="tit-warning">
-              ⚠️ Mendekati titik akhir! Gunakan <b>tetes pelan</b> saja.
-            </div>
-            <div class="tit-overflow hidden" id="tit-overflow">
-              <div class="tit-overflow-msg">💥 OVERFLOW! Terlalu banyak reagen — titrasi gagal.</div>
-              <div class="tit-overflow-sub">KMnO₄ berlebih merusak warna titik akhir. Mulai ulang dan teteskan lebih hati-hati di akhir!</div>
-              <button class="tit-btn" id="btn-tit-retry"
-                style="margin-top:4px;background:linear-gradient(135deg,#4a1010,#6a2010);color:#ff9090;border:1px solid #aa3020">
-                🔄 Coba Lagi Titrasi
-              </button>
-            </div>
-
-            <button class="sim-btn hidden" id="btn-confirm-endpoint"
-              style="margin-top:14px;width:100%;background:linear-gradient(135deg,#1a6040,#2a9060)">
-              ✅ Catat Titik Akhir Titrasi
-            </button>
+            <div class="meter-result-grid hidden" id="meter-result-grid"></div>
+            <div class="meter-note hidden" id="meter-note"></div>
+            <button class="sim-btn hidden" id="btn-go-aerate">💨 Lanjut ke Simulasi Aerasi →</button>
           </div>
-        </div>
-
-        <!-- Revealed after endpoint is confirmed -->
-        <div class="tit-results hidden" id="tit-results">
-          <div class="tit-results-heading">📊 Hasil Pengukuran Parameter Awal</div>
-          <div class="param-grid" id="initial-params"></div>
-          <div class="titration-note" id="titration-note"></div>
-          <button class="sim-btn" id="btn-go-aerate">💨 Lanjut ke Simulasi Aerasi →</button>
         </div>
       </div>
 
@@ -422,7 +382,7 @@ function wireSimulation(overlay, onDone) {
     if (pourCleanup) { pourCleanup(); pourCleanup = null; }
     initialData = calcInitialParams(selectedVol);
     transitionStep('sim-step-1', 'sim-step-2');
-    initTitration(selectedVol, initialData);
+    initMeterDip(selectedVol, initialData);
   };
 
   // ── Step 2 → 3: Go to aeration ──
@@ -473,185 +433,172 @@ function wireSimulation(overlay, onDone) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Titration mini-game — runs during Step 2
-// Hold the valve buttons to flow KMnO₄ into the flask.
-// Release to stop. Go past the endpoint → OVERFLOW failure.
+// Meter readings lookup table (by vinasse volume)
 // ─────────────────────────────────────────────────────────────────────────────
-function initTitration(vol, data) {
-  const endpointVol     = Math.max(0.20, vol * 0.001); // 200 mL→0.20, 1000 mL→1.00 mL
-  const overflowVol     = endpointVol * 1.40;          // 40% over endpoint = failure
-  const warnThreshold   = endpointVol * 0.80;          // show caution warning
-  const dangerThreshold = endpointVol * 0.92;          // disable fast button
-  const TICK_MS         = 50;
-  const SLOW_RATE = Math.max(0.0004, endpointVol / 350); // ~17 s to endpoint at slow
-  const FAST_RATE = Math.max(0.003,  endpointVol / 60);  // ~3 s to endpoint at fast
+const METER_READINGS = {
+  200: { doVal: 1.8, tds: 22,   ph: 2.2, sal: 13   },
+  400: { doVal: 2.3, tds: 26,   ph: 2.8, sal: 13.8  },
+  600: { doVal: 3.2, tds: 27,   ph: 3.0, sal: 14   },
+  800: { doVal: 4.0, tds: 30.1, ph: 3.7, sal: 15   },
+};
 
-  let currentVol    = 0;
-  let flowInterval  = null;
-  let currentRate   = 0;
-  let dropVisualTick = 0;
-  let failed        = false;
-  let completed     = false;
-
-  const d = data.dilutionFactor;
-
-  // ── Reset / init UI ──
-  $('tit-flask-liquid').style.background  = `rgb(${Math.round(55+d*55)},${Math.round(15+d*15)},3)`;
-  $('tit-flask-liquid').style.transition  = 'background 0.3s';
-  $('tit-burette-liquid').style.height    = '90%';
-  $('tit-vol-reading').textContent        = '0,00';
-  $('tit-status').style.display           = '';
-  $('tit-ep-notice').classList.add('hidden');
-  $('btn-confirm-endpoint').classList.add('hidden');
-  $('tit-warning').classList.add('hidden');
-  $('tit-overflow').classList.add('hidden');
-  $('tit-flask').classList.remove('overflow-shake');
-  $('btn-valve-slow').disabled            = false;
-  $('btn-valve-fast').disabled            = false;
-  $('tit-flask').querySelectorAll('.overflow-particle').forEach(p => p.remove());
-  updateValveVisual(0);
-
-  // ── Helpers ──
-  function updateValveVisual(rate) {
-    const wheel = $('tit-valve-wheel');
-    const label = $('tit-valve-label');
-    const dot   = $('tit-flow-dot');
-    const txt   = $('tit-flow-text');
-    wheel.className = 'tit-valve-wheel';
-    if (rate <= 0) {
-      wheel.classList.add('closed');
-      label.textContent = 'TUTUP'; label.style.color = '#6080a0';
-      dot.textContent   = '⬜';
-      txt.textContent   = 'Katup TUTUP — tahan tombol untuk mengalirkan KMnO₄';
-    } else if (rate === SLOW_RATE) {
-      wheel.classList.add('slow');
-      label.textContent = 'PELAN'; label.style.color = '#00aaff';
-      dot.textContent   = '🔵';
-      txt.textContent   = 'Mengalir PELAN — ideal untuk mendekati titik akhir';
-    } else {
-      wheel.classList.add('fast');
-      label.textContent = 'CEPAT'; label.style.color = '#ff5500';
-      dot.textContent   = '🔴';
-      txt.textContent   = 'Aliran CEPAT ⚠️ — hati-hati mendekati titik akhir!';
-    }
+function getMeterReadings(vol) {
+  const keys = [200, 400, 600, 800];
+  if (vol <= 200) return { ...METER_READINGS[200] };
+  if (vol >= 800) return { ...METER_READINGS[800] };
+  let lo = 200, hi = 800;
+  for (let i = 0; i < keys.length - 1; i++) {
+    if (vol > keys[i] && vol <= keys[i + 1]) { lo = keys[i]; hi = keys[i + 1]; break; }
   }
-
-  function doDropAnimation() {
-    const dropEl = $('tit-drop');
-    dropEl.classList.remove('falling');
-    void dropEl.offsetWidth;
-    dropEl.classList.add('falling');
-    triggerRipple();
-  }
-
-  function updateDisplay() {
-    const pct = Math.max(8, 90 - (currentVol / endpointVol) * 78);
-    $('tit-burette-liquid').style.height = pct + '%';
-    $('tit-vol-reading').textContent = currentVol.toFixed(2).replace('.', ',');
-
-    if (!failed && currentVol <= endpointVol) {
-      const p  = Math.min(1, currentVol / endpointVol);
-      const r  = Math.round((55 + d*55) * (1-p) + 255 * p);
-      const g  = Math.round((15 + d*15) * (1-p) + 155 * p);
-      const b  = Math.round(3 * (1-p) + 185 * p);
-      $('tit-flask-liquid').style.background = `rgb(${r},${g},${b})`;
-    }
-
-    if (!completed && !failed) {
-      if (currentVol >= warnThreshold)   $('tit-warning').classList.remove('hidden');
-      if (currentVol >= dangerThreshold) {
-        $('btn-valve-fast').disabled = true;
-        if (currentRate === FAST_RATE) stopFlow();
-      }
-    }
-  }
-
-  function startFlow(rate) {
-    if (failed || completed || flowInterval) return;
-    currentRate    = rate;
-    dropVisualTick = 0;
-    updateValveVisual(rate);
-    const dropEvery = rate === SLOW_RATE ? 10 : 3; // ticks between drop animations
-    flowInterval = setInterval(() => {
-      currentVol += rate;
-      dropVisualTick++;
-      updateDisplay();
-      if (dropVisualTick % dropEvery === 0) doDropAnimation();
-      if (currentVol >= overflowVol) { stopFlow(); triggerOverflow(); return; }
-      if (currentVol >= endpointVol) { stopFlow(); triggerEndpoint(); }
-    }, TICK_MS);
-  }
-
-  function stopFlow() {
-    if (flowInterval) { clearInterval(flowInterval); flowInterval = null; }
-    currentRate = 0;
-    if (!failed && !completed) updateValveVisual(0);
-  }
-
-  function triggerEndpoint() {
-    completed = true;
-    $('tit-flask-liquid').style.background = 'rgba(255,155,185,0.88)';
-    $('tit-warning').classList.add('hidden');
-    $('tit-status').style.display = 'none';
-    $('tit-ep-notice').classList.remove('hidden');
-    $('btn-valve-slow').disabled = true;
-    $('btn-valve-fast').disabled = true;
-    $('btn-confirm-endpoint').classList.remove('hidden');
-    updateValveVisual(0);
-  }
-
-  function triggerOverflow() {
-    failed = true;
-    $('tit-flask-liquid').style.background = 'rgba(180,20,20,0.85)';
-    $('tit-warning').classList.add('hidden');
-    $('tit-overflow').classList.remove('hidden');
-    $('btn-valve-slow').disabled = true;
-    $('btn-valve-fast').disabled = true;
-    updateValveVisual(0);
-    const flask = $('tit-flask');
-    flask.classList.remove('overflow-shake');
-    void flask.offsetWidth;
-    flask.classList.add('overflow-shake');
-    for (let i = 0; i < 8; i++) {
-      const p = document.createElement('div');
-      p.className = 'overflow-particle';
-      p.style.left = (10 + Math.random() * 80) + '%';
-      p.style.animationDelay = (Math.random() * 0.4) + 's';
-      flask.appendChild(p);
-      setTimeout(() => p.remove(), 2000);
-    }
-  }
-
-  // ── Wire hold buttons (= assignment so retry safely overwrites) ──
-  $('btn-valve-slow').onmousedown   = e => { e.preventDefault(); startFlow(SLOW_RATE); };
-  $('btn-valve-slow').onmouseup     = stopFlow;
-  $('btn-valve-slow').onmouseleave  = stopFlow;
-  $('btn-valve-slow').ontouchstart  = e => { e.preventDefault(); startFlow(SLOW_RATE); };
-  $('btn-valve-slow').ontouchend    = stopFlow;
-  $('btn-valve-slow').ontouchcancel = stopFlow;
-
-  $('btn-valve-fast').onmousedown   = e => { e.preventDefault(); startFlow(FAST_RATE); };
-  $('btn-valve-fast').onmouseup     = stopFlow;
-  $('btn-valve-fast').onmouseleave  = stopFlow;
-  $('btn-valve-fast').ontouchstart  = e => { e.preventDefault(); startFlow(FAST_RATE); };
-  $('btn-valve-fast').ontouchend    = stopFlow;
-  $('btn-valve-fast').ontouchcancel = stopFlow;
-
-  $('btn-confirm-endpoint').onclick = () => {
-    $('tit-results').classList.remove('hidden');
-    renderInitialParams(data, vol);
-    setTimeout(() => $('tit-results').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+  const t = (vol - lo) / (hi - lo);
+  const a = METER_READINGS[lo], b = METER_READINGS[hi];
+  return {
+    doVal: parseFloat((a.doVal + (b.doVal - a.doVal) * t).toFixed(1)),
+    tds:   parseFloat((a.tds   + (b.tds   - a.tds)   * t).toFixed(1)),
+    ph:    parseFloat((a.ph    + (b.ph    - a.ph)     * t).toFixed(1)),
+    sal:   parseFloat((a.sal   + (b.sal   - a.sal)    * t).toFixed(1)),
   };
-
-  $('btn-tit-retry').onclick = () => { stopFlow(); initTitration(vol, data); };
 }
 
-function triggerRipple() {
-  const r = $('tit-ripple');
-  if (!r) return;
-  r.classList.remove('ripple-active');
-  void r.offsetWidth;
-  r.classList.add('ripple-active');
+// ─────────────────────────────────────────────────────────────────────────────
+// TDS/DO Meter dip — Step 2
+// ─────────────────────────────────────────────────────────────────────────────
+function initMeterDip(vol, initialData) {
+  const vinPct  = vol / 1000 * 100;
+  const bkV     = $('meter-bk-vinasse');
+  if (bkV) bkV.style.height = vinPct + '%';
+  const lbl = $('meter-vol-label');
+  if (lbl) lbl.textContent = vol + ' mL';
+  const rippleEl = $('meter-bk-ripple');
+
+  const readings  = getMeterReadings(vol);
+  const probeEl   = $('meter-probe-stick');
+  const beakerEl  = $('meter-beaker');
+  let   probeUsed = false;
+  let   ghost     = null;
+
+  function cleanupDrag() {
+    if (ghost) { ghost.remove(); ghost = null; }
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup',   onUp);
+    window.removeEventListener('touchmove', onTouchMove);
+    window.removeEventListener('touchend',  onUp);
+  }
+
+  function clientXY(e) {
+    return e.changedTouches ? { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY }
+         : e.touches        ? { x: e.touches[0].clientX,        y: e.touches[0].clientY }
+                            : { x: e.clientX,                    y: e.clientY };
+  }
+
+  function onMove(e) {
+    if (!ghost) return;
+    const { x, y } = clientXY(e);
+    ghost.style.left = (x - 15) + 'px';
+    ghost.style.top  = (y - 12) + 'px';
+    const r = beakerEl.getBoundingClientRect();
+    beakerEl.classList.toggle('drop-hover', x >= r.left && x <= r.right && y >= r.top && y <= r.bottom);
+  }
+
+  function onTouchMove(e) { e.preventDefault(); onMove(e); }
+
+  function onUp(e) {
+    if (!ghost) return;
+    const { x, y } = clientXY(e);
+    const r   = beakerEl.getBoundingClientRect();
+    const hit = x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    cleanupDrag();
+    beakerEl.classList.remove('drop-hover');
+    if (hit && !probeUsed) {
+      probeUsed = true;
+      probeEl.classList.add('probe-dipped');
+      triggerMeasurement();
+    } else {
+      probeEl.style.opacity = '1';
+    }
+  }
+
+  function startDrag(e) {
+    if (probeUsed) return;
+    e.preventDefault();
+    probeEl.style.opacity = '0.35';
+    ghost = document.createElement('div');
+    ghost.className = 'meter-probe-ghost';
+    ghost.innerHTML = '<div class="mps-handle">⊕</div><div class="mps-shaft"></div><div class="mps-tip"></div>';
+    const { x, y } = clientXY(e);
+    ghost.style.left = (x - 15) + 'px';
+    ghost.style.top  = (y - 12) + 'px';
+    document.body.appendChild(ghost);
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup',   onUp);
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend',  onUp);
+  }
+
+  function triggerMeasurement() {
+    $('meter-instruction').textContent = 'Sensor mendeteksi parameter larutan…';
+
+    setTimeout(() => {
+      if (rippleEl) {
+        rippleEl.classList.remove('ripple-active');
+        void rippleEl.offsetWidth;
+        rippleEl.classList.add('ripple-active');
+      }
+    }, 300);
+
+    setTimeout(() => {
+      countUpMeterVal('mr-do',  readings.doVal, 1200, 1);
+      countUpMeterVal('mr-tds', readings.tds,   1200, 1);
+      countUpMeterVal('mr-ph',  readings.ph,    1200, 2);
+      countUpMeterVal('mr-sal', readings.sal,   1200, 1);
+    }, 500);
+
+    setTimeout(() => {
+      $('meter-instruction').textContent = '✅ Pengukuran selesai — catat hasil parameter!';
+
+      const grid = $('meter-result-grid');
+      grid.innerHTML = [
+        { icon: '💧', label: 'DO',          value: readings.doVal.toFixed(1) + ' ppm', sub: 'Dissolved Oxygen',      status: readings.doVal < 2 ? 'danger' : readings.doVal < 4 ? 'warn' : 'good' },
+        { icon: '📊', label: 'TDS',         value: readings.tds.toFixed(1)   + ' ppm', sub: 'Total Dissolved Solids', status: readings.tds > 30 ? 'danger' : readings.tds > 25 ? 'warn' : 'good' },
+        { icon: '⚗️', label: 'pH',          value: readings.ph.toFixed(1),             sub: readings.ph < 4 ? 'Sangat Asam ⚠️' : readings.ph < 6 ? 'Asam' : 'Mendekati Netral', status: readings.ph < 4 ? 'danger' : readings.ph < 6 ? 'warn' : 'good' },
+        { icon: '🧂', label: 'Salinometer', value: readings.sal.toFixed(1)   + ' ‰',  sub: 'Kadar salinitas',        status: readings.sal > 15 ? 'danger' : readings.sal > 13 ? 'warn' : 'good' },
+      ].map(p => `
+        <div class="param-card ${p.status}">
+          <span class="param-icon">${p.icon}</span>
+          <span class="param-label">${p.label}</span>
+          <span class="param-value">${p.value}</span>
+          <span class="param-sub">${p.sub}</span>
+        </div>
+      `).join('');
+      grid.classList.remove('hidden');
+
+      const noteEl = $('meter-note');
+      noteEl.innerHTML = `⚗️ <strong>Interpretasi:</strong> Dengan ${vol} mL vinasse,
+        DO = <b>${readings.doVal.toFixed(1)} ppm</b>, TDS = <b>${readings.tds.toFixed(1)} ppm</b>,
+        pH = <b>${readings.ph.toFixed(1)}</b> (${readings.ph < 4 ? 'sangat asam' : 'asam'}),
+        Salinometer = <b>${readings.sal.toFixed(1)} ‰</b>.`;
+      noteEl.classList.remove('hidden');
+
+      $('btn-go-aerate').classList.remove('hidden');
+      setTimeout(() => $('btn-go-aerate').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
+    }, 1800);
+  }
+
+  probeEl.addEventListener('mousedown',  startDrag);
+  probeEl.addEventListener('touchstart', startDrag, { passive: false });
+}
+
+function countUpMeterVal(id, to, durationMs, decimals) {
+  const el = $(id);
+  if (!el) return;
+  const startTs = performance.now();
+  const ease    = t => 1 - (1 - t) ** 2;
+  function frame(now) {
+    const t = Math.min(1, (now - startTs) / durationMs);
+    el.textContent = (to * ease(t)).toFixed(decimals);
+    if (t < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -674,52 +621,7 @@ function updateBeaker(vol) {
   watEl.style.bottom = vinPct + '%';
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Titration parameter cards
-// ─────────────────────────────────────────────────────────────────────────────
-function renderInitialParams(data, vol) {
-  const grid = $('initial-params');
-  const note = $('titration-note');
 
-  grid.innerHTML = [
-    {
-      icon: '🧫', label: 'COD', value: data.cod.toLocaleString('id-ID') + ' mg/L',
-      sub: 'Chemical Oxygen Demand',
-      status: data.cod > 600 ? 'danger' : data.cod > 200 ? 'warn' : 'good',
-    },
-    {
-      icon: '🦠', label: 'BOD', value: data.bod.toLocaleString('id-ID') + ' mg/L',
-      sub: 'Biochemical Oxygen Demand',
-      status: data.bod > 400 ? 'danger' : data.bod > 100 ? 'warn' : 'good',
-    },
-    {
-      icon: '⚗️', label: 'pH', value: data.ph.toFixed(2),
-      sub: `${data.ph < 5 ? 'Sangat Asam ⚠️' : data.ph < 6.5 ? 'Asam' : 'Mendekati Netral'}`,
-      status: data.ph < 5 ? 'danger' : data.ph < 6.5 ? 'warn' : 'good',
-    },
-    {
-      icon: '📏', label: 'Faktor Pengenceran', value: `1 : ${(1 / data.dilutionFactor).toFixed(1)}`,
-      sub: `${vol} mL vinasse dalam 1 000 mL`,
-      status: 'neutral',
-    },
-  ].map(p => `
-    <div class="param-card ${p.status}">
-      <span class="param-icon">${p.icon}</span>
-      <span class="param-label">${p.label}</span>
-      <span class="param-value">${p.value}</span>
-      <span class="param-sub">${p.sub}</span>
-    </div>
-  `).join('');
-
-  note.innerHTML = `
-    ⚗️ <strong>Interpretasi:</strong> Dengan ${vol} mL vinasse (selebihnya air suling),
-    COD = <b>${data.cod.toLocaleString('id-ID')} mg/L</b> dan BOD = <b>${data.bod.toLocaleString('id-ID')} mg/L</b>.
-    Baku mutu effluent industri: COD ≤ 100 mg/L, BOD ≤ 40 mg/L (Permen LH No.5/2014).
-    ${data.cod > 100
-      ? '⛔ Sampel <strong>jauh melebihi</strong> baku mutu — perlu pengolahan intensif.'
-      : '✅ Sampel sudah memenuhi batas COD.'}
-  `;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Aerator liquid colour
@@ -759,63 +661,44 @@ function toggleBubbles(on) {
 // Results grid
 // ─────────────────────────────────────────────────────────────────────────────
 function renderResults(initial, result, vol, hours) {
-  const grid     = $('results-grid');
-  const banner   = $('compliance-banner');
-  const concl    = $('sim-conclusion');
+  const grid   = $('results-grid');
+  const banner = $('compliance-banner');
+  const concl  = $('sim-conclusion');
 
-  const params = [
-    {
-      icon: '🧫', label: 'COD',
-      before: initial.cod.toLocaleString('id-ID') + ' mg/L',
-      after:  result.cod.toLocaleString('id-ID')  + ' mg/L',
-      removal: result.codRemovalPct + '%',
-      limit: '≤ 100 mg/L',
-      pass: result.cod <= 100,
-    },
-    {
-      icon: '🦠', label: 'BOD',
-      before: initial.bod.toLocaleString('id-ID') + ' mg/L',
-      after:  result.bod.toLocaleString('id-ID')  + ' mg/L',
-      removal: result.bodRemovalPct + '%',
-      limit: '≤ 40 mg/L',
-      pass: result.bod <= 40,
-    },
-    {
-      icon: '⚗️', label: 'pH',
-      before: initial.ph.toFixed(2),
-      after:  result.ph.toFixed(2),
-      removal: '+' + (result.ph - initial.ph).toFixed(2),
-      limit: '6.0 – 9.0',
-      pass: result.ph >= 6.0 && result.ph <= 9.0,
-    },
-  ];
+  const r = getMeterReadings(vol);
 
   grid.innerHTML = `
-    <div class="results-header-row">
-      <span>Parameter</span><span>Sebelum</span><span>Sesudah</span><span>Removal %</span><span>Baku Mutu</span><span>Status</span>
-    </div>
-    ${params.map(p => `
-      <div class="results-row ${p.pass ? 'pass' : 'fail'}">
-        <span>${p.icon} ${p.label}</span>
-        <span>${p.before}</span>
-        <span>${p.after}</span>
-        <span>${p.removal}</span>
-        <span>${p.limit}</span>
-        <span>${p.pass ? '✅' : '⛔'}</span>
+    <div class="param-grid" style="margin-bottom:0">
+      <div class="param-card neutral">
+        <span class="param-icon">🧪</span>
+        <span class="param-label">Vinasse Dituang</span>
+        <span class="param-value">${vol} mL</span>
+        <span class="param-sub">dari 1 000 mL total larutan</span>
       </div>
-    `).join('')}
+      <div class="param-card ${r.doVal < 2 ? 'danger' : r.doVal < 4 ? 'warn' : 'good'}">
+        <span class="param-icon">📏</span>
+        <span class="param-label">Hasil TDS/DO Meter</span>
+        <span class="param-value">DO ${r.doVal.toFixed(1)} ppm</span>
+        <span class="param-sub">TDS ${r.tds.toFixed(1)} ppm · pH ${r.ph.toFixed(1)} · SAL ${r.sal.toFixed(1)} ‰</span>
+      </div>
+      <div class="param-card neutral">
+        <span class="param-icon">⏱️</span>
+        <span class="param-label">Durasi Aerasi</span>
+        <span class="param-value">${hours} Jam</span>
+        <span class="param-sub">simulasi aerasi aerobik</span>
+      </div>
+    </div>
   `;
 
   banner.className = 'compliance-banner ' + (result.compliant ? 'compliant' : 'not-compliant');
   banner.innerHTML = result.compliant
     ? '✅ Effluent <strong>MEMENUHI</strong> baku mutu Permen LH No.5/2014 setelah aerasi!'
-    : `⛔ Effluent <strong>BELUM MEMENUHI</strong> baku mutu — perlu pengolahan lanjut atau durasi aerasi lebih panjang.`;
+    : '⛔ Effluent <strong>BELUM MEMENUHI</strong> baku mutu — perlu pengolahan lanjut atau durasi aerasi lebih panjang.';
 
   concl.innerHTML = `
     <strong>📝 Kesimpulan:</strong> Dengan volume vinasse <b>${vol} mL</b> dan aerasi selama
-    <b>${hours} jam</b>, diperoleh penurunan COD sebesar <b>${result.codRemovalPct}%</b> dan
-    BOD sebesar <b>${result.bodRemovalPct}%</b>. pH meningkat dari <b>${initial.ph}</b>
-    menjadi <b>${result.ph}</b> karena asam organik teroksidasi oleh mikroba aerob.
+    <b>${hours} jam</b>, pH meningkat dari <b>${initial.ph}</b> menjadi <b>${result.ph}</b>
+    karena asam organik teroksidasi oleh mikroba aerob.
     ${result.compliant
       ? 'Pengolahan ini efektif dan limbah sudah layak dibuang ke badan air penerima.'
       : 'Disarankan menambah durasi aerasi atau menggunakan teknologi lanjutan (koagulasi/MBBR) agar sesuai regulasi.'}
@@ -1223,11 +1106,84 @@ function injectSimulationCSS() {
     .sim-feedback.correct { background: rgba(30, 100, 40, 0.2); border-left: 4px solid #2ecc71; color: #a0e8a0; }
     .sim-feedback.wrong   { background: rgba(100, 20, 20, 0.2); border-left: 4px solid #e74c3c; color: #ff9090; }
 
-    /* ── Titration step ───────────────────────────────── */
-    .titration-layout {
-      display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
-      margin-bottom: 16px;
+    /* ── TDS/DO Meter (two-stick design) ────────────── */
+    .meter-layout { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 16px; }
+    /* --- Display unit (left stick) --- */
+    .meter-display-unit { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
+    .mdu-head {
+      width: 108px; background: linear-gradient(180deg,#0a1e2e,#102838);
+      border: 2px solid #2a6a7a; border-radius: 7px 7px 4px 4px;
+      padding: 8px; display: flex; flex-direction: column; align-items: center; gap: 5px;
     }
+    .mdu-brand { font-size: 8px; color: #2a9a7a; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+    .mdu-screen {
+      width: 100%; background: #040e06; border: 1px solid #1a4a2a;
+      border-radius: 4px; padding: 5px 7px; display: flex; flex-direction: column; gap: 3px;
+    }
+    .mdu-stick { width: 14px; height: 68px; background: linear-gradient(180deg,#2a5a7a,#1a3a5a); border: 1px solid #3a7a9a; border-top: none; border-radius: 0 0 5px 5px; }
+    .mr-row  { display: flex; align-items: baseline; gap: 3px; }
+    .mr-lbl  { color: #2a8a5a; width: 26px; font-size: 9px; font-weight: 800; letter-spacing: 0.5px; flex-shrink: 0; }
+    .mr-val  { color: #00ff8a; font-size: 16px; font-weight: 900; font-family: monospace; min-width: 36px; text-align: right; }
+    .mr-unit { color: #2a7a5a; font-size: 9px; }
+    /* --- Decorative cable --- */
+    .meter-cable-svg { width: 80px; height: 24px; flex-shrink: 0; align-self: center; margin-top: -34px; }
+    /* --- Probe area (right) --- */
+    .meter-probe-area { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 10px; }
+    .meter-probe-column { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    /* Draggable probe stick */
+    .meter-probe-stick {
+      display: flex; flex-direction: column; align-items: center;
+      cursor: grab; user-select: none; transition: opacity 0.2s;
+    }
+    .meter-probe-stick:active { cursor: grabbing; }
+    .meter-probe-stick.probe-dipped { opacity: 0.45; cursor: not-allowed; }
+    .mps-handle {
+      width: 30px; height: 22px;
+      background: linear-gradient(180deg,#3a6a8a,#2a5a7a);
+      border: 1.5px solid #4a8a9a; border-radius: 4px 4px 2px 2px;
+      display: flex; align-items: center; justify-content: center; font-size: 12px; color: #88ccdd;
+    }
+    .mps-shaft { width: 6px; height: 50px; background: linear-gradient(180deg,#4a8aaa,#2a6a8a); border-left: 1px solid #5a9aaa; border-right: 1px solid #2a6a7a; }
+    .mps-tip { width: 14px; height: 14px; background: radial-gradient(circle,#40ffaa,#00cc80); border-radius: 50%; box-shadow: 0 0 8px rgba(0,220,130,0.8); }
+    /* Ghost (follows cursor while dragging) */
+    .meter-probe-ghost { position: fixed; pointer-events: none; z-index: 9999; display: flex; flex-direction: column; align-items: center; }
+    /* Beaker / drop zone */
+    .meter-beaker-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .meter-beaker {
+      position: relative; width: 86px; height: 110px;
+      border: 2.5px solid #4a8a9a; border-top: none; border-radius: 0 0 10px 10px;
+      overflow: hidden; background: rgba(8,22,35,0.5); transition: border-color 0.2s;
+    }
+    .meter-beaker.drop-hover { border-color: #00ff8a; box-shadow: 0 0 10px rgba(0,255,138,0.4); }
+    .meter-bk-vinasse { position: absolute; bottom: 0; left: 0; right: 0; height: 0%; background: rgba(100,38,0,0.88); transition: height 0.6s ease; }
+    .meter-bk-scale {
+      position: absolute; right: 3px; top: 0; bottom: 0;
+      display: flex; flex-direction: column; justify-content: space-between;
+      font-size: 7px; color: #88aaaa; pointer-events: none; padding: 2px 0;
+    }
+    .meter-bk-ripple {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      width: 16px; height: 8px; border: 1.5px solid rgba(255,255,255,0.55); border-radius: 50%;
+      opacity: 0; pointer-events: none;
+    }
+    @keyframes rippleMeter {
+      0%   { opacity: 0.9; transform: translateX(-50%) scale(1); }
+      100% { opacity: 0;   transform: translateX(-50%) scale(5); }
+    }
+    .meter-bk-ripple.ripple-active { animation: rippleMeter 0.55s ease-out forwards; }
+    .meter-bk-label { font-size: 11px; color: #4a7a9a; text-align: center; }
+    .meter-instruction {
+      background: rgba(10,25,45,0.7); border-left: 3px solid #1a6a8a;
+      padding: 9px 12px; border-radius: 5px; font-size: 13px; color: #80a8c0; line-height: 1.5;
+    }
+    .meter-result-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px,1fr)); gap: 10px; }
+    .meter-result-grid.hidden { display: none; }
+    .meter-note {
+      background: rgba(10,30,50,0.8); border-left: 4px solid #1a6a8a;
+      padding: 10px 14px; border-radius: 6px; font-size: 13px; color: #a0c8d8; line-height: 1.6;
+    }
+    .meter-note.hidden { display: none; }
+    .titration-layout {
     .tit-apparatus {
       display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
     }
@@ -1425,6 +1381,9 @@ function injectSimulationCSS() {
       50%  { transform:translateY(-20px) scaleY(1.3); opacity:0.5; }
       100% { transform:translateY(-50px) scaleY(0.4); opacity:0; }
     }
+    /* keep titration CSS class names but hide unused elements gracefully */
+    .titration-layout, .tit-apparatus, .tit-panel,
+    .tit-burette, .tit-flask, .tit-valve-section { display: none; }
   `;
 
   const style = document.createElement('style');
