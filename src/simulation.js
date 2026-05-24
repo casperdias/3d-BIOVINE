@@ -102,28 +102,30 @@ function buildSimHTML() {
           Ukur Parameter — Celupkan TDS/DO Meter
         </div>
         <div class="meter-layout">
-          <!-- LEFT: Display unit stick (static, shows readings) -->
-          <div class="meter-display-unit">
-            <div class="mdu-head">
-              <div class="mdu-brand">TDS · DO · pH · SAL</div>
-              <div class="mdu-screen">
-                <div class="mr-row"><span class="mr-lbl">DO</span><span class="mr-val" id="mr-do">—</span><span class="mr-unit">ppm</span></div>
-                <div class="mr-row"><span class="mr-lbl">TDS</span><span class="mr-val" id="mr-tds">—</span><span class="mr-unit">ppm</span></div>
-                <div class="mr-row"><span class="mr-lbl">pH</span><span class="mr-val" id="mr-ph">—</span></div>
-                <div class="mr-row"><span class="mr-lbl">SAL</span><span class="mr-val" id="mr-sal">—</span><span class="mr-unit">‰</span></div>
-              </div>
-            </div>
-            <div class="mdu-stick"></div>
+          <!-- Instruction -->
+          <div class="meter-instruction" id="meter-instruction">
+            Seret probe sensor ⤵ ke dalam larutan vinasse untuk mengukur parameter kualitas air.
           </div>
-          <!-- CABLE (decorative) -->
-          <svg class="meter-cable-svg" viewBox="0 0 80 24" preserveAspectRatio="none">
-            <path d="M0,12 C20,4 60,20 80,12" stroke="#3a7a9a" stroke-width="2.5" fill="none" stroke-dasharray="5,4"/>
-          </svg>
-          <!-- RIGHT: Draggable probe stick + beaker (drop zone) + results -->
-          <div class="meter-probe-area">
-            <div class="meter-instruction" id="meter-instruction">
-              Seret probe sensor ⤵ ke dalam larutan vinasse untuk mengukur parameter kualitas air.
+          <!-- Instrument row: display unit + cable + probe + beaker -->
+          <div class="meter-instrument-row">
+            <!-- Display unit (left stick, static) -->
+            <div class="meter-display-unit">
+              <div class="mdu-head">
+                <div class="mdu-brand">TDS · DO · pH · SAL</div>
+                <div class="mdu-screen">
+                  <div class="mr-row"><span class="mr-lbl">DO</span><span class="mr-val" id="mr-do">—</span><span class="mr-unit">ppm</span></div>
+                  <div class="mr-row"><span class="mr-lbl">TDS</span><span class="mr-val" id="mr-tds">—</span><span class="mr-unit">ppm</span></div>
+                  <div class="mr-row"><span class="mr-lbl">pH</span><span class="mr-val" id="mr-ph">—</span></div>
+                  <div class="mr-row"><span class="mr-lbl">SAL</span><span class="mr-val" id="mr-sal">—</span><span class="mr-unit">‰</span></div>
+                </div>
+              </div>
+              <div class="mdu-stick"></div>
             </div>
+            <!-- Cable (decorative) -->
+            <svg class="meter-cable-svg" viewBox="0 0 80 40" preserveAspectRatio="none">
+              <path d="M0,20 C20,6 60,34 80,20" stroke="#3a7a9a" stroke-width="2.5" fill="none" stroke-dasharray="5,4"/>
+            </svg>
+            <!-- Probe stick + beaker drop zone -->
             <div class="meter-probe-column">
               <div class="meter-probe-stick" id="meter-probe-stick" title="Seret ke dalam larutan">
                 <div class="mps-handle">⊕</div>
@@ -141,10 +143,11 @@ function buildSimHTML() {
                 <div class="meter-bk-label" id="meter-vol-label">— mL</div>
               </div>
             </div>
-            <div class="meter-result-grid hidden" id="meter-result-grid"></div>
-            <div class="meter-note hidden" id="meter-note"></div>
-            <button class="sim-btn hidden" id="btn-go-aerate">💨 Lanjut ke Simulasi Aerasi →</button>
           </div>
+          <!-- Results appear below instrument row after measurement -->
+          <div class="meter-result-grid hidden" id="meter-result-grid"></div>
+          <div class="meter-note hidden" id="meter-note"></div>
+          <button class="sim-btn hidden" id="btn-go-aerate">💨 Lanjut ke Simulasi Aerasi →</button>
         </div>
       </div>
 
@@ -1107,7 +1110,8 @@ function injectSimulationCSS() {
     .sim-feedback.wrong   { background: rgba(100, 20, 20, 0.2); border-left: 4px solid #e74c3c; color: #ff9090; }
 
     /* ── TDS/DO Meter (two-stick design) ────────────── */
-    .meter-layout { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 16px; }
+    .meter-layout { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+    .meter-instrument-row { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
     /* --- Display unit (left stick) --- */
     .meter-display-unit { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
     .mdu-head {
@@ -1126,10 +1130,9 @@ function injectSimulationCSS() {
     .mr-val  { color: #00ff8a; font-size: 16px; font-weight: 900; font-family: monospace; min-width: 36px; text-align: right; }
     .mr-unit { color: #2a7a5a; font-size: 9px; }
     /* --- Decorative cable --- */
-    .meter-cable-svg { width: 80px; height: 24px; flex-shrink: 0; align-self: center; margin-top: -34px; }
-    /* --- Probe area (right) --- */
-    .meter-probe-area { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 10px; }
-    .meter-probe-column { display: flex; flex-direction: column; align-items: center; gap: 0; }
+    .meter-cable-svg { width: 80px; height: 40px; flex-shrink: 0; }
+    /* --- Probe column --- */
+    .meter-probe-column { display: flex; flex-direction: column; align-items: center; gap: 12px; }
     /* Draggable probe stick */
     .meter-probe-stick {
       display: flex; flex-direction: column; align-items: center;
