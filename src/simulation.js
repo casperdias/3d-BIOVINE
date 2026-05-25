@@ -579,7 +579,8 @@ function initMeterDip(vol, initialData) {
       noteEl.innerHTML = `⚗️ <strong>Interpretasi:</strong> Dengan ${vol} mL vinasse,
         DO = <b>${readings.doVal.toFixed(1)} ppm</b>, TDS = <b>${readings.tds.toFixed(1)} ppm</b>,
         pH = <b>${readings.ph.toFixed(1)}</b> (${readings.ph < 4 ? 'sangat asam' : 'asam'}),
-        Salinometer = <b>${readings.sal.toFixed(1)} ‰</b>.`;
+        Salinometer = <b>${readings.sal.toFixed(1)} ‰</b>.
+        <div class="meter-source">📄 Sumber: Irmanto, et al. (2013)</div>`;
       noteEl.classList.remove('hidden');
 
       $('btn-go-aerate').classList.remove('hidden');
@@ -1186,6 +1187,7 @@ function injectSimulationCSS() {
       padding: 10px 14px; border-radius: 6px; font-size: 13px; color: #a0c8d8; line-height: 1.6;
     }
     .meter-note.hidden { display: none; }
+    .meter-source { margin-top: 7px; font-size: 11px; color: #4a7090; font-style: italic; }
     .titration-layout {
     .tit-apparatus {
       display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
