@@ -115,7 +115,7 @@ Sebelum pengembangan, seluruh konten ditulis dalam dokumen rancangan (`Rancangan
 | 1 | The Investigator | Lab Sains | Identifikasi parameter pencemaran |
 | 2 | Akar Masalah | Pabrik Etanol | Simulasi COD/BOD, proses destilasi |
 | 3 | Menentukan Solusi | Kolam Remediasi | Pemilihan mikroorganisme, bioremediasi |
-| 4 | Merancang Prototype | Workshop IPAL | Desain reaktor, pemilihan alat-bahan |
+| 4 | Merancang Prototype | Membuat Reaktor Sederhana | Desain reaktor, pemilihan alat-bahan |
 | 5 | Evaluasi | Lab Observasi | Analisis kegagalan percobaan |
 | 6 | Rekomendasi | Ruang Kelas | Presentasi hasil akhir (POC) |
 
@@ -326,7 +326,7 @@ Elemen utama:
 
 ---
 
-### Stage 4 — Workshop IPAL (`world4.js`)
+### Stage 4 — Membuat Reaktor Sederhana (`world4.js`)
 
 {Image: Screenshot Stage 4 — meja workshop dengan terminal komputer dan rak alat}
 

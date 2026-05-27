@@ -109,7 +109,7 @@ export const LEVEL_LABELS = {
   1: 'Level 1 – Lab Sains',
   2: 'Level 2 – Pabrik Etanol',
   3: 'Level 3 – Kolam Remediasi',
-  4: 'Level 4 – Workshop IPAL',
+  4: 'Level 4 – Membuat Reaktor Sederhana',
   5: 'Level 5 – Lab Observasi',
 };
 

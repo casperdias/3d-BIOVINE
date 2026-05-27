@@ -1007,7 +1007,7 @@ export function showInstructions(cb) {
       { num:1, icon:'🔬', name:'Lab Sains',            desc:'Amati 3 fenomena pencemaran vinasse di laboratorium dan jawab pertanyaan ilmiah.' },
       { num:2, icon:'🏭', name:'Pabrik Etanol',         desc:'Kunjungi 3 stasiun pabrik, lakukan simulasi pengolahan COD/BOD/pH secara interaktif.' },
       { num:3, icon:'🌿', name:'Kolam Remediasi',       desc:'Pilih mikroorganisme yang tepat di toko, hitung dosis, lalu buka kran vinasse.' },
-      { num:4, icon:'🔧', name:'Workshop IPAL',         desc:'Rancang prototype reaktor IPAL: pilih alat & bahan, ikuti prosedur, evaluasi hasilnya.' },
+      { num:4, icon:'🔧', name:'Membuat Reaktor Sederhana',         desc:'Rancang prototype reaktor IPAL: pilih alat & bahan, ikuti prosedur, evaluasi hasilnya.' },
       { num:5, icon:'🔭', name:'Lab Observasi',         desc:'Analisis kegagalan reaktor dari Level 4 dan jawab soal evaluasi mikroskop.' },
     ];
     levelGuideEl.innerHTML = levels.map(l => `
@@ -1240,7 +1240,7 @@ const ROOM_CONFIG = [
   {
     level: 4,
     icon: '⚙️',
-    name: 'Workshop IPAL',
+    name: 'Membuat Reaktor Sederhana',
     desc: 'Rancang reaktor pengolahan limbah IPAL',
     color: '#8e44ad',
   },
