@@ -206,9 +206,6 @@ export function showYoutubeVideos(cb) {
   const screen = $('youtube-screen');
   screen.classList.remove('hidden');
 
-  // Pause background music while YouTube videos play
-  if (_bgAudio) _bgAudio.pause();
-
   let idx = 0;
   let ytPlayer = null;
 
@@ -250,8 +247,6 @@ export function showYoutubeVideos(cb) {
     } else {
       if (ytPlayer) { ytPlayer.destroy(); ytPlayer = null; }
       screen.classList.add('hidden');
-      // Resume background music
-      if (_bgAudio) _bgAudio.play().catch(() => {});
       cb();
     }
   };
@@ -261,18 +256,6 @@ export function showYoutubeVideos(cb) {
 // Intro Video Screen (shown once after profile is created)
 // ─────────────────────────────────────────────────────
 let _introAssetRenderer = null;  // keep ref so we can dispose it
-
-// ─────────────────────────────────────────────────────
-// Global background music (persists for the whole session)
-// ─────────────────────────────────────────────────────
-let _bgAudio = null;
-export function startBgMusic() {
-  if (_bgAudio) return;          // already playing
-  _bgAudio = new Audio('intro-music.mp3');
-  _bgAudio.loop   = true;
-  _bgAudio.volume = 0.45;
-  _bgAudio.play().catch(() => {}); // silently handle autoplay block
-}
 
 export function showIntroVideo(cb) {
   const screen = $('intro-video-screen');
@@ -1051,7 +1034,7 @@ export function initHUD() {
 // ─────────────────────────────────────────────────────
 // Pause Menu
 // ─────────────────────────────────────────────────────
-export function initPauseMenu(onResumeCheckpoint, onNewGame) {
+export function initPauseMenu(onResumeCheckpoint, onNewGame, onChangeLevel) {
   const overlay = $('pause-menu-overlay');
 
   $('btn-pause-menu').onclick = () => {
@@ -1093,6 +1076,13 @@ export function initPauseMenu(onResumeCheckpoint, onNewGame) {
   $('btn-pm-experiment').onclick = () => {
     overlay.classList.add('hidden');
     showExperimentForm();
+  };
+
+  $('btn-pm-change-level').onclick = () => {
+    overlay.classList.add('hidden');
+    showLevelSelector(lvl => {
+      if (onChangeLevel) onChangeLevel(lvl);
+    });
   };
 
   // Close on backdrop click
@@ -1252,6 +1242,63 @@ const ROOM_CONFIG = [
     color: '#c0392b',
   },
 ];
+
+// Level selector for changing level mid-game
+function showLevelSelector(onSelect) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position:fixed;inset:0;background:rgba(0,0,0,0.85);
+    display:flex;align-items:center;justify-content:center;
+    z-index:9998;flex-direction:column;gap:20px;padding:40px 20px;
+    font-family:system-ui,sans-serif;color:#fff;
+  `;
+  const card = document.createElement('div');
+  card.style.cssText = `
+    background:linear-gradient(160deg,#0d1b2a,#091525);border:1px solid rgba(60,140,220,.35);
+    border-radius:18px;padding:32px 40px;text-align:center;max-width:600px;
+  `;
+  card.innerHTML = `
+    <h2 style="margin:0 0 20px;font-size:24px;color:#a0d8ff">Pilih Level</h2>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:12px">
+      ${[1,2,3,4,5].map(lvl => `
+        <button data-level="${lvl}" style="
+          padding:16px;border-radius:10px;border:2px solid rgba(60,140,220,.4);
+          background:rgba(10,25,45,0.8);color:#7ec8ff;font-size:16px;font-weight:700;
+          cursor:pointer;transition:all .2s;
+        ">Level ${lvl}</button>
+      `).join('')}
+    </div>
+  `;
+  overlay.appendChild(card);
+  document.body.appendChild(overlay);
+  
+  card.querySelectorAll('button[data-level]').forEach(btn => {
+    btn.onclick = () => {
+      overlay.remove();
+      onSelect(parseInt(btn.dataset.level));
+    };
+    btn.onmouseover = () => {
+      btn.style.borderColor = 'rgba(60,200,255,.7)';
+      btn.style.background = 'rgba(0,100,180,0.2)';
+    };
+    btn.onmouseout = () => {
+      btn.style.borderColor = 'rgba(60,140,220,.4)';
+      btn.style.background = 'rgba(10,25,45,0.8)';
+    };
+  });
+  
+  const closeBtn = document.createElement('button');
+  closeBtn.style.cssText = `
+    padding:10px 24px;border-radius:8px;border:1px solid rgba(255,255,255,.2);
+    background:rgba(255,255,255,.08);color:#ccc;font-size:14px;cursor:pointer;
+    transition:all .2s;
+  `;
+  closeBtn.textContent = '✕ Batal';
+  closeBtn.onmouseover = () => { closeBtn.style.background = 'rgba(255,60,60,.18)'; closeBtn.style.color = '#fff'; };
+  closeBtn.onmouseout = () => { closeBtn.style.background = 'rgba(255,255,255,.08)'; closeBtn.style.color = '#ccc'; };
+  closeBtn.onclick = () => overlay.remove();
+  overlay.appendChild(closeBtn);
+}
 
 export function showRoomSelect(onSelectRoom) {
   const overlay = document.getElementById('room-select-overlay');
@@ -1818,6 +1865,7 @@ export function buildUIHTML() {
         <button class="btn-pause-action btn-pause-checkpoint" id="btn-pm-resume">↩ Kembali ke Checkpoint</button>
         <button class="btn-pause-action btn-pause-newgame" id="btn-pm-newgame">🔄 Mulai Ulang (New Game)</button>
         <button class="btn-pause-action" id="btn-pm-experiment" style="background:rgba(21,101,192,.25);border-color:rgba(100,160,255,.4);color:#7ec8ff">📋 Upload Hasil Percobaan</button>
+        <button class="btn-pause-action" id="btn-pm-change-level" style="background:rgba(180,100,20,.25);border-color:rgba(220,140,60,.4);color:#ffb366">🔀 Ubah Level</button>
       </div>
     </div>
 

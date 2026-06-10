@@ -14,7 +14,6 @@ import {
   showYoutubeVideos,
   showInstructions,
   showIntroVideo,
-  startBgMusic,
   initPauseMenu,
   showQuestionPanel,
   initHUD,
@@ -596,7 +595,8 @@ function bootGame() {
       }
       enterRoomHub();
     },
-    () => { location.reload(); }
+    () => { location.reload(); },
+    enterRoom
   );
   // Drop player into lab scene by default (background scene while hub is shown)
   player.addToScene(labScene);
@@ -625,7 +625,6 @@ showProfileScreen(
   // New game callback
   name => {
     player.setName(name);
-    startBgMusic();
     showSynopsis(() => {
       showYoutubeVideos(() => {
         showIntroVideo(() => {
@@ -638,7 +637,6 @@ showProfileScreen(
   },
   // Resume callback
   checkpoint => {
-    startBgMusic();
     resumeFromCheckpoint(checkpoint);
   }
 );
