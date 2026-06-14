@@ -261,6 +261,10 @@ export function showIntroVideo(cb) {
   const screen = $('intro-video-screen');
   screen.classList.remove('hidden');
 
+  // Inject IPAL labels CSS and show labels
+  injectIntroIPALLabelsCSS();
+  showIntroIPALLabels();
+
   // ── Canvas / Renderer ──────────────────────────────────────────────
   const canvas = $('intro-3d-canvas');
   const W = window.innerWidth;
@@ -1145,7 +1149,81 @@ export function setInteractPrompt(html) {
 export function showStagePanel(onComplete) {
   const screen = $('stage-screen');
   screen.classList.remove('hidden');
-  renderPhenomenon(state.phenomenonIndex, onComplete);
+  
+  // Show room instructions before first question
+  if (state.phenomenonIndex === 0) {
+    showLevel1RoomInstructions(() => {
+      renderPhenomenon(state.phenomenonIndex, onComplete);
+    });
+  } else {
+    renderPhenomenon(state.phenomenonIndex, onComplete);
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// Level 1 Room Instructions Overlay
+// ─────────────────────────────────────────────────────
+function showLevel1RoomInstructions(onDone) {
+  const overlay = document.createElement('div');
+  overlay.style.cssText = `
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.5); backdrop-filter: blur(3px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999; animation: fadeIn 0.4s ease-out;
+  `;
+  
+  const card = document.createElement('div');
+  card.style.cssText = `
+    background: linear-gradient(135deg, rgba(25,100,150,0.95) 0%, rgba(15,60,100,0.95) 100%);
+    border: 2px solid #3498db;
+    border-radius: 15px;
+    padding: 40px;
+    max-width: 360px;
+    text-align: center;
+    color: #fff;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  `;
+  
+  card.innerHTML = `
+    <div style="font-size:32px;margin-bottom:16px">📍</div>
+    <h2 style="font-size:20px;margin:0 0 12px 0;font-weight:700">Ruangan: Lab Sains</h2>
+    <p style="font-size:14px;margin:0 0 20px 0;color:#ddd;line-height:1.5">
+      Di ruangan ini terdapat <strong>3 soal</strong> tentang pencemaran limbah vinasse.
+    </p>
+    <p style="font-size:12px;margin:0 0 24px 0;color:#aaa;line-height:1.4">
+      ⏱️ <strong>2 menit</strong> untuk setiap soal
+    </p>
+    <button id="btn-room-instructions-ok" style="
+      background: #2ecc71;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 30px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    ">🚀 Mulai</button>
+  `;
+  
+  document.body.appendChild(overlay);
+  
+  const btn = card.querySelector('#btn-room-instructions-ok');
+  btn.onmouseover = () => {
+    btn.style.background = '#27ae60';
+    btn.style.transform = 'scale(1.05)';
+  };
+  btn.onmouseout = () => {
+    btn.style.background = '#2ecc71';
+    btn.style.transform = 'scale(1)';
+  };
+  btn.onclick = () => {
+    overlay.style.animation = 'fadeOut 0.3s ease-out';
+    setTimeout(() => overlay.remove(), 300);
+    if (onDone) onDone();
+  };
+  
+  overlay.appendChild(card);
 }
 
 // Open a single phenomenon by index (used by 3D object interaction)
@@ -1509,7 +1587,10 @@ function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
   panel.innerHTML = `
     <div class="phenomenon-header">
       <span class="phenomenon-badge">${phenom.title}</span>
-      ${!standalone ? `<span class="question-progress">${idx + 1} / ${stage1.phenomena.length}</span>` : ''}
+      <div class="header-right">
+        <span class="timer-display" id="timer-${idx}">⏱️ 2:00</span>
+        ${!standalone ? `<span class="question-progress">${idx + 1} / ${stage1.phenomena.length}</span>` : ''}
+      </div>
       ${onDismiss ? `<button class="panel-close-btn" id="panel-close-btn" title="Tutup">✕</button>` : ''}
     </div>
     ${!standalone ? `
@@ -1522,7 +1603,10 @@ function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
   if (onDismiss) {
     setTimeout(() => {
       const closeBtn = panel.querySelector('#panel-close-btn');
-      if (closeBtn) closeBtn.onclick = onDismiss;
+      if (closeBtn) closeBtn.onclick = () => {
+        clearInterval(timerInterval);  // Cleanup timer
+        onDismiss();
+      };
     }, 0);
   }
 
@@ -1571,6 +1655,44 @@ function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
   const optionsDiv = document.createElement('div');
   optionsDiv.className = 'answer-options';
 
+  // Timer system (120 seconds = 2 minutes)
+  let timeRemaining = 120;
+  let timerRunning = true;
+  let timerInterval = null;
+
+  function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `⏱️ ${mins}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  function updateTimer() {
+    const timerEl = panel.querySelector(`#timer-${idx}`);
+    if (timerEl) {
+      timerEl.textContent = formatTime(timeRemaining);
+      if (timeRemaining <= 10) {
+        timerEl.style.color = '#ff5555';
+      }
+    }
+
+    timeRemaining--;
+    if (timeRemaining < 0) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      // Auto-fail: time's up
+      if (!answered) {
+        answered = true;
+        optionsDiv.querySelectorAll('.answer-btn').forEach(b => (b.disabled = true));
+        state.totalPoints += 0;  // 0 points for timeout
+        updateHUD();
+        showFeedback(panel, false, '❌ Waktu habis! Nilai: 0 poin');
+        nextBtn.classList.add('visible');
+      }
+    }
+  }
+
+  timerInterval = setInterval(updateTimer, 1000);
+
   // Track whether answered
   let answered = false;
   let correct = false;
@@ -1587,6 +1709,8 @@ function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
       if (opt.correct) {
         answered = true;
         correct = true;
+        clearInterval(timerInterval);  // Stop timer
+        timerRunning = false;
         btn.classList.add('correct');
         // Award points immediately for this question
         const pts = state.wrongAnswers === 0 ? 100 : state.wrongAnswers <= 1 ? 50 : 25;
@@ -1624,6 +1748,7 @@ function renderPhenomenon(idx, onComplete, onDismiss, standalone = false) {
     ? '✅ Selesai'
     : (idx < stage1.phenomena.length - 1 ? 'Fenomena Berikutnya →' : '✅ Selesai Level 1');
   nextBtn.onclick = () => {
+    clearInterval(timerInterval);  // Cleanup timer
     if (standalone || idx >= stage1.phenomena.length - 1) {
       screen.classList.add('hidden');
       screen.style.pointerEvents = 'none';
@@ -2219,4 +2344,165 @@ export function buildUIHTML() {
     });
     observer.observe(modal, { attributes: true, attributeFilter: ['class'] });
   }, 100);
+}
+
+// ─────────────────────────────────────────────────────
+// IPAL Labels for Intro Video
+// ─────────────────────────────────────────────────────
+function injectIntroIPALLabelsCSS() {
+  if ($('intro-ipal-labels-styles')) return;
+
+  const css = `
+    .intro-ipal-labels-panel {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: rgba(25, 50, 75, 0.9);
+      border: 2px solid rgba(52, 152, 219, 0.6);
+      border-radius: 12px;
+      padding: 16px;
+      max-width: 280px;
+      z-index: 100;
+      color: #ddeeff;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      animation: slideInTop 0.4s ease-out;
+    }
+
+    .intro-ipal-labels-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(52, 152, 219, 0.3);
+    }
+
+    .intro-ipal-labels-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #3498db;
+      letter-spacing: 0.5px;
+    }
+
+    .intro-ipal-labels-close {
+      background: none;
+      border: none;
+      color: #3498db;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .intro-ipal-labels-close:hover {
+      color: #2ecc71;
+    }
+
+    .intro-ipal-labels-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .intro-ipal-labels-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .intro-ipal-labels-icon {
+      font-size: 18px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .intro-ipal-labels-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .intro-ipal-labels-name {
+      font-weight: 600;
+      color: #a0f0c0;
+    }
+
+    .intro-ipal-labels-desc {
+      color: #80b0c0;
+      font-size: 11px;
+    }
+
+    @keyframes slideInTop {
+      from {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  `;
+
+  const style = document.createElement('style');
+  style.id = 'intro-ipal-labels-styles';
+  style.textContent = css;
+  document.head.appendChild(style);
+}
+
+function showIntroIPALLabels() {
+  // Don't create if already exists
+  if ($('intro-ipal-labels-panel')) return;
+
+  const panel = document.createElement('div');
+  panel.id = 'intro-ipal-labels-panel';
+  panel.className = 'intro-ipal-labels-panel';
+  panel.innerHTML = `
+    <div class="intro-ipal-labels-header">
+      <div class="intro-ipal-labels-title">📍 Komponen IPAL</div>
+      <button class="intro-ipal-labels-close" id="btn-close-intro-ipal-labels" title="Tutup">✕</button>
+    </div>
+
+    <div class="intro-ipal-labels-item">
+      <div class="intro-ipal-labels-icon">⚙️</div>
+      <div class="intro-ipal-labels-content">
+        <div class="intro-ipal-labels-name">Aerator</div>
+        <div class="intro-ipal-labels-desc">Pemompa udara untuk proses aerasi. Menginjeksi gelembung oksigen ke air limbah.</div>
+      </div>
+    </div>
+
+    <div class="intro-ipal-labels-item">
+      <div class="intro-ipal-labels-icon">🪣</div>
+      <div class="intro-ipal-labels-content">
+        <div class="intro-ipal-labels-name">Bak Penampungan</div>
+        <div class="intro-ipal-labels-desc">Reservoir untuk menyimpan dan mengolah limbah vinasse secara bertahap.</div>
+      </div>
+    </div>
+
+    <div class="intro-ipal-labels-item">
+      <div class="intro-ipal-labels-icon">🩸</div>
+      <div class="intro-ipal-labels-content">
+        <div class="intro-ipal-labels-name">Aliran Air</div>
+        <div class="intro-ipal-labels-desc">Jalur pemindahan air limbah yang sudah diolah menuju tahap berikutnya.</div>
+      </div>
+    </div>
+  `;
+
+  const intro = $('intro-video-screen');
+  if (intro) {
+    intro.appendChild(panel);
+  } else {
+    document.body.appendChild(panel);
+  }
+
+  // Close button
+  const closeBtn = $('btn-close-intro-ipal-labels');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      panel.style.animation = 'slideInTop 0.3s ease-out reverse';
+      setTimeout(() => panel.remove(), 300);
+    };
+  }
 }

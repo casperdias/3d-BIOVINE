@@ -12,7 +12,11 @@ const $ = id => document.getElementById(id);
 // ─────────────────────────────────────────────────────────────────────────────
 export function showStage3(onDone) {
   injectStage3CSS();
+  injectIPALLabelsCSS();
   removeOverlay();
+
+  // Show IPAL labels at start (can be closed/toggled)
+  showIPALLabels();
 
   // Step 1: Challenge question → then shop
   showChallengePanel(() => {
@@ -1144,4 +1148,160 @@ function injectStage3CSS() {
   style.id = 's3-styles';
   style.textContent = css;
   document.head.appendChild(style);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// IPAL Labels Overlay (3D Component Description)
+// ─────────────────────────────────────────────────────────────────────────────
+function injectIPALLabelsCSS() {
+  if ($('ipal-labels-styles')) return;
+
+  const css = `
+    .ipal-labels-panel {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: rgba(25, 50, 75, 0.9);
+      border: 2px solid rgba(52, 152, 219, 0.6);
+      border-radius: 12px;
+      padding: 16px;
+      max-width: 280px;
+      z-index: 100;
+      color: #ddeeff;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+      animation: slideInLeft 0.4s ease-out;
+    }
+
+    .ipal-labels-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(52, 152, 219, 0.3);
+    }
+
+    .ipal-labels-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #3498db;
+      letter-spacing: 0.5px;
+    }
+
+    .ipal-labels-close {
+      background: none;
+      border: none;
+      color: #3498db;
+      font-size: 16px;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    .ipal-labels-close:hover {
+      color: #2ecc71;
+    }
+
+    .ipal-labels-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      line-height: 1.4;
+    }
+
+    .ipal-labels-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .ipal-labels-icon {
+      font-size: 18px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .ipal-labels-content {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .ipal-labels-name {
+      font-weight: 600;
+      color: #a0f0c0;
+    }
+
+    .ipal-labels-desc {
+      color: #80b0c0;
+      font-size: 11px;
+    }
+
+    @keyframes slideInLeft {
+      from {
+        opacity: 0;
+        transform: translateX(-20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+  `;
+
+  const style = document.createElement('style');
+  style.id = 'ipal-labels-styles';
+  style.textContent = css;
+  document.head.appendChild(style);
+}
+
+function showIPALLabels() {
+  // Don't create if already exists
+  if ($('ipal-labels-panel')) return;
+
+  const panel = document.createElement('div');
+  panel.id = 'ipal-labels-panel';
+  panel.className = 'ipal-labels-panel';
+  panel.innerHTML = `
+    <div class="ipal-labels-header">
+      <div class="ipal-labels-title">📍 Komponen 3D IPAL</div>
+      <button class="ipal-labels-close" id="btn-close-ipal-labels" title="Tutup">✕</button>
+    </div>
+
+    <div class="ipal-labels-item">
+      <div class="ipal-labels-icon">⚙️</div>
+      <div class="ipal-labels-content">
+        <div class="ipal-labels-name">Aerator</div>
+        <div class="ipal-labels-desc">Pemompa udara untuk proses aerasi. Menginjeksi gelembung oksigen ke air limbah.</div>
+      </div>
+    </div>
+
+    <div class="ipal-labels-item">
+      <div class="ipal-labels-icon">🪣</div>
+      <div class="ipal-labels-content">
+        <div class="ipal-labels-name">Bak Penampungan</div>
+        <div class="ipal-labels-desc">Reservoir untuk menyimpan dan mengolah limbah vinasse secara bertahap.</div>
+      </div>
+    </div>
+
+    <div class="ipal-labels-item">
+      <div class="ipal-labels-icon">🩸</div>
+      <div class="ipal-labels-content">
+        <div class="ipal-labels-name">Aliran Air</div>
+        <div class="ipal-labels-desc">Jalur pemindahan air limbah yang sudah diolah menuju tahap berikutnya.</div>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  // Close button
+  const closeBtn = $('btn-close-ipal-labels');
+  if (closeBtn) {
+    closeBtn.onclick = () => {
+      panel.style.animation = 'slideInLeft 0.3s ease-out reverse';
+      setTimeout(() => panel.remove(), 300);
+    };
+  }
 }

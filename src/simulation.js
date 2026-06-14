@@ -57,7 +57,7 @@ function buildSimHTML() {
               </div>
             `).join('')}
           </div>
-          <div class="glasses-hint">↓ Seret gelas ke beker untuk menuangkan</div>
+          <div class="glasses-hint">↙️ Seret gelas ke BEKER KANAN untuk menuangkan vinasse</div>
         </div>
         <!-- Beaker drop target -->
         <div class="beaker-pour-row">
@@ -104,7 +104,7 @@ function buildSimHTML() {
         <div class="meter-layout">
           <!-- Instruction -->
           <div class="meter-instruction" id="meter-instruction">
-            Seret probe sensor ⤵ ke dalam larutan vinasse untuk mengukur parameter kualitas air.
+            ⤵️ Seret probe sensor ke dalam BEAKER untuk mengukur TDS · DO · pH · SAL
           </div>
           <!-- Instrument row: display unit + cable + probe + beaker -->
           <div class="meter-instrument-row">
@@ -148,6 +148,8 @@ function buildSimHTML() {
           <div class="meter-result-grid hidden" id="meter-result-grid"></div>
           <div class="meter-note hidden" id="meter-note"></div>
           <button class="sim-btn hidden" id="btn-go-aerate">💨 Lanjut ke Simulasi Aerasi →</button>
+          <button class="sim-btn-back hidden" id="btn-back-meter">↶ Kembali ke Step 1</button>
+        <button class="sim-btn-back hidden" id="btn-back-meter" style="margin-left:8px">⏮ Kembali ke Step 1</button>
         </div>
       </div>
 
@@ -192,6 +194,8 @@ function buildSimHTML() {
         </div>
 
         <button class="sim-btn hidden" id="btn-calc-result">📊 Hitung Hasil Pengolahan →</button>
+        <button class="sim-btn-back hidden" id="btn-back-aerate">↶ Kembali ke Step 2</button>
+        <button class="sim-btn-back hidden" id="btn-back-aerate" style="margin-left:8px">⏮ Kembali ke Step 2</button>
       </div>
 
       <!-- Step 4: Results -->
@@ -394,6 +398,13 @@ function wireSimulation(overlay, onDone) {
     setAeratorLiquidColor(initialData);
   };
 
+  // ── Back button: Step 2 → 1 ──
+  $('btn-back-meter').onclick = () => {
+    transitionStep('sim-step-2', 'sim-step-1');
+    $('btn-go-aerate').classList.add('hidden');
+    $('btn-back-meter').classList.add('hidden');
+  };
+
   // ── Step 3: Aerator toggle ──
   $('aerator-toggle').onchange = function () {
     aeratorOn = this.checked;
@@ -419,6 +430,7 @@ function wireSimulation(overlay, onDone) {
       btn.classList.add('active');
       selectedHours = parseInt(btn.dataset.hours);
       $('btn-calc-result').classList.remove('hidden');
+      $('btn-back-aerate').classList.remove('hidden');
     };
   });
 
@@ -432,6 +444,15 @@ function wireSimulation(overlay, onDone) {
       $('sim-overlay').remove();
       if (onDone) onDone();
     };
+  };
+
+  // ── Back button: Step 3 → 2 ──
+  $('btn-back-aerate').onclick = () => {
+    transitionStep('sim-step-3', 'sim-step-2');
+    $('btn-calc-result').classList.add('hidden');
+    $('btn-back-aerate').classList.add('hidden');
+    $('btn-go-aerate').classList.remove('hidden');
+    $('btn-back-meter').classList.remove('hidden');
   };
 }
 
@@ -584,6 +605,7 @@ function initMeterDip(vol, initialData) {
       noteEl.classList.remove('hidden');
 
       $('btn-go-aerate').classList.remove('hidden');
+      $('btn-back-meter').classList.remove('hidden');
       setTimeout(() => $('btn-go-aerate').scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 100);
     }, 1800);
   }
@@ -1188,6 +1210,12 @@ function injectSimulationCSS() {
     }
     .meter-note.hidden { display: none; }
     .meter-source { margin-top: 7px; font-size: 11px; color: #4a7090; font-style: italic; }
+    .sim-btn-back { display: inline-block; margin-top: 14px; margin-left: 8px; padding: 11px 20px; border-radius: 10px; background: rgba(100,100,100,0.3); color: #aaa; font-size: 14px; font-weight: 600; border: 1px solid rgba(100,100,100,0.5); cursor: pointer; transition: all 0.2s; }
+    .sim-btn-back:hover { background: rgba(100,100,100,0.5); color: #ddd; }
+    .sim-btn-back.hidden { display: none; }
+    .sim-btn-back { display: inline-block; margin-top: 14px; padding: 11px 20px; border-radius: 10px; background: rgba(100,100,100,0.4); color: #ccc; font-size: 14px; font-weight: 600; border: none; cursor: pointer; transition: all 0.2s; }
+    .sim-btn-back:hover { background: rgba(120,120,120,0.6); color: #fff; }
+    .sim-btn-back.hidden { display: none; }
     .titration-layout {
     .tit-apparatus {
       display: flex; flex-direction: column; align-items: center; flex-shrink: 0;
