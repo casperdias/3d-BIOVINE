@@ -771,6 +771,96 @@ export function showIntroVideo(cb) {
   }
 
   // ====================================================================
+  // 3D TEXT LABELS FOR IPAL COMPONENTS
+  // ====================================================================
+  // Helper function to create canvas-based text sprite with title + description
+  function createTextSprite(title, description, titleSize = 56, descSize = 32) {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 768;
+    canvas.height = 320;
+
+    // Dark background with transparency
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Title
+    ctx.font = `bold ${titleSize}px Arial`;
+    ctx.fillStyle = '#2ecc71';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText(title, canvas.width / 2, 20);
+
+    // Description (word wrap)
+    ctx.font = `${descSize}px Arial`;
+    ctx.fillStyle = '#a8d8a8';
+    const lineHeight = descSize + 8;
+    const maxWidth = canvas.width - 40;
+    const words = description.split(' ');
+    let line = '';
+    let y = titleSize + 30;
+
+    words.forEach(word => {
+      const testLine = line + (line ? ' ' : '') + word;
+      const metrics = ctx.measureText(testLine);
+      if (metrics.width > maxWidth && line) {
+        ctx.fillText(line, canvas.width / 2, y);
+        line = word;
+        y += lineHeight;
+      } else {
+        line = testLine;
+      }
+    });
+    if (line) ctx.fillText(line, canvas.width / 2, y);
+
+    // Border
+    ctx.strokeStyle = '#2ecc71';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(10, 10, canvas.width - 20, canvas.height - 20);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    const material = new THREE.SpriteMaterial({ map: texture, sizeAttenuation: true });
+    const sprite = new THREE.Sprite(material);
+    sprite.scale.set(10, 4.2, 1);
+    return sprite;
+  }
+
+  // IPAL Component Labels
+  const labels = [
+    {
+      title: '🏭 Bangunan Penyaringan',
+      desc: 'Fasilitas awal yang menyaring limbah dari sumber. Bar screen mengalirkan limbah mentah ke bak ekualisasi.',
+      pos: [-28, 9.0, -30]
+    },
+    {
+      title: '🍷 Kolom Penyulingan',
+      desc: 'Proses pemisahan etanol dari limbah vinasse melalui pemanasan dan kondensasi.',
+      pos: [-34, 14.5, -30]
+    },
+    {
+      title: '🪣 Bak Ekualisasi',
+      desc: 'Menyeimbangkan pH, suhu, dan debit limbah agar stabil sebelum proses biologis.',
+      pos: [EQ_X, 4.0, EQ_Z]
+    },
+    {
+      title: '⚡ Stasiun Pompa',
+      desc: 'Memompa limbah dari bak ekualisasi ke sistem aerasi untuk pengolahan lanjutan.',
+      pos: [-28, 6.0, 8]
+    },
+    {
+      title: '⚙️ Bak Aerasi',
+      desc: 'Menginjeksi oksigen melalui aerator untuk mendukung pertumbuhan bakteri pengurai limbah.',
+      pos: [0, 4.0, 0]
+    }
+  ];
+
+  labels.forEach(label => {
+    const sprite = createTextSprite(label.title, label.desc, 52, 28);
+    sprite.position.set(label.pos[0], label.pos[1], label.pos[2]);
+    scene.add(sprite);
+  });
+
+  // ====================================================================
   // STAGES
   // Each stage = 11 seconds.  Camera eases between segments.
   // ====================================================================
@@ -2466,26 +2556,42 @@ function showIntroIPALLabels() {
     </div>
 
     <div class="intro-ipal-labels-item">
-      <div class="intro-ipal-labels-icon">⚙️</div>
+      <div class="intro-ipal-labels-icon">🏭</div>
       <div class="intro-ipal-labels-content">
-        <div class="intro-ipal-labels-name">Aerator</div>
-        <div class="intro-ipal-labels-desc">Pemompa udara untuk proses aerasi. Menginjeksi gelembung oksigen ke air limbah.</div>
+        <div class="intro-ipal-labels-name">Bangunan Penyaringan</div>
+        <div class="intro-ipal-labels-desc">Fasilitas awal yang menyaring limbah dari sumber. Bar screen mengalirkan limbah mentah ke bak ekualisasi.</div>
+      </div>
+    </div>
+
+    <div class="intro-ipal-labels-item">
+      <div class="intro-ipal-labels-icon">🍷</div>
+      <div class="intro-ipal-labels-content">
+        <div class="intro-ipal-labels-name">Kolom Penyulingan</div>
+        <div class="intro-ipal-labels-desc">Proses pemisahan etanol dari limbah vinasse melalui pemanasan dan kondensasi.</div>
       </div>
     </div>
 
     <div class="intro-ipal-labels-item">
       <div class="intro-ipal-labels-icon">🪣</div>
       <div class="intro-ipal-labels-content">
-        <div class="intro-ipal-labels-name">Bak Penampungan</div>
-        <div class="intro-ipal-labels-desc">Reservoir untuk menyimpan dan mengolah limbah vinasse secara bertahap.</div>
+        <div class="intro-ipal-labels-name">Bak Ekualisasi</div>
+        <div class="intro-ipal-labels-desc">Menyeimbangkan pH, suhu, dan debit limbah agar stabil sebelum proses biologis.</div>
       </div>
     </div>
 
     <div class="intro-ipal-labels-item">
-      <div class="intro-ipal-labels-icon">🩸</div>
+      <div class="intro-ipal-labels-icon">⚡</div>
       <div class="intro-ipal-labels-content">
-        <div class="intro-ipal-labels-name">Aliran Air</div>
-        <div class="intro-ipal-labels-desc">Jalur pemindahan air limbah yang sudah diolah menuju tahap berikutnya.</div>
+        <div class="intro-ipal-labels-name">Stasiun Pompa</div>
+        <div class="intro-ipal-labels-desc">Memompa limbah dari bak ekualisasi ke sistem aerasi untuk pengolahan lanjutan.</div>
+      </div>
+    </div>
+
+    <div class="intro-ipal-labels-item">
+      <div class="intro-ipal-labels-icon">⚙️</div>
+      <div class="intro-ipal-labels-content">
+        <div class="intro-ipal-labels-name">Bak Aerasi</div>
+        <div class="intro-ipal-labels-desc">Menginjeksi oksigen melalui aerator untuk mendukung pertumbuhan bakteri pengurai limbah.</div>
       </div>
     </div>
   `;

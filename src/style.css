@@ -1214,6 +1214,50 @@ body {
   touch-action: none;
 }
 
+.joystick-hint-top {
+  position: absolute;
+  top: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+}
+
+.joystick-hint-bottom {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 16px;
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+}
+
+.joystick-hint-left {
+  position: absolute;
+  left: -28px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+}
+
+.joystick-hint-right {
+  position: absolute;
+  right: -28px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 16px;
+  opacity: 0.6;
+  pointer-events: none;
+  user-select: none;
+}
+
 #joystick-base {
   width: 110px;
   height: 110px;
