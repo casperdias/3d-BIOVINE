@@ -804,9 +804,6 @@ export function showIntroVideo(cb) {
   ];
 
   const labelEl = $('intro-stage-label');
-  let lastSegIdx = -1;
-  const SEG_DUR   = 11;
-  const TOTAL_DUR = SEG_DUR * STAGES.length;
 
   function easeIO(x) { return x < 0.5 ? 2*x*x : -1+(4-2*x)*x; }
   function lerp3(a, b, f) {
@@ -814,7 +811,217 @@ export function showIntroVideo(cb) {
   }
 
   // ====================================================================
-  // ANIMATION
+  // INTERACTIVE STEP SYSTEM (Eagle View + Clickable Steps)
+  // ====================================================================
+  
+  // Inject CSS for step buttons and description panel
+  function injectIntroStepCSS() {
+    if ($('intro-steps-styles')) return;
+    const css = `
+      .intro-steps-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 150;
+        pointer-events: none;
+      }
+
+      .intro-step-btn {
+        position: fixed;
+        padding: 8px 12px;
+        border-radius: 6px;
+        border: 2px solid rgba(52, 152, 219, 0.6);
+        background: rgba(25, 50, 75, 0.9);
+        color: #b0d4ff;
+        font-size: 11px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.2s;
+        backdrop-filter: blur(8px);
+        white-space: nowrap;
+        pointer-events: auto;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+      }
+
+      .intro-step-btn:hover {
+        background: rgba(52, 152, 219, 0.7);
+        border-color: rgba(52, 152, 219, 0.9);
+        transform: scale(1.05);
+      }
+
+      .intro-step-btn.active {
+        background: rgba(52, 152, 219, 0.95);
+        border-color: #2ecc71;
+        color: #2ecc71;
+        box-shadow: 0 0 20px rgba(52, 152, 219, 0.6), inset 0 0 10px rgba(46, 204, 113, 0.2);
+      }
+
+      .intro-desc-panel {
+        position: fixed;
+        top: 50px;
+        right: 30px;
+        background: rgba(20, 40, 60, 0.95);
+        border: 2px solid rgba(52, 152, 219, 0.6);
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 380px;
+        z-index: 210;
+        color: #ddeeff;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        animation: slideInRight 0.3s ease-out;
+        display: none;
+      }
+
+      .intro-desc-panel.visible {
+        display: block;
+      }
+
+      .intro-desc-title {
+        font-size: 20px;
+        font-weight: 700;
+        color: #2ecc71;
+        margin-bottom: 8px;
+      }
+
+      .intro-desc-subtitle {
+        font-size: 13px;
+        color: #a0d4ff;
+        margin-bottom: 12px;
+      }
+
+      .intro-desc-text {
+        font-size: 13px;
+        line-height: 1.6;
+        color: #b0d0e0;
+        margin-bottom: 16px;
+      }
+
+      .intro-desc-wq {
+        font-size: 11px;
+        color: #8ab0d0;
+        margin-bottom: 12px;
+      }
+
+      .intro-desc-back-btn {
+        padding: 8px 16px;
+        border-radius: 6px;
+        border: 1px solid rgba(52, 152, 219, 0.6);
+        background: rgba(52, 152, 219, 0.2);
+        color: #a0d4ff;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+      }
+
+      .intro-desc-back-btn:hover {
+        background: rgba(52, 152, 219, 0.4);
+        border-color: #3498db;
+        color: #fff;
+      }
+
+      @keyframes slideInRight {
+        from { opacity: 0; transform: translateX(30px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+    `;
+    const style = document.createElement('style');
+    style.id = 'intro-steps-styles';
+    style.textContent = css;
+    document.head.appendChild(style);
+  }
+
+  // Create step buttons and description panel
+  injectIntroStepCSS();
+
+  const stepsContainer = document.createElement('div');
+  stepsContainer.className = 'intro-steps-container';
+  screen.appendChild(stepsContainer);
+
+  // 3D world positions for each stage (center points)
+  const stageWorldPos = [
+    new THREE.Vector3(EQ_X, 2, EQ_Z),           // Stage 1: Equalization
+    new THREE.Vector3(0, 1, 0),                 // Stage 2: Aeration (ch3-ch4 center)
+    new THREE.Vector3(0, 1, 7),                 // Stage 3: Biological (ch4)
+    new THREE.Vector3(CL_X, 1, CL_Z),           // Stage 4: Clarifier
+    new THREE.Vector3(60, 1, 0),                // Stage 5: River discharge area
+  ];
+
+  // Store button references and their target 3D positions
+  const stepButtons = [];
+  STAGES.forEach((stage, idx) => {
+    const btn = document.createElement('button');
+    btn.className = 'intro-step-btn';
+    btn.textContent = stage.tag;
+    btn.dataset.step = idx;
+    btn.onclick = () => selectStep(idx);
+    btn.userData = { worldPos: stageWorldPos[idx] };
+    stepsContainer.appendChild(btn);
+    stepButtons.push(btn);
+  });
+
+  const descPanel = document.createElement('div');
+  descPanel.className = 'intro-desc-panel';
+  screen.appendChild(descPanel);
+
+  // Helper function to project 3D world position to 2D screen coordinates
+  function projectToScreen(worldPos, camera, canvas) {
+    const vector = worldPos.clone();
+    vector.project(camera);
+    const x = (vector.x * 0.5 + 0.5) * canvas.clientWidth;
+    const y = (-vector.y * 0.5 + 0.5) * canvas.clientHeight;
+    return { x, y, visible: vector.z >= 0 && vector.z <= 1 };
+  }
+
+  // Interactive state
+  let selectedStep = null;
+  let previousStep = null;  // Track previous step for easing
+  let cameraEaseStart = null;
+  let cameraEaseDuration = 1.2;  // seconds
+
+  function selectStep(idx) {
+    previousStep = selectedStep;
+    selectedStep = idx;
+    cameraEaseStart = clock.getElapsedTime();
+    
+    // Update button styles
+    document.querySelectorAll('.intro-step-btn').forEach((btn, i) => {
+      btn.classList.toggle('active', i === idx);
+    });
+
+    // Show description panel
+    const stage = STAGES[idx];
+    descPanel.innerHTML = `
+      <div class="intro-desc-title">${stage.title}</div>
+      <div class="intro-desc-subtitle">${stage.subtitle}</div>
+      <div class="intro-desc-text">${stage.desc}</div>
+      <div class="intro-desc-wq">
+        <strong>Kualitas Air: ${stage.waterQuality}%</strong>
+      </div>
+      <button class="intro-desc-back-btn" id="btn-back-to-eagle">↶ Kembali ke Pandangan Keseluruhan</button>
+    `;
+    descPanel.classList.add('visible');
+
+    // Back button handler
+    const backBtn = descPanel.querySelector('#btn-back-to-eagle');
+    if (backBtn) {
+      backBtn.onclick = () => {
+        previousStep = selectedStep;
+        selectedStep = null;
+        cameraEaseStart = clock.getElapsedTime();
+        descPanel.classList.remove('visible');
+        document.querySelectorAll('.intro-step-btn').forEach(btn => btn.classList.remove('active'));
+      };
+    }
+  }
+
+  // Eagle view camera position (top-down overview)
+  const eagleViewPos = [0, 95, 50];
+  const eagleViewLook = [0, 0, 0];
+
   // ====================================================================
   let rafId = null;
   const clock = new THREE.Clock();
@@ -825,45 +1032,61 @@ export function showIntroVideo(cb) {
     rafId = requestAnimationFrame(animate);
     const t = clock.getElapsedTime();
 
-    // Segmented camera
-    const cyc    = t % TOTAL_DUR;
-    const segF   = cyc / SEG_DUR;
-    const segIdx = Math.min(Math.floor(segF), STAGES.length - 1);
-    const segPrg = segF - Math.floor(segF);
-    const prev   = (segIdx + STAGES.length - 1) % STAGES.length;
-    const TRANS  = 0.15;
-
+    // Interactive camera movement with easing
     let camP, camL;
-    if (segPrg < TRANS) {
-      const bl = easeIO(segPrg / TRANS);
-      camP = lerp3(STAGES[prev].camPos,  STAGES[segIdx].camPos,  bl);
-      camL = lerp3(STAGES[prev].camLook, STAGES[segIdx].camLook, bl);
+    
+    if (selectedStep !== null && cameraEaseStart !== null) {
+      // Easing to selected step from eagle view or previous step
+      const elapsed = t - cameraEaseStart;
+      const progress = Math.min(elapsed / cameraEaseDuration, 1.0);
+      const easeVal = easeIO(progress);
+
+      const startPos = previousStep === null ? eagleViewPos : STAGES[previousStep].camPos;
+      const startLook = previousStep === null ? eagleViewLook : STAGES[previousStep].camLook;
+      
+      const targetPos = STAGES[selectedStep].camPos;
+      const targetLook = STAGES[selectedStep].camLook;
+
+      camP = lerp3(startPos, targetPos, easeVal);
+      camL = lerp3(startLook, targetLook, easeVal);
+    } else if (selectedStep === null && cameraEaseStart !== null) {
+      // Easing back to eagle view from step
+      const elapsed = t - cameraEaseStart;
+      const progress = Math.min(elapsed / cameraEaseDuration, 1.0);
+      const easeVal = easeIO(progress);
+
+      const startPos = previousStep === null ? eagleViewPos : STAGES[previousStep].camPos;
+      const startLook = previousStep === null ? eagleViewLook : STAGES[previousStep].camLook;
+
+      camP = lerp3(startPos, eagleViewPos, easeVal);
+      camL = lerp3(startLook, eagleViewLook, easeVal);
+
+      if (progress >= 1.0) {
+        cameraEaseStart = null;
+      }
     } else {
-      const cp = STAGES[segIdx].camPos, cl = STAGES[segIdx].camLook;
-      camP = [cp[0] + Math.sin(t*0.26)*1.4, cp[1] + Math.sin(t*0.19)*0.6, cp[2] + Math.cos(t*0.22)*1.1];
-      camL = [...cl];
+      // Default: show eagle view
+      camP = eagleViewPos;
+      camL = eagleViewLook;
     }
+
     camera.position.set(camP[0], camP[1], camP[2]);
     camera.lookAt(camL[0], camL[1], camL[2]);
 
-    // Stage label update
-    if (segIdx !== lastSegIdx && labelEl) {
-      lastSegIdx = segIdx;
-      const s = STAGES[segIdx];
-      const q = s.waterQuality;
-      const qc = q < 40 ? '#e05020' : q < 75 ? '#d4aa20' : '#22bb55';
-      labelEl.innerHTML =
-        `<div class="sl-tag">${s.tag}</div>` +
-        `<div class="sl-title">${s.title}</div>` +
-        `<div class="sl-subtitle">${s.subtitle}</div>` +
-        `<div class="sl-desc">${s.desc}</div>` +
-        `<div class="sl-wq">` +
-          `<span style="font-size:11px;opacity:.75;margin-right:6px">Kualitas Air</span>` +
-          `<div class="sl-wq-bar"><div class="sl-wq-fill" style="width:${q}%;background:${qc}"></div></div>` +
-          `<span class="sl-wq-val" style="color:${qc}">${q}%</span>` +
-        `</div>` +
-        `<div class="sl-dots">${STAGES.map((_,k)=>`<span class="sl-dot${k===segIdx?' active':''}"></span>`).join('')}</div>`;
-    }
+    // Update step button positions based on camera projection
+    stepButtons.forEach((btn, idx) => {
+      const screenPos = projectToScreen(stageWorldPos[idx], camera, canvas);
+      if (screenPos.visible && screenPos.x > 0 && screenPos.x < canvas.clientWidth &&
+          screenPos.y > 0 && screenPos.y < canvas.clientHeight) {
+        btn.style.left = (screenPos.x - btn.offsetWidth / 2) + 'px';
+        btn.style.top = (screenPos.y - 35) + 'px';
+        btn.style.opacity = '1';
+        btn.style.pointerEvents = 'auto';
+      } else {
+        btn.style.opacity = '0.3';
+        btn.style.pointerEvents = 'none';
+      }
+    });
 
     // Flow ripples & foam along serpentine open-channel path
     flowMeshes.forEach(p => {
