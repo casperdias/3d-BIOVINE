@@ -959,12 +959,14 @@ export function showIntroVideo(cb) {
         display: block;
       }
 
-      .intro-viewer-canvas {
+      .intro-viewer-image {
         width: 100%;
         height: 220px;
         border-radius: 8px;
         background: rgba(0, 20, 40, 0.8);
         margin-bottom: 12px;
+        object-fit: cover;
+        display: block;
       }
 
       .intro-viewer-desc {
@@ -1023,40 +1025,24 @@ export function showIntroVideo(cb) {
   descPanel.className = 'intro-desc-panel';
   screen.appendChild(descPanel);
 
-  // Create left-side viewer panel with 3D component
+  // Create left-side viewer panel with stage image
   const viewerPanel = document.createElement('div');
   viewerPanel.className = 'intro-viewer-panel';
   viewerPanel.innerHTML = `
-    <canvas class="intro-viewer-canvas" id="intro-viewer-canvas"></canvas>
+    <img class="intro-viewer-image" id="intro-viewer-image" src="" alt="Stage image" />
     <div class="intro-viewer-desc" id="intro-viewer-desc">Loading...</div>
   `;
   screen.appendChild(viewerPanel);
 
-  // Setup viewer canvas and renderer
-  const viewerCanvas = $('intro-viewer-canvas');
-  const canvasWidth = 288;  // 320px panel - 32px padding
-  const canvasHeight = 220;
-  viewerCanvas.width = canvasWidth;
-  viewerCanvas.height = canvasHeight;
-  const viewerRenderer = new THREE.WebGLRenderer({ canvas: viewerCanvas, antialias: true, alpha: true });
-  viewerRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  viewerRenderer.setSize(canvasWidth, canvasHeight, false);
-  viewerRenderer.setClearColor(0x0a1428, 0.5);
-  
-  const viewerScene = new THREE.Scene();
-  const viewerCamera = new THREE.PerspectiveCamera(45, canvasWidth / canvasHeight, 0.1, 100);
-  viewerCamera.position.set(0, 2, 3);
-  viewerCamera.lookAt(0, 0, 0);
-  
-  // Add lighting to viewer
-  const viewerLight1 = new THREE.DirectionalLight(0xfff7e0, 2.5);
-  viewerLight1.position.set(5, 5, 5);
-  viewerLight1.castShadow = true;
-  viewerScene.add(viewerLight1);
-  viewerScene.add(new THREE.HemisphereLight(0x9ed4f8, 0x5a7a40, 1.2));
+  // Stage images (stored in public/stages/)
+  const stageImages = [
+    'stages/stage1.png',
+    'stages/stage2.png',
+    'stages/stage3.png',
+    'stages/stage4.png',
+    'stages/stage5.png'
+  ];
 
-  // Component viewer data and models
-  const componentModels = [];
   const componentDescriptions = [
     'Bak Ekualisasi: Menyeimbangkan pH, suhu, dan debit limbah',
     'Bak Aerasi: Injeksi oksigen untuk mendukung bakteri',
@@ -1065,70 +1051,7 @@ export function showIntroVideo(cb) {
     'Pelepasan: Air bersih dilepas ke alam'
   ];
 
-  // Helper to create simplified 3D component model
-  function createComponentModel(stageIdx) {
-    const group = new THREE.Group();
-    const smat = (col, rough = 0.78, metal = 0) => {
-      return new THREE.MeshStandardMaterial({ color: col, roughness: rough, metalness: metal });
-    };
-
-    if (stageIdx === 0) {
-      // Equalization tank
-      const tankBody = new THREE.Mesh(new THREE.BoxGeometry(2, 0.8, 1.5), smat(0x4a5a70));
-      tankBody.castShadow = true;
-      group.add(tankBody);
-      const waterGeom = new THREE.PlaneGeometry(1.9, 1.4);
-      const waterMat = new THREE.MeshStandardMaterial({ color: 0x5a7040, transparent: true, opacity: 0.7 });
-      const water = new THREE.Mesh(waterGeom, waterMat);
-      water.rotation.x = -Math.PI / 2;
-      water.position.y = 0.1;
-      group.add(water);
-    } else if (stageIdx === 1 || stageIdx === 2) {
-      // Aeration basin
-      const tankBody = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.6, 2.2), smat(0x4a5a70));
-      group.add(tankBody);
-      for (let i = -1; i <= 1; i++) {
-        const aerator = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.15, 10), smat(0xaabbcc, 0.4, 0.55));
-        aerator.position.set(i * 0.5, 0.1, 0);
-        group.add(aerator);
-      }
-      const water = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.1), new THREE.MeshStandardMaterial({ color: 0x2d6e48, transparent: true, opacity: 0.7 }));
-      water.rotation.x = -Math.PI / 2;
-      water.position.y = 0.08;
-      group.add(water);
-    } else if (stageIdx === 3) {
-      // Circular clarifier
-      const body = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.6, 32), smat(0x5a6a77));
-      group.add(body);
-      const water = new THREE.Mesh(new THREE.CircleGeometry(1.15, 32), new THREE.MeshStandardMaterial({ color: 0x2ea8b8, transparent: true, opacity: 0.8 }));
-      water.rotation.x = -Math.PI / 2;
-      water.position.y = 0.08;
-      group.add(water);
-      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.9, 0.5, 16), smat(0x5a3310, 0.85));
-      cone.rotation.x = Math.PI;
-      cone.position.y = 0.25;
-      group.add(cone);
-    } else if (stageIdx === 4) {
-      // River/discharge
-      const riverBody = new THREE.Mesh(new THREE.PlaneGeometry(2, 1.2), new THREE.MeshStandardMaterial({ color: 0x2288bb, transparent: true, opacity: 0.75 }));
-      riverBody.rotation.x = -Math.PI / 2;
-      group.add(riverBody);
-      const marker = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), smat(0x22ff88, 0.4, 0.2));
-      marker.position.set(0, 0.15, 0);
-      group.add(marker);
-    }
-
-    return group;
-  }
-
-  // Create all component models
-  for (let i = 0; i < STAGES.length; i++) {
-    componentModels.push(createComponentModel(i));
-  }
-
-  // Current viewer model
-  let currentViewerModel = null;
-  let viewerRotationY = 0;
+  const viewerImage = $('intro-viewer-image');
 
   // Helper function to project 3D world position to 2D screen coordinates
   function projectToScreen(worldPos, camera, canvas) {
@@ -1168,15 +1091,18 @@ export function showIntroVideo(cb) {
     `;
     descPanel.classList.add('visible');
 
-    // Show viewer panel with 3D component
+    // Show viewer panel with stage image
     $('intro-viewer-desc').textContent = componentDescriptions[idx];
+    viewerImage.src = stageImages[idx];
+    viewerImage.onerror = () => {
+      viewerImage.style.backgroundColor = '#2a3a4a';
+      viewerImage.style.display = 'flex';
+      viewerImage.style.alignItems = 'center';
+      viewerImage.style.justifyContent = 'center';
+      viewerImage.style.color = '#666';
+      viewerImage.textContent = '(Image not found: ' + stageImages[idx] + ')';
+    };
     viewerPanel.classList.add('visible');
-    
-    // Update viewer model
-    if (currentViewerModel) viewerScene.remove(currentViewerModel);
-    currentViewerModel = componentModels[idx].clone();
-    viewerScene.add(currentViewerModel);
-    viewerRotationY = 0;
 
     // Back button handler
     const backBtn = descPanel.querySelector('#btn-back-to-eagle');
@@ -1349,23 +1275,9 @@ export function showIntroVideo(cb) {
     equalizationWater.material.opacity  = 0.80 + 0.04 * Math.sin(t * 0.68);
     river.material.opacity              = 0.75 + 0.06 * Math.sin(t * 0.88);
 
-    // Render 3D component viewer with rotation
-    if (currentViewerModel) {
-      viewerRotationY += 0.01;  // Rotate model
-      currentViewerModel.rotation.y = viewerRotationY;
-      viewerRenderer.render(viewerScene, viewerCamera);
-    }
-
     renderer.render(scene, camera);
   }
   animate();
-
-  // Handle viewer canvas resize
-  window.addEventListener('resize', () => {
-    viewerCamera.aspect = canvasWidth / canvasHeight;
-    viewerCamera.updateProjectionMatrix();
-    viewerRenderer.setSize(canvasWidth, canvasHeight, false);
-  });
 
   // Continue button
   $('btn-intro-continue').onclick = () => {
