@@ -830,32 +830,48 @@ export function showIntroVideo(cb) {
 
       .intro-step-btn {
         position: fixed;
-        padding: 8px 12px;
-        border-radius: 6px;
-        border: 2px solid rgba(52, 152, 219, 0.6);
-        background: rgba(25, 50, 75, 0.9);
-        color: #b0d4ff;
-        font-size: 11px;
+        padding: 10px 14px 12px;
+        border: none;
+        background: linear-gradient(135deg, rgba(52, 152, 219, 0.95), rgba(41, 128, 185, 0.9));
+        color: #fff;
+        font-size: 10px;
         font-weight: 700;
         cursor: pointer;
         transition: all 0.2s;
         backdrop-filter: blur(8px);
         white-space: nowrap;
         pointer-events: auto;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        border-radius: 50% 50% 50% 0;
+        transform: rotate(-45deg);
+        width: 50px;
+        height: 50px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .intro-step-btn::before {
+        content: attr(data-tag);
+        display: block;
+        transform: rotate(45deg);
+        font-size: 15px;
+        line-height: 1.2;
       }
 
       .intro-step-btn:hover {
-        background: rgba(52, 152, 219, 0.7);
-        border-color: rgba(52, 152, 219, 0.9);
-        transform: scale(1.05);
+        background: linear-gradient(135deg, rgba(52, 152, 219, 1), rgba(41, 128, 185, 1));
+        transform: rotate(-45deg) scale(1.1);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.6);
       }
 
       .intro-step-btn.active {
-        background: rgba(52, 152, 219, 0.95);
-        border-color: #2ecc71;
-        color: #2ecc71;
-        box-shadow: 0 0 20px rgba(52, 152, 219, 0.6), inset 0 0 10px rgba(46, 204, 113, 0.2);
+        background: linear-gradient(135deg, rgba(46, 204, 113, 0.95), rgba(39, 174, 96, 0.9));
+        border: 2px solid #2ecc71;
+        color: #fff;
+        box-shadow: 0 0 25px rgba(46, 204, 113, 0.7), inset 0 0 10px rgba(255, 255, 255, 0.2);
+        transform: rotate(-45deg) scale(1.15);
       }
 
       .intro-desc-panel {
@@ -955,7 +971,7 @@ export function showIntroVideo(cb) {
   STAGES.forEach((stage, idx) => {
     const btn = document.createElement('button');
     btn.className = 'intro-step-btn';
-    btn.textContent = stage.tag;
+    btn.setAttribute('data-tag', (idx + 1).toString());
     btn.dataset.step = idx;
     btn.onclick = () => selectStep(idx);
     btn.userData = { worldPos: stageWorldPos[idx] };
@@ -1078,8 +1094,8 @@ export function showIntroVideo(cb) {
       const screenPos = projectToScreen(stageWorldPos[idx], camera, canvas);
       if (screenPos.visible && screenPos.x > 0 && screenPos.x < canvas.clientWidth &&
           screenPos.y > 0 && screenPos.y < canvas.clientHeight) {
-        btn.style.left = (screenPos.x - btn.offsetWidth / 2) + 'px';
-        btn.style.top = (screenPos.y - 35) + 'px';
+        btn.style.left = (screenPos.x - 25) + 'px';  // 50px / 2
+        btn.style.top = (screenPos.y - 50) + 'px';   // Full height so pointer touches the location
         btn.style.opacity = '1';
         btn.style.pointerEvents = 'auto';
       } else {
