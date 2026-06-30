@@ -803,8 +803,6 @@ export function showIntroVideo(cb) {
     },
   ];
 
-  const labelEl = $('intro-stage-label');
-
   function easeIO(x) { return x < 0.5 ? 2*x*x : -1+(4-2*x)*x; }
   function lerp3(a, b, f) {
     return [a[0]+(b[0]-a[0])*f, a[1]+(b[1]-a[1])*f, a[2]+(b[2]-a[2])*f];
@@ -939,8 +937,50 @@ export function showIntroVideo(cb) {
         color: #fff;
       }
 
+      .intro-viewer-panel {
+        position: fixed;
+        top: 50%;
+        left: 30px;
+        transform: translateY(-50%);
+        background: rgba(20, 40, 60, 0.95);
+        border: 2px solid rgba(52, 152, 219, 0.6);
+        border-radius: 12px;
+        padding: 16px;
+        max-width: 320px;
+        z-index: 210;
+        color: #ddeeff;
+        backdrop-filter: blur(12px);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        animation: slideInLeft 0.3s ease-out;
+        display: none;
+      }
+
+      .intro-viewer-panel.visible {
+        display: block;
+      }
+
+      .intro-viewer-canvas {
+        width: 100%;
+        height: 220px;
+        border-radius: 8px;
+        background: rgba(0, 20, 40, 0.8);
+        margin-bottom: 12px;
+      }
+
+      .intro-viewer-desc {
+        font-size: 12px;
+        line-height: 1.5;
+        color: #a0d0e0;
+        text-align: center;
+      }
+
       @keyframes slideInRight {
         from { opacity: 0; transform: translateX(30px); }
+        to   { opacity: 1; transform: translateX(0); }
+      }
+
+      @keyframes slideInLeft {
+        from { opacity: 0; transform: translateX(-30px); }
         to   { opacity: 1; transform: translateX(0); }
       }
     `;
@@ -983,6 +1023,113 @@ export function showIntroVideo(cb) {
   descPanel.className = 'intro-desc-panel';
   screen.appendChild(descPanel);
 
+  // Create left-side viewer panel with 3D component
+  const viewerPanel = document.createElement('div');
+  viewerPanel.className = 'intro-viewer-panel';
+  viewerPanel.innerHTML = `
+    <canvas class="intro-viewer-canvas" id="intro-viewer-canvas"></canvas>
+    <div class="intro-viewer-desc" id="intro-viewer-desc">Loading...</div>
+  `;
+  screen.appendChild(viewerPanel);
+
+  // Setup viewer canvas and renderer
+  const viewerCanvas = $('intro-viewer-canvas');
+  const canvasWidth = 288;  // 320px panel - 32px padding
+  const canvasHeight = 220;
+  viewerCanvas.width = canvasWidth;
+  viewerCanvas.height = canvasHeight;
+  const viewerRenderer = new THREE.WebGLRenderer({ canvas: viewerCanvas, antialias: true, alpha: true });
+  viewerRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  viewerRenderer.setSize(canvasWidth, canvasHeight, false);
+  viewerRenderer.setClearColor(0x0a1428, 0.5);
+  
+  const viewerScene = new THREE.Scene();
+  const viewerCamera = new THREE.PerspectiveCamera(45, canvasWidth / canvasHeight, 0.1, 100);
+  viewerCamera.position.set(0, 2, 3);
+  viewerCamera.lookAt(0, 0, 0);
+  
+  // Add lighting to viewer
+  const viewerLight1 = new THREE.DirectionalLight(0xfff7e0, 2.5);
+  viewerLight1.position.set(5, 5, 5);
+  viewerLight1.castShadow = true;
+  viewerScene.add(viewerLight1);
+  viewerScene.add(new THREE.HemisphereLight(0x9ed4f8, 0x5a7a40, 1.2));
+
+  // Component viewer data and models
+  const componentModels = [];
+  const componentDescriptions = [
+    'Bak Ekualisasi: Menyeimbangkan pH, suhu, dan debit limbah',
+    'Bak Aerasi: Injeksi oksigen untuk mendukung bakteri',
+    'Proses Biologis: Bakteri mengurai polutan',
+    'Bak Pengendap: Sludge mengendap ke dasar',
+    'Pelepasan: Air bersih dilepas ke alam'
+  ];
+
+  // Helper to create simplified 3D component model
+  function createComponentModel(stageIdx) {
+    const group = new THREE.Group();
+    const smat = (col, rough = 0.78, metal = 0) => {
+      return new THREE.MeshStandardMaterial({ color: col, roughness: rough, metalness: metal });
+    };
+
+    if (stageIdx === 0) {
+      // Equalization tank
+      const tankBody = new THREE.Mesh(new THREE.BoxGeometry(2, 0.8, 1.5), smat(0x4a5a70));
+      tankBody.castShadow = true;
+      group.add(tankBody);
+      const waterGeom = new THREE.PlaneGeometry(1.9, 1.4);
+      const waterMat = new THREE.MeshStandardMaterial({ color: 0x5a7040, transparent: true, opacity: 0.7 });
+      const water = new THREE.Mesh(waterGeom, waterMat);
+      water.rotation.x = -Math.PI / 2;
+      water.position.y = 0.1;
+      group.add(water);
+    } else if (stageIdx === 1 || stageIdx === 2) {
+      // Aeration basin
+      const tankBody = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.6, 2.2), smat(0x4a5a70));
+      group.add(tankBody);
+      for (let i = -1; i <= 1; i++) {
+        const aerator = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.15, 10), smat(0xaabbcc, 0.4, 0.55));
+        aerator.position.set(i * 0.5, 0.1, 0);
+        group.add(aerator);
+      }
+      const water = new THREE.Mesh(new THREE.PlaneGeometry(1.4, 2.1), new THREE.MeshStandardMaterial({ color: 0x2d6e48, transparent: true, opacity: 0.7 }));
+      water.rotation.x = -Math.PI / 2;
+      water.position.y = 0.08;
+      group.add(water);
+    } else if (stageIdx === 3) {
+      // Circular clarifier
+      const body = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 0.6, 32), smat(0x5a6a77));
+      group.add(body);
+      const water = new THREE.Mesh(new THREE.CircleGeometry(1.15, 32), new THREE.MeshStandardMaterial({ color: 0x2ea8b8, transparent: true, opacity: 0.8 }));
+      water.rotation.x = -Math.PI / 2;
+      water.position.y = 0.08;
+      group.add(water);
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(0.9, 0.5, 16), smat(0x5a3310, 0.85));
+      cone.rotation.x = Math.PI;
+      cone.position.y = 0.25;
+      group.add(cone);
+    } else if (stageIdx === 4) {
+      // River/discharge
+      const riverBody = new THREE.Mesh(new THREE.PlaneGeometry(2, 1.2), new THREE.MeshStandardMaterial({ color: 0x2288bb, transparent: true, opacity: 0.75 }));
+      riverBody.rotation.x = -Math.PI / 2;
+      group.add(riverBody);
+      const marker = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), smat(0x22ff88, 0.4, 0.2));
+      marker.position.set(0, 0.15, 0);
+      group.add(marker);
+    }
+
+    return group;
+  }
+
+  // Create all component models
+  for (let i = 0; i < STAGES.length; i++) {
+    componentModels.push(createComponentModel(i));
+  }
+
+  // Current viewer model
+  let currentViewerModel = null;
+  let viewerRotationY = 0;
+
   // Helper function to project 3D world position to 2D screen coordinates
   function projectToScreen(worldPos, camera, canvas) {
     const vector = worldPos.clone();
@@ -1021,6 +1168,16 @@ export function showIntroVideo(cb) {
     `;
     descPanel.classList.add('visible');
 
+    // Show viewer panel with 3D component
+    $('intro-viewer-desc').textContent = componentDescriptions[idx];
+    viewerPanel.classList.add('visible');
+    
+    // Update viewer model
+    if (currentViewerModel) viewerScene.remove(currentViewerModel);
+    currentViewerModel = componentModels[idx].clone();
+    viewerScene.add(currentViewerModel);
+    viewerRotationY = 0;
+
     // Back button handler
     const backBtn = descPanel.querySelector('#btn-back-to-eagle');
     if (backBtn) {
@@ -1029,6 +1186,7 @@ export function showIntroVideo(cb) {
         selectedStep = null;
         cameraEaseStart = clock.getElapsedTime();
         descPanel.classList.remove('visible');
+        viewerPanel.classList.remove('visible');
         document.querySelectorAll('.intro-step-btn').forEach(btn => btn.classList.remove('active'));
       };
     }
@@ -1191,9 +1349,23 @@ export function showIntroVideo(cb) {
     equalizationWater.material.opacity  = 0.80 + 0.04 * Math.sin(t * 0.68);
     river.material.opacity              = 0.75 + 0.06 * Math.sin(t * 0.88);
 
+    // Render 3D component viewer with rotation
+    if (currentViewerModel) {
+      viewerRotationY += 0.01;  // Rotate model
+      currentViewerModel.rotation.y = viewerRotationY;
+      viewerRenderer.render(viewerScene, viewerCamera);
+    }
+
     renderer.render(scene, camera);
   }
   animate();
+
+  // Handle viewer canvas resize
+  window.addEventListener('resize', () => {
+    viewerCamera.aspect = canvasWidth / canvasHeight;
+    viewerCamera.updateProjectionMatrix();
+    viewerRenderer.setSize(canvasWidth, canvasHeight, false);
+  });
 
   // Continue button
   $('btn-intro-continue').onclick = () => {
@@ -2431,9 +2603,6 @@ export function buildUIHTML() {
             <div class="intro-overlay-sub">Simulasi IPAL Kawasan Industri &amp; Sistem Pengelolaan Limbah Vinasse</div>
           </div>
         </div>
-
-        <!-- Stage label bottom-left -->
-        <div id="intro-stage-label"></div>
 
         <!-- Continue button bottom-right -->
         <button class="btn-primary intro-btn-continue" id="btn-intro-continue">Lanjutkan ke Petunjuk →</button>
