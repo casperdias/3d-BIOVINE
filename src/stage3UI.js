@@ -305,6 +305,7 @@ function showLabPanel(microId, onComplete) {
         </div>
         <div class="s3-pour-feedback hidden" id="s3-pour-feedback"></div>
         <button class="s3-btn hidden" id="s3-btn-confirm-pour">✅ Konfirmasi Takaran</button>
+        <button class="s3-btn s3-btn-reset hidden" id="s3-btn-reset-pour">🔄 Ulang Tuangan</button>
       </div>
 
       <!-- Result cards (hidden until pour complete) -->
@@ -480,6 +481,7 @@ function showLabPanel(microId, onComplete) {
           $('s3-pour-counter').classList.remove('hidden');
           $('s3-pour-progress-wrap').classList.remove('hidden');
           $('s3-btn-confirm-pour').classList.remove('hidden');
+          $('s3-btn-reset-pour').classList.remove('hidden');
         }
         moveGhostS3(cx, cy);
       }
@@ -577,6 +579,7 @@ function showLabPanel(microId, onComplete) {
       $('s3-pour-counter').classList.add('hidden');
       $('s3-pour-progress-wrap').classList.add('hidden');
       $('s3-btn-confirm-pour').classList.add('hidden');
+      $('s3-btn-reset-pour').classList.add('hidden');
       $('s3-pour-hint').classList.remove('hidden');
       $('s3-pour-feedback').classList.add('hidden');
       const lbl = document.getElementById('s3-tank-drop-lbl');
@@ -590,6 +593,7 @@ function showLabPanel(microId, onComplete) {
     const feedbackEl = $('s3-pour-feedback');
     feedbackEl.classList.remove('hidden');
     $('s3-btn-confirm-pour').classList.add('hidden');
+    $('s3-btn-reset-pour').classList.add('hidden');
 
     if (!calc) {
       feedbackEl.className = 's3-pour-feedback punishment';
@@ -618,6 +622,12 @@ function showLabPanel(microId, onComplete) {
       $('s3-spk-micro-layer').style.height = '30%';
       setTimeout(() => showLabResults(calc), 1500);
     }
+  };
+
+  // ── Reset button (manual pour retry) ──────────────────────────
+  $('s3-btn-reset-pour').onclick = () => {
+    $('s3-pour-feedback').classList.add('hidden');
+    resetPourAttempt();
   };
 
   $('s3-btn-to-valve').onclick = () => {
@@ -853,6 +863,7 @@ function injectStage3CSS() {
     .s3-btn:disabled { opacity: 0.4; cursor: default; }
     .s3-btn.hidden   { display: none; }
     .s3-btn-restart  { background: linear-gradient(135deg, #7a0a0a, #b01414); margin-left: 10px; }
+    .s3-btn-reset    { background: linear-gradient(135deg, #8040a0, #6030a0); margin-left: 10px; }
 
     /* ── Shop grid ───────────────────────────────────── */
     .s3-shop-grid {
