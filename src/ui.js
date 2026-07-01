@@ -1545,6 +1545,192 @@ function showLevel1RoomInstructions(onDone) {
   overlay.appendChild(card);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// Level 1 Info Card — Warning about questions, timers, and scoring
+// ═══════════════════════════════════════════════════════════════════════════════
+export function showLevel1InfoCard(onContinue) {
+  // Inject CSS if not already present
+  if (!$('level-info-styles')) {
+    const style = document.createElement('style');
+    style.id = 'level-info-styles';
+    style.textContent = `
+      .level-info-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1500;
+        animation: fadeIn 0.4s ease-out;
+      }
+
+      .level-info-card {
+        background: linear-gradient(135deg, rgba(20, 40, 60, 0.98) 0%, rgba(30, 50, 70, 0.96) 100%);
+        border: 2px solid rgba(52, 152, 219, 0.7);
+        border-radius: 16px;
+        padding: 40px;
+        max-width: 500px;
+        width: 90%;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        backdrop-filter: blur(16px);
+        color: #e0e8f0;
+        text-align: center;
+      }
+
+      .level-info-card h2 {
+        font-size: 28px;
+        margin: 0 0 20px 0;
+        color: #4ab0e6;
+        text-shadow: 0 2px 8px rgba(74, 176, 230, 0.3);
+      }
+
+      .level-info-card .warning-icon {
+        font-size: 48px;
+        margin-bottom: 16px;
+      }
+
+      .level-info-card .info-section {
+        background: rgba(0, 0, 0, 0.3);
+        border-left: 4px solid rgba(74, 176, 230, 0.6);
+        padding: 16px;
+        margin: 16px 0;
+        text-align: left;
+        border-radius: 8px;
+        font-size: 14px;
+        line-height: 1.8;
+      }
+
+      .level-info-card .info-section strong {
+        color: #4ab0e6;
+      }
+
+      .level-info-card ul {
+        list-style: none;
+        padding: 0;
+        margin: 12px 0;
+      }
+
+      .level-info-card li {
+        padding: 8px 0;
+        display: flex;
+        align-items: center;
+      }
+
+      .level-info-card li:before {
+        content: "✓";
+        color: #22bb88;
+        font-weight: bold;
+        margin-right: 12px;
+        font-size: 18px;
+      }
+
+      .level-info-card .warning-item {
+        padding: 12px;
+        background: rgba(200, 100, 60, 0.2);
+        border-left: 4px solid #c8643c;
+        margin: 12px 0;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+
+      .level-info-card .warning-item:before {
+        content: "⚠ ";
+        color: #ff9966;
+        margin-right: 8px;
+      }
+
+      .level-info-continue-btn {
+        background: linear-gradient(135deg, #3a8fc9 0%, #2a6fa9 100%);
+        color: white;
+        border: none;
+        padding: 14px 32px;
+        font-size: 16px;
+        font-weight: 600;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-top: 24px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(58, 143, 201, 0.3);
+      }
+
+      .level-info-continue-btn:hover {
+        background: linear-gradient(135deg, #4a9fd9 0%, #3a7fb9 100%);
+        box-shadow: 0 6px 20px rgba(58, 143, 201, 0.5);
+        transform: translateY(-2px);
+      }
+
+      .level-info-continue-btn:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(58, 143, 201, 0.3);
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes fadeOut {
+        from { opacity: 1; }
+        to { opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // Create overlay and card
+  const overlay = document.createElement('div');
+  overlay.className = 'level-info-overlay';
+
+  const card = document.createElement('div');
+  card.className = 'level-info-card';
+  card.innerHTML = `
+    <div class="warning-icon">📋</div>
+    <h2>Tahap 1: Laboratorium</h2>
+    
+    <div class="info-section">
+      <strong>Level Briefing:</strong>
+      <ul>
+        <li>3 pertanyaan akan ditampilkan secara berurutan</li>
+        <li>Setiap pertanyaan adalah tantangan yang berbeda</li>
+        <li>Baca dengan teliti untuk memahami fenomena</li>
+      </ul>
+    </div>
+
+    <div class="info-section">
+      <strong>⏱️ Aturan Waktu:</strong>
+      <ul>
+        <li>Setiap pertanyaan memiliki batas waktu <strong>2 menit</strong></li>
+        <li>Hitung mundur dimulai saat pertanyaan muncul</li>
+        <li>Jika waktu habis, pertanyaan otomatis lanjut</li>
+      </ul>
+    </div>
+
+    <div class="warning-item">
+      Jika Anda melampaui batas waktu untuk suatu pertanyaan, skor untuk pertanyaan itu akan menjadi 0.
+    </div>
+
+    <button class="level-info-continue-btn">Siap! Lanjutkan →</button>
+  `;
+
+  overlay.appendChild(card);
+
+  // Add continue button handler
+  const continueBtn = card.querySelector('.level-info-continue-btn');
+  continueBtn.onclick = () => {
+    overlay.style.animation = 'fadeOut 0.3s ease-out';
+    setTimeout(() => {
+      overlay.remove();
+      if (onContinue) onContinue();
+    }, 300);
+  };
+
+  document.body.appendChild(overlay);
+}
+
 // Open a single phenomenon by index (used by 3D object interaction)
 // Always shows ONLY that one question, then calls onDone — no chaining.
 export function showQuestionPanel(phenomenonIdx, onDone, onDismiss) {
@@ -2346,7 +2532,7 @@ export function buildUIHTML() {
 
         <div class="instr-section">
           <h3>�📊 Sistem Level</h3>
-          <p>Terdapat <strong>6 Level</strong> yang harus diselesaikan secara berurutan. Setiap level memiliki 3 fenomena dengan masing-masing 1 pertanyaan.</p>
+          <p>Terdapat <strong>5 Level</strong> yang harus diselesaikan secara berurutan. Setiap level memiliki 3 fenomena dengan masing-masing 1 pertanyaan.</p>
         </div>
 
         <div class="instr-section">

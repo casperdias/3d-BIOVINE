@@ -16,6 +16,7 @@ import {
   showIntroVideo,
   initPauseMenu,
   showQuestionPanel,
+  showLevel1InfoCard,
   initHUD,
   updateHUD,
   setInteractPrompt,
@@ -461,6 +462,11 @@ function startLevel1() {
   setCamBounds(27, 17);
   nearObject = null;
   updateHUD();
+  
+  // Show level info card before player can move
+  showLevel1InfoCard(() => {
+    // Player can now interact with the level
+  });
 }
 
 // ─────────────────────────────────────────────────────
