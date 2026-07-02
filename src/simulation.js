@@ -34,11 +34,53 @@ export function showSimulation(onDone) {
 function buildSimHTML() {
   return `
     <div class="sim-card">
-      <!-- Header -->
+      <!-- Header with Reset Button -->
       <div class="sim-header">
-        <span class="sim-badge">🔬 SIMULASI LAB</span>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 12px;">
+          <div>
+            <span class="sim-badge">🔬 SIMULASI LAB</span>
+          </div>
+          <button class="sim-btn-reset" id="btn-sim-reset" title="Reset seluruh simulasi">🔄 Reset</button>
+        </div>
         <h2 class="sim-title">Pengolahan Limbah Vinasse</h2>
         <p class="sim-subtitle">Ukur TDS, DO & pH — lalu uji efektivitas aerasi</p>
+      </div>
+
+      <!-- Persistent Beaker Container (stays visible across transitions) -->
+      <div class="sim-persistent-beaker" id="persistent-beaker-zone">
+        <div class="beaker-pour-row">
+          <div class="beaker-drop-zone" id="beaker-drop-zone">
+            <div class="beaker-drops" id="beaker-drops"></div>
+            <div class="beaker-wrap">
+              <div class="beaker" style="position: relative;">
+                <div class="beaker-vinasse" id="beaker-vinasse"></div>
+                <div class="beaker-water"   id="beaker-water"></div>
+                <div class="beaker-scale">
+                  ${[1000,800,600,400,200,0].map(l => `<span>${l}</span>`).join('')}
+                </div>
+                <!-- Bubble container for aerator visualization in Step 3 -->
+                <div class="bubble-container" id="bubble-container"></div>
+              </div>
+            </div>
+          </div>
+          <div class="pour-readout">
+            <div class="vol-display" id="vol-display">
+              <div class="vol-display-row">
+                <span class="vol-display-icon">🟤</span>
+                <span><b><span id="vol-display-num">0</span> mL</b> Vinasse</span>
+              </div>
+              <div class="vol-display-row secondary">
+                <span class="vol-display-icon">💧</span>
+                <span><span id="vol-display-water">1000</span> mL Air Suling</span>
+              </div>
+            </div>
+            <div class="beaker-drop-label" id="beaker-drop-label">Jatuhkan di sini</div>
+            <div class="vol-legend" style="margin-top:10px">
+              <span class="legend-box water-box"></span> Air suling
+              <span class="legend-box vinasse-box"></span> Vinasse
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Step 1: Multi-glass drag-to-pour -->
@@ -59,39 +101,6 @@ function buildSimHTML() {
           </div>
           <div class="glasses-hint">↙️ Seret gelas ke BEKER KANAN untuk menuangkan vinasse</div>
         </div>
-        <!-- Beaker drop target -->
-        <div class="beaker-pour-row">
-          <div class="beaker-drop-zone" id="beaker-drop-zone">
-            <div class="beaker-drops" id="beaker-drops"></div>
-            <div class="beaker-wrap">
-              <div class="beaker">
-                <div class="beaker-vinasse" id="beaker-vinasse"></div>
-                <div class="beaker-water"   id="beaker-water"></div>
-                <div class="beaker-scale">
-                  ${[1000,800,600,400,200,0].map(l => `<span>${l}</span>`).join('')}
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="pour-readout">
-            <div class="vol-display" id="vol-display">
-              <div class="vol-display-row">
-                <span class="vol-display-icon">🟤</span>
-                <span><b><span id="vol-display-num">0</span> mL</b> Vinasse</span>
-              </div>
-              <div class="vol-display-row secondary">
-                <span class="vol-display-icon">💧</span>
-                <span><span id="vol-display-water">1000</span> mL Air Suling</span>
-              </div>
-            </div>
-            <div class="beaker-drop-label" id="beaker-drop-label">Jatuhkan di sini</div>
-            <button class="sim-btn-sm" id="btn-reset-pour">🔄 Isi Ulang Gelas</button>
-            <div class="vol-legend" style="margin-top:10px">
-              <span class="legend-box water-box"></span> Air suling
-              <span class="legend-box vinasse-box"></span> Vinasse
-            </div>
-          </div>
-        </div>
         <button class="sim-btn" id="btn-titrate" disabled>📏 Ukur Parameter →</button>
       </div>
 
@@ -99,15 +108,15 @@ function buildSimHTML() {
       <div class="sim-step hidden" id="sim-step-2">
         <div class="step-title">
           <span class="step-num">2</span>
-          Ukur Parameter — Celupkan TDS/DO Meter
+          Ukur Parameter — Celupkan TDS/DO Meter ke Beaker
         </div>
         <div class="meter-layout">
           <!-- Instruction -->
           <div class="meter-instruction" id="meter-instruction">
-            ⤵️ Seret probe sensor ke dalam BEAKER untuk mengukur TDS · DO · pH · SAL
+            ⤵️ Seret probe sensor ke BEAKER untuk mengukur TDS · DO · pH · SAL
           </div>
-          <!-- Instrument row: display unit + cable + probe + beaker -->
-          <div class="meter-instrument-row">
+          <!-- Instrument row: display unit + cable + probe (positioned to interact with persistent beaker) -->
+          <div class="meter-instrument-row-step2">
             <!-- Display unit (left stick, static) -->
             <div class="meter-display-unit">
               <div class="mdu-head">
@@ -125,31 +134,17 @@ function buildSimHTML() {
             <svg class="meter-cable-svg" viewBox="0 0 80 40" preserveAspectRatio="none">
               <path d="M0,20 C20,6 60,34 80,20" stroke="#3a7a9a" stroke-width="2.5" fill="none" stroke-dasharray="5,4"/>
             </svg>
-            <!-- Probe stick + beaker drop zone -->
-            <div class="meter-probe-column">
-              <div class="meter-probe-stick" id="meter-probe-stick" title="Seret ke dalam larutan">
-                <div class="mps-handle">⊕</div>
-                <div class="mps-shaft"></div>
-                <div class="mps-tip"></div>
-              </div>
-              <div class="meter-beaker-wrap">
-                <div class="meter-beaker" id="meter-beaker">
-                  <div class="meter-bk-vinasse" id="meter-bk-vinasse"></div>
-                  <div class="meter-bk-ripple" id="meter-bk-ripple"></div>
-                  <div class="meter-bk-scale">
-                    ${[1000,800,600,400,200].map(l => `<span>${l}</span>`).join('')}
-                  </div>
-                </div>
-                <div class="meter-bk-label" id="meter-vol-label">— mL</div>
-              </div>
+            <!-- Probe stick only (beaker is the persistent one above) -->
+            <div class="meter-probe-stick" id="meter-probe-stick" title="Seret ke dalam larutan">
+              <div class="mps-handle">⊕</div>
+              <div class="mps-shaft"></div>
+              <div class="mps-tip"></div>
             </div>
           </div>
-          <!-- Results appear below instrument row after measurement -->
+          <!-- Results appear below after measurement -->
           <div class="meter-result-grid hidden" id="meter-result-grid"></div>
           <div class="meter-note hidden" id="meter-note"></div>
           <button class="sim-btn hidden" id="btn-go-aerate">💨 Lanjut ke Simulasi Aerasi →</button>
-          <button class="sim-btn-back hidden" id="btn-back-meter">↶ Kembali ke Step 1</button>
-        <button class="sim-btn-back hidden" id="btn-back-meter" style="margin-left:8px">⏮ Kembali ke Step 1</button>
         </div>
       </div>
 
@@ -157,24 +152,14 @@ function buildSimHTML() {
       <div class="sim-step hidden" id="sim-step-3">
         <div class="step-title">
           <span class="step-num">3</span>
-          Simulasi Aerasi (Biodegradasi Aerobik)
+          Simulasi Aerasi Biodegradasi pada Beaker
         </div>
 
-        <div class="aerator-panel">
-          <div class="aerator-visual" id="aerator-visual">
-            <div class="aerator-tank">
-              <div class="aerator-liquid" id="aerator-liquid"></div>
-              <div class="bubble-container" id="bubble-container"></div>
-            </div>
-            <div class="aerator-machine" id="aerator-machine">
-              <div class="motor-body"></div>
-              <div class="motor-shaft"></div>
-            </div>
-          </div>
-
+        <div class="aerator-controls-layout">
+          <!-- Aerator controls (positioned above persistent beaker) -->
           <div class="aerator-controls">
             <label class="toggle-label">
-              <span>Aerator</span>
+              <span>Nyalakan Aerator</span>
               <label class="toggle-switch">
                 <input type="checkbox" id="aerator-toggle">
                 <span class="toggle-slider"></span>
@@ -183,7 +168,7 @@ function buildSimHTML() {
             </label>
 
             <div class="duration-wrap" id="duration-wrap">
-              <label>Durasi Aerasi</label>
+              <label>Pilih Durasi Aerasi</label>
               <div class="duration-buttons">
                 ${[6, 12, 24, 48, 72].map(h => `
                   <button class="dur-btn" data-hours="${h}">${h} jam</button>
@@ -191,11 +176,17 @@ function buildSimHTML() {
               </div>
             </div>
           </div>
+
+          <!-- Aerator visual indicator (displayed above persistent beaker) -->
+          <div class="aerator-visual-indicator" id="aerator-visual">
+            <div class="aerator-machine" id="aerator-machine">
+              <div class="motor-body"></div>
+              <div class="motor-shaft"></div>
+            </div>
+          </div>
         </div>
 
         <button class="sim-btn hidden" id="btn-calc-result">📊 Hitung Hasil Pengolahan →</button>
-        <button class="sim-btn-back hidden" id="btn-back-aerate">↶ Kembali ke Step 2</button>
-        <button class="sim-btn-back hidden" id="btn-back-aerate" style="margin-left:8px">⏮ Kembali ke Step 2</button>
       </div>
 
       <!-- Step 4: Results -->
@@ -358,20 +349,7 @@ function wireSimulation(overlay, onDone) {
     window.addEventListener('touchmove', _onTouchMove, { passive: false });
     window.addEventListener('touchend',  _onTouchEnd);
 
-    document.getElementById('btn-reset-pour').onclick = () => {
-      endDrag();
-      selectedVol = 0;
-      for (let i = 0; i < GLASS_COUNT; i++) {
-        glassVolumes[i] = GLASS_VOL;
-        updateGlassVisual(i);
-        document.getElementById(`vglass-${i}`)?.classList.remove('empty');
-      }
-      updateBeaker(0);
-      updateDisplay();
-      $('btn-titrate').disabled = true;
-      const lbl = document.getElementById('beaker-drop-label');
-      if (lbl) lbl.textContent = 'Jatuhkan di sini';
-    };
+
 
     pourCleanup = () => {
       endDrag();
@@ -398,11 +376,14 @@ function wireSimulation(overlay, onDone) {
     setAeratorLiquidColor(initialData);
   };
 
-  // ── Back button: Step 2 → 1 ──
-  $('btn-back-meter').onclick = () => {
-    transitionStep('sim-step-2', 'sim-step-1');
-    $('btn-go-aerate').classList.add('hidden');
-    $('btn-back-meter').classList.add('hidden');
+  // ── Reset button: Restart entire simulation ──
+  $('btn-sim-reset').onclick = () => {
+    // Clean up ghost glass and all event listeners
+    const ghost = document.getElementById('vg-ghost');
+    if (ghost) ghost.remove();
+    if (pourCleanup) pourCleanup();
+    $('sim-overlay').remove();
+    showSimulation(onDone);
   };
 
   // ── Step 3: Aerator toggle ──
@@ -444,15 +425,6 @@ function wireSimulation(overlay, onDone) {
       $('sim-overlay').remove();
       if (onDone) onDone();
     };
-  };
-
-  // ── Back button: Step 3 → 2 ──
-  $('btn-back-aerate').onclick = () => {
-    transitionStep('sim-step-3', 'sim-step-2');
-    $('btn-calc-result').classList.add('hidden');
-    $('btn-back-aerate').classList.add('hidden');
-    $('btn-go-aerate').classList.remove('hidden');
-    $('btn-back-meter').classList.remove('hidden');
   };
 }
 
@@ -497,7 +469,7 @@ function initMeterDip(vol, initialData) {
 
   const readings  = getMeterReadings(vol);
   const probeEl   = $('meter-probe-stick');
-  const beakerEl  = $('meter-beaker');
+  const beakerEl  = $('beaker-drop-zone');  // Use persistent beaker for drop zone
   let   probeUsed = false;
   let   ghost     = null;
 
@@ -650,17 +622,17 @@ function updateBeaker(vol) {
 
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Aerator liquid colour
+// Aerator liquid colour (apply to persistent beaker)
 // ─────────────────────────────────────────────────────────────────────────────
 function setAeratorLiquidColor(data) {
-  const el = $('aerator-liquid');
+  const el = $('beaker-vinasse');  // Apply to persistent beaker's vinasse element
   if (!el) return;
   // Dark brown for high COD, lighter for more dilute
   const ratio = Math.min(1, data.cod / 45000);
   const r = Math.round(60 + ratio * 60);
   const g = Math.round(20 + ratio * 5);
   const b = 0;
-  el.style.background = `rgb(${r},${g},${b})`;
+  el.style.background = `linear-gradient(180deg, rgba(${r},${g},${b},0.88) 0%, rgba(${Math.max(30, r-30)},${Math.max(10, g-10)},0,0.96) 100%)`;
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -759,20 +731,51 @@ const _unused_evalQuestion = {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Step transition helper
+// Step transition helper – smooth with beaker continuity
 // ─────────────────────────────────────────────────────────────────────────────
 function transitionStep(fromId, toId) {
   const fromEl = $(fromId);
   const toEl   = $(toId);
 
-  fromEl.classList.add('step-exit');
-  setTimeout(() => {
-    fromEl.classList.add('hidden');
-    fromEl.classList.remove('step-exit');
-    toEl.classList.remove('hidden');
-    toEl.classList.add('step-enter');
-    setTimeout(() => toEl.classList.remove('step-enter'), 400);
-  }, 300);
+  // Special handling: Step 1→2 smoothly transitions glasses away
+  if (fromId === 'sim-step-1' && toId === 'sim-step-2') {
+    const glassesRow = $('glasses-row-wrap');
+    const titratBtn = $('btn-titrate');
+
+    // Fade out glasses and button
+    if (glassesRow) {
+      glassesRow.style.opacity = '0';
+      glassesRow.style.transform = 'translateY(-12px)';
+      glassesRow.style.transition = 'all 0.3s ease';
+      glassesRow.style.pointerEvents = 'none';
+    }
+
+    if (titratBtn) {
+      titratBtn.style.opacity = '0';
+      titratBtn.style.transform = 'translateY(8px)';
+      titratBtn.style.transition = 'all 0.3s ease';
+      titratBtn.style.pointerEvents = 'none';
+    }
+
+    // Hide Step 1 content, show Step 2
+    setTimeout(() => {
+      fromEl.classList.add('hidden');
+      
+      toEl.classList.remove('hidden');
+      toEl.classList.add('step-enter');
+      setTimeout(() => toEl.classList.remove('step-enter'), 400);
+    }, 300);
+  } else {
+    // Standard transition for other steps
+    fromEl.classList.add('step-exit');
+    setTimeout(() => {
+      fromEl.classList.add('hidden');
+      fromEl.classList.remove('step-exit');
+      toEl.classList.remove('hidden');
+      toEl.classList.add('step-enter');
+      setTimeout(() => toEl.classList.remove('step-enter'), 400);
+    }, 300);
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -797,8 +800,20 @@ function injectSimulationCSS() {
       padding: 28px 32px;
       color: #e0eeff;
       box-shadow: 0 0 40px rgba(0, 120, 200, 0.25);
+      max-height: 85vh;
+      overflow-y: auto;
     }
-    .sim-header { text-align: center; margin-bottom: 28px; }
+    .sim-header {
+      text-align: center;
+      margin-bottom: 28px;
+      position: sticky;
+      top: 0;
+      background: rgba(12, 22, 40, 0.98);
+      z-index: 10;
+      padding-bottom: 12px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid rgba(80, 120, 160, 0.2);
+    }
     .sim-badge {
       background: rgba(0, 200, 255, 0.15);
       border: 1px solid #00c8ff;
@@ -807,6 +822,17 @@ function injectSimulationCSS() {
     }
     .sim-title { margin: 10px 0 4px; font-size: 22px; color: #a0d8ff; }
     .sim-subtitle { color: #7090a0; font-size: 13px; }
+
+    /* ── Persistent Beaker Zone (stays visible across transitions) ────────── */
+    .sim-persistent-beaker {
+      margin: 20px 0;
+      padding: 14px;
+      background: rgba(10, 20, 30, 0.5);
+      border: 1px solid rgba(80, 120, 160, 0.2);
+      border-radius: 10px;
+      transition: all 0.3s ease;
+    }
+    .sim-persistent-beaker.hidden { display: none; }
 
     /* ── Steps ────────────────────────────────────────── */
     .sim-step { margin-top: 16px; }
@@ -826,6 +852,12 @@ function injectSimulationCSS() {
     @keyframes stepExit  { from { opacity:1; transform: none; } to { opacity:0; transform: translateY(-8px); } }
     .step-enter { animation: stepEnter 0.4s ease forwards; }
     .step-exit  { animation: stepExit  0.3s ease forwards; }
+
+    /* ── Beaker continuity transitions ─────────────────── */
+    .glasses-row-wrap { transition: opacity 0.3s ease, transform 0.3s ease; }
+    .glasses-row-wrap.fade-out { opacity: 0; transform: translateY(-8px); }
+    .glasses-hint { transition: opacity 0.3s ease; }
+    .glasses-hint.fade-out { opacity: 0; }
 
     /* ── Volume buttons (kept for compat) ────────────── */
     .volume-selector { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
@@ -959,6 +991,20 @@ function injectSimulationCSS() {
     .sim-btn:disabled { opacity: 0.4; cursor: default; }
     .sim-btn.hidden { display: none; }
 
+    /* ── Reset button ────────────────────────────────── */
+    .sim-btn-reset {
+      padding: 7px 16px; border-radius: 8px;
+      background: rgba(100, 60, 60, 0.6);
+      color: #d0a0a0; font-size: 13px; font-weight: 600;
+      border: 1.5px solid rgba(200, 100, 100, 0.4);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .sim-btn-reset:hover {
+      background: rgba(140, 80, 80, 0.8);
+      border-color: rgba(220, 120, 120, 0.7);
+      color: #ff9999;
+    }
+
     /* ── Parameter cards ──────────────────────────────── */
     .param-grid {
       display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -984,8 +1030,13 @@ function injectSimulationCSS() {
       color: #a0c8d8; margin-bottom: 4px; line-height: 1.6;
     }
 
-    /* ── Aerator panel ────────────────────────────────── */
+    /* ── Aerator panel (legacy - keeping for compat) ────────── */
     .aerator-panel { display: flex; gap: 28px; align-items: flex-start; flex-wrap: wrap; }
+    
+    /* ── Aerator controls layout (new - with persistent beaker) ──*/
+    .aerator-controls-layout { display: flex; flex-direction: column; gap: 16px; align-items: center; }
+    .aerator-visual-indicator { margin: 12px 0; }
+
     .aerator-visual { flex-shrink: 0; }
     .aerator-tank {
       width: 150px; height: 100px;
@@ -1135,6 +1186,7 @@ function injectSimulationCSS() {
     /* ── TDS/DO Meter (two-stick design) ────────────── */
     .meter-layout { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
     .meter-instrument-row { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; }
+    .meter-instrument-row-step2 { display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
     /* --- Display unit (left stick) --- */
     .meter-display-unit { display: flex; flex-direction: column; align-items: center; flex-shrink: 0; }
     .mdu-head {
@@ -1154,9 +1206,7 @@ function injectSimulationCSS() {
     .mr-unit { color: #2a7a5a; font-size: 9px; }
     /* --- Decorative cable --- */
     .meter-cable-svg { width: 80px; height: 40px; flex-shrink: 0; }
-    /* --- Probe column --- */
-    .meter-probe-column { display: flex; flex-direction: column; align-items: center; gap: 12px; }
-    /* Draggable probe stick */
+    /* --- Probe stick (no beaker, just probe) --- */
     .meter-probe-stick {
       display: flex; flex-direction: column; align-items: center;
       cursor: grab; user-select: none; transition: opacity 0.2s;
