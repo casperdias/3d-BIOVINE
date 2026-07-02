@@ -1620,11 +1620,17 @@ body {
 .intro-btn-continue {
   position: absolute;
   bottom: 32px;
-  right: 36px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
   padding: 14px 32px;
   font-size: 1rem;
   letter-spacing: 0.04em;
   box-shadow: 0 0 24px rgba(0, 212, 255, 0.35);
+}
+.intro-btn-continue:hover {
+  transform: translateX(-50%) translateY(-2px);
+  box-shadow: 0 0 24px rgba(0, 212, 255, 0.5);
 }
 .intro-btn-continue:disabled {
   opacity: 0.35;
@@ -1637,7 +1643,7 @@ body {
   .intro-overlay-h     { font-size: 1.1rem; }
   .intro-overlay-sub   { display: none; }
   .intro-legend        { bottom: 72px; left: 12px; }
-  .intro-btn-continue  { bottom: 16px; right: 16px; padding: 10px 20px; font-size: 0.9rem; }
+  .intro-btn-continue  { bottom: 16px; left: 50%; right: auto; transform: translateX(-50%); padding: 10px 20px; font-size: 0.9rem; }
 }
 
 /* ===== PAUSE MENU MODAL ===== */
