@@ -2012,7 +2012,7 @@ export function showGameComplete() {
           background:linear-gradient(135deg,#1a2a1a,#0d1a10);
           border-radius:20px;border:2px solid #2ecc71;box-shadow:0 0 60px rgba(46,204,113,.4)">
       <div style="font-size:64px;margin-bottom:8px">🏆</div>
-      <h1 style="font-size:26px;margin:0 0 6px;color:#2ecc71">Selamat, Kamu Menyelesaikan<br>3D BIOVINE!</h1>
+      <h1 style="font-size:26px;margin:0 0 6px;color:#2ecc71">Selamat, Kamu Menyelesaikan<br>Semi Immersive VR!</h1>
       <p style="font-size:14px;color:#aaa;margin:0 0 20px">
         Kamu telah berhasil mengolah limbah vinasse menjadi<br>
         <strong style="color:#ffe040">Pupuk Organik Cair (POC)</strong> yang bermanfaat 🌿
@@ -2503,7 +2503,7 @@ export function buildUIHTML() {
     <div class="screen" id="profile-screen">
       <div class="profile-card">
         <div class="logo">🌿</div>
-        <h1>3D BIOVINE</h1>
+        <h1>Semi Immersive VR</h1>
         <p class="subtitle">Game Edukasi Penyelamatan Lingkungan<br>dari Pencemaran Limbah Vinasse</p>
 
         <!-- Checkpoint resume banner (populated dynamically) -->
@@ -2697,7 +2697,7 @@ export function buildUIHTML() {
         <div class="intro-overlay-title">
           <div class="intro-overlay-logo">🌿</div>
           <div>
-            <div class="intro-overlay-h">3D BIOVINE</div>
+            <div class="intro-overlay-h">Semi Immersive VR</div>
             <div class="intro-overlay-sub">Simulasi IPAL Kawasan Industri &amp; Sistem Pengelolaan Limbah Vinasse</div>
           </div>
         </div>
