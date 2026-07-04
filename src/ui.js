@@ -774,31 +774,31 @@ export function showIntroVideo(cb) {
     {
       tag: 'Tahap 1 dari 5', title: 'Penampungan Awal (Bak Ekualisasi)',
       subtitle: 'Equalization Basin', waterQuality: 5,
-      camPos: [-40, 32, -36], camLook: [-24, 0, -24],
+      camPos: [-28, 18, -24], camLook: [-24, 0, -24],
       desc: 'Limbah vinasse yang pekat dari industri etanol dialirkan dan ditampung terlebih dahulu di bak penampungan awal IPAL Ciunik. Pada tahap ini, dilakukan penyamaan atau stabilisasi debit, suhu, dan tingkat keasaman (pH) limbah agar kondisinya ideal dan tidak merusak sistem pengolahan di tahap selanjutnya.',
     },
     {
       tag: 'Tahap 2 dari 5', title: 'Proses Aerasi (Injeksi Oksigen)',
       subtitle: 'Aeration Process', waterQuality: 28,
-      camPos: [-10, 28, -10], camLook: [0, 0, 0],
+      camPos: [-8, 16, -8], camLook: [0, 0, 0],
       desc: 'Setelah stabil, limbah dialirkan ke dalam bak aerasi. Di dalam bak ini, air limbah dipompa dan disuplai dengan gelembung udara (oksigen) secara terus-menerus menggunakan mesin aerator. Oksigen ini sangat krusial untuk menjaga agar kondisi air tetap kaya oksigen terlarut.',
     },
     {
       tag: 'Tahap 3 dari 5', title: 'Penambahan Mikroorganisme (Bakteri Pengurai)',
       subtitle: 'Biological Treatment', waterQuality: 55,
-      camPos: [8, 32, 16], camLook: [6, 0, 2],
+      camPos: [6, 18, 14], camLook: [6, 0, 2],
       desc: 'Bersamaan dengan suplai oksigen yang melimpah, ditambahkan mikroorganisme aerobik (bakteri pengurai) ke dalam bak aerasi. Mikroorganisme ini bekerja dengan cara menguraikan polutan serta zat-zat organik berbahaya yang terkandung dalam vinasse, mengubahnya menjadi pupuk organik cair.',
     },
     {
       tag: 'Tahap 4 dari 5', title: 'Pengendapan (Clarifier)',
       subtitle: 'Secondary Clarifier', waterQuality: 80,
-      camPos: [32, 28, 28], camLook: [30, 0, 18],
+      camPos: [22, 16, 20], camLook: [30, 0, 18],
       desc: 'Setelah zat organik hancur terurai, campuran air limbah dan mikroorganisme dialirkan ke bak pengendap. Gumpalan bakteri dan sisa kotoran akan dibiarkan mengendap ke dasar bak, sementara air yang sudah jernih akan terpisah dan naik ke permukaan.',
     },
     {
       tag: 'Tahap 5 dari 5', title: 'Pelepasan Air Bersih (Output)',
       subtitle: 'Clean Water Discharge', waterQuality: 100,
-      camPos: [62, 30, 30], camLook: [54, 0, 14],
+      camPos: [44, 18, 26], camLook: [54, 0, 14],
       desc: 'Air hasil pemisahan tersebut kini memiliki kadar polutan (seperti BOD dan COD) yang sangat rendah dan sudah memenuhi standar baku mutu lingkungan. Air ini dapat dikembalikan atau dilepas ke alam tanpa mencemari ekosistem sekitarnya atau dimanfaatkan menjadi pupuk organik cair.',
     },
   ];
@@ -872,118 +872,116 @@ export function showIntroVideo(cb) {
         transform: rotate(-45deg) scale(1.15);
       }
 
-      .intro-desc-panel {
+      .intro-info-card {
         position: fixed;
-        top: 50px;
-        right: 30px;
-        background: rgba(20, 40, 60, 0.95);
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(20, 40, 60, 0.98);
         border: 2px solid rgba(52, 152, 219, 0.6);
-        border-radius: 12px;
+        border-radius: 16px;
         padding: 24px;
-        max-width: 380px;
+        max-width: 500px;
+        width: calc(100vw - 40px);
+        max-height: 80vh;
+        overflow-y: auto;
         z-index: 210;
         color: #ddeeff;
         backdrop-filter: blur(12px);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-        animation: slideInRight 0.3s ease-out;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+        animation: slideInCenter 0.3s ease-out;
         display: none;
       }
 
-      .intro-desc-panel.visible {
+      .intro-info-card.visible {
         display: block;
       }
 
-      .intro-desc-title {
+      .intro-info-image {
+        width: 100%;
+        height: 220px;
+        border-radius: 12px;
+        background: rgba(0, 20, 40, 0.8);
+        margin-bottom: 16px;
+        object-fit: cover;
+        display: block;
+      }
+
+      .intro-info-title {
         font-size: 20px;
         font-weight: 700;
         color: #2ecc71;
-        margin-bottom: 8px;
+        margin-bottom: 6px;
       }
 
-      .intro-desc-subtitle {
+      .intro-info-subtitle {
         font-size: 13px;
         color: #a0d4ff;
         margin-bottom: 12px;
       }
 
-      .intro-desc-text {
+      .intro-info-desc {
         font-size: 13px;
         line-height: 1.6;
         color: #b0d0e0;
-        margin-bottom: 16px;
-      }
-
-      .intro-desc-wq {
-        font-size: 11px;
-        color: #8ab0d0;
         margin-bottom: 12px;
       }
 
-      .intro-desc-back-btn {
-        padding: 8px 16px;
+      .intro-info-component {
+        font-size: 11px;
+        color: #7db0d0;
+        margin-bottom: 12px;
+        font-style: italic;
+      }
+
+      .intro-info-wq {
+        font-size: 12px;
+        color: #a0d4ff;
+        margin-bottom: 16px;
+        padding: 8px 12px;
+        background: rgba(52, 152, 219, 0.2);
         border-radius: 6px;
+      }
+
+      .intro-info-back-btn {
+        width: 100%;
+        padding: 10px 16px;
+        border-radius: 8px;
         border: 1px solid rgba(52, 152, 219, 0.6);
         background: rgba(52, 152, 219, 0.2);
         color: #a0d4ff;
-        font-size: 12px;
+        font-size: 13px;
         font-weight: 600;
         cursor: pointer;
         transition: all 0.2s;
       }
 
-      .intro-desc-back-btn:hover {
+      .intro-info-back-btn:hover {
         background: rgba(52, 152, 219, 0.4);
         border-color: #3498db;
         color: #fff;
       }
 
-      .intro-viewer-panel {
-        position: fixed;
-        top: 50%;
-        left: 30px;
-        transform: translateY(-50%);
-        background: rgba(20, 40, 60, 0.95);
-        border: 2px solid rgba(52, 152, 219, 0.6);
-        border-radius: 12px;
-        padding: 16px;
-        max-width: 320px;
-        z-index: 210;
-        color: #ddeeff;
-        backdrop-filter: blur(12px);
-        box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-        animation: slideInLeft 0.3s ease-out;
-        display: none;
+      @keyframes slideInCenter {
+        from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+        to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
       }
 
-      .intro-viewer-panel.visible {
-        display: block;
-      }
-
-      .intro-viewer-image {
-        width: 100%;
-        height: 220px;
-        border-radius: 8px;
-        background: rgba(0, 20, 40, 0.8);
-        margin-bottom: 12px;
-        object-fit: cover;
-        display: block;
-      }
-
-      .intro-viewer-desc {
-        font-size: 12px;
-        line-height: 1.5;
-        color: #a0d0e0;
-        text-align: center;
-      }
-
-      @keyframes slideInRight {
-        from { opacity: 0; transform: translateX(30px); }
-        to   { opacity: 1; transform: translateX(0); }
-      }
-
-      @keyframes slideInLeft {
-        from { opacity: 0; transform: translateX(-30px); }
-        to   { opacity: 1; transform: translateX(0); }
+      @media (max-width: 600px) {
+        .intro-info-card {
+          top: auto;
+          left: auto;
+          right: 10px;
+          bottom: 80px;
+          transform: none;
+          max-width: calc(100vw - 20px);
+          width: auto;
+          max-height: 50vh;
+          padding: 16px;
+        }
+        .intro-info-title { font-size: 16px; }
+        .intro-info-subtitle { font-size: 12px; }
+        .intro-info-desc { font-size: 12px; }
       }
     `;
     const style = document.createElement('style');
@@ -992,7 +990,7 @@ export function showIntroVideo(cb) {
     document.head.appendChild(style);
   }
 
-  // Create step buttons and description panel
+  // Create step buttons and info card
   injectIntroStepCSS();
 
   const stepsContainer = document.createElement('div');
@@ -1021,18 +1019,19 @@ export function showIntroVideo(cb) {
     stepButtons.push(btn);
   });
 
-  const descPanel = document.createElement('div');
-  descPanel.className = 'intro-desc-panel';
-  screen.appendChild(descPanel);
-
-  // Create left-side viewer panel with stage image
-  const viewerPanel = document.createElement('div');
-  viewerPanel.className = 'intro-viewer-panel';
-  viewerPanel.innerHTML = `
-    <img class="intro-viewer-image" id="intro-viewer-image" src="" alt="Stage image" />
-    <div class="intro-viewer-desc" id="intro-viewer-desc">Loading...</div>
+  // Create unified info card (combines image + description)
+  const infoCard = document.createElement('div');
+  infoCard.className = 'intro-info-card';
+  infoCard.innerHTML = `
+    <img class="intro-info-image" id="intro-info-image" src="" alt="Stage image" />
+    <div class="intro-info-title" id="intro-info-title"></div>
+    <div class="intro-info-subtitle" id="intro-info-subtitle"></div>
+    <div class="intro-info-desc" id="intro-info-desc"></div>
+    <div class="intro-info-component" id="intro-info-component"></div>
+    <div class="intro-info-wq" id="intro-info-wq"></div>
+    <button class="intro-info-back-btn" id="btn-back-to-eagle">↶ Kembali ke Pandangan Keseluruhan</button>
   `;
-  screen.appendChild(viewerPanel);
+  screen.appendChild(infoCard);
 
   // Stage images (stored in public/stages/)
   const stageImages = [
@@ -1050,8 +1049,6 @@ export function showIntroVideo(cb) {
     'Bak Pengendap: Sludge mengendap ke dasar',
     'Pelepasan: Air bersih dilepas ke alam'
   ];
-
-  const viewerImage = $('intro-viewer-image');
 
   // Helper function to project 3D world position to 2D screen coordinates
   function projectToScreen(worldPos, camera, canvas) {
@@ -1078,55 +1075,117 @@ export function showIntroVideo(cb) {
       btn.classList.toggle('active', i === idx);
     });
 
-    // Show description panel
+    // Show unified info card with all content
     const stage = STAGES[idx];
-    descPanel.innerHTML = `
-      <div class="intro-desc-title">${stage.title}</div>
-      <div class="intro-desc-subtitle">${stage.subtitle}</div>
-      <div class="intro-desc-text">${stage.desc}</div>
-      <div class="intro-desc-wq">
-        <strong>Kualitas Air: ${stage.waterQuality}%</strong>
-      </div>
-      <button class="intro-desc-back-btn" id="btn-back-to-eagle">↶ Kembali ke Pandangan Keseluruhan</button>
-    `;
-    descPanel.classList.add('visible');
-
-    // Show viewer panel with stage image
-    $('intro-viewer-desc').textContent = componentDescriptions[idx];
-    viewerImage.src = stageImages[idx];
-    viewerImage.onerror = () => {
-      viewerImage.style.backgroundColor = '#2a3a4a';
-      viewerImage.style.display = 'flex';
-      viewerImage.style.alignItems = 'center';
-      viewerImage.style.justifyContent = 'center';
-      viewerImage.style.color = '#666';
-      viewerImage.textContent = '(Image not found: ' + stageImages[idx] + ')';
+    $('intro-info-image').src = stageImages[idx];
+    $('intro-info-image').onerror = () => {
+      $('intro-info-image').style.backgroundColor = '#2a3a4a';
+      $('intro-info-image').style.display = 'flex';
+      $('intro-info-image').style.alignItems = 'center';
+      $('intro-info-image').style.justifyContent = 'center';
+      $('intro-info-image').style.color = '#666';
+      $('intro-info-image').textContent = '(Image not found)';
     };
-    viewerPanel.classList.add('visible');
+    $('intro-info-title').textContent = stage.title;
+    $('intro-info-subtitle').textContent = stage.subtitle;
+    $('intro-info-desc').textContent = stage.desc;
+    $('intro-info-component').textContent = componentDescriptions[idx];
+    $('intro-info-wq').innerHTML = `<strong>Kualitas Air: ${stage.waterQuality}%</strong>`;
+    infoCard.classList.add('visible');
 
     // Back button handler
-    const backBtn = descPanel.querySelector('#btn-back-to-eagle');
+    const backBtn = infoCard.querySelector('#btn-back-to-eagle');
     if (backBtn) {
       backBtn.onclick = () => {
         previousStep = selectedStep;
         selectedStep = null;
         cameraEaseStart = clock.getElapsedTime();
-        descPanel.classList.remove('visible');
-        viewerPanel.classList.remove('visible');
+        infoCard.classList.remove('visible');
         document.querySelectorAll('.intro-step-btn').forEach(btn => btn.classList.remove('active'));
       };
     }
   }
 
   // Eagle view camera position (top-down overview)
-  const eagleViewPos = [0, 95, 50];
   const eagleViewLook = [0, 0, 0];
+  
+  // ── Camera Rotation Controls (Spherical Coordinates) ────────────────
+  let cameraAzimuth = 0;      // Horizontal rotation (radians)
+  let cameraElevation = 0.3;  // Vertical rotation (radians), ~17° default
+  const cameraDistance = 120; // Distance from look-at point
+  let isDragging = false;
+  let lastMouseX = 0;
+  let lastMouseY = 0;
+  const rotationSensitivity = 0.005;
+  
+  // Convert spherical to cartesian coordinates
+  function updateCameraFromSpherical() {
+    const x = cameraDistance * Math.cos(cameraElevation) * Math.sin(cameraAzimuth);
+    const y = cameraDistance * Math.sin(cameraElevation);
+    const z = cameraDistance * Math.cos(cameraElevation) * Math.cos(cameraAzimuth);
+    return [x, y, z];
+  }
+  
+  // Mouse and touch event listeners for camera rotation
+  canvas.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+  });
+  
+  canvas.addEventListener('mousemove', (e) => {
+    if (!isDragging || selectedStep !== null) return; // Only rotate in eagle view
+    const deltaX = e.clientX - lastMouseX;
+    const deltaY = e.clientY - lastMouseY;
+    cameraAzimuth -= deltaX * rotationSensitivity;
+    cameraElevation += deltaY * rotationSensitivity;
+    // Clamp elevation to prevent flipping (±60°)
+    cameraElevation = Math.max(-Math.PI * 0.33, Math.min(Math.PI * 0.33, cameraElevation));
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+  });
+  
+  canvas.addEventListener('mouseup', () => {
+    isDragging = false;
+  });
+  
+  canvas.addEventListener('mouseleave', () => {
+    isDragging = false;
+  });
+  
+  // Touch support for mobile
+  canvas.addEventListener('touchstart', (e) => {
+    if (e.touches.length === 1) {
+      isDragging = true;
+      lastMouseX = e.touches[0].clientX;
+      lastMouseY = e.touches[0].clientY;
+    }
+  }, false);
+  
+  canvas.addEventListener('touchmove', (e) => {
+    if (!isDragging || selectedStep !== null || e.touches.length !== 1) return;
+    const deltaX = e.touches[0].clientX - lastMouseX;
+    const deltaY = e.touches[0].clientY - lastMouseY;
+    cameraAzimuth -= deltaX * rotationSensitivity;
+    cameraElevation += deltaY * rotationSensitivity;
+    cameraElevation = Math.max(-Math.PI * 0.33, Math.min(Math.PI * 0.33, cameraElevation));
+    lastMouseX = e.touches[0].clientX;
+    lastMouseY = e.touches[0].clientY;
+  }, false);
+  
+  canvas.addEventListener('touchend', () => {
+    isDragging = false;
+  }, false);
 
   // ====================================================================
   let rafId = null;
   const clock = new THREE.Clock();
   const continueBtn = $('btn-intro-continue');
   continueBtn.disabled = false;
+
+  // Track current camera position for smooth easing
+  let currentCamPos = updateCameraFromSpherical();
+  let currentCamLook = eagleViewLook;
 
   function animate() {
     rafId = requestAnimationFrame(animate);
@@ -1141,33 +1200,43 @@ export function showIntroVideo(cb) {
       const progress = Math.min(elapsed / cameraEaseDuration, 1.0);
       const easeVal = easeIO(progress);
 
-      const startPos = previousStep === null ? eagleViewPos : STAGES[previousStep].camPos;
-      const startLook = previousStep === null ? eagleViewLook : STAGES[previousStep].camLook;
+      const startPos = currentCamPos;
+      const startLook = currentCamLook;
       
       const targetPos = STAGES[selectedStep].camPos;
       const targetLook = STAGES[selectedStep].camLook;
 
       camP = lerp3(startPos, targetPos, easeVal);
       camL = lerp3(startLook, targetLook, easeVal);
+      
+      if (progress >= 1.0) {
+        currentCamPos = targetPos;
+        currentCamLook = targetLook;
+      }
     } else if (selectedStep === null && cameraEaseStart !== null) {
       // Easing back to eagle view from step
       const elapsed = t - cameraEaseStart;
       const progress = Math.min(elapsed / cameraEaseDuration, 1.0);
       const easeVal = easeIO(progress);
 
-      const startPos = previousStep === null ? eagleViewPos : STAGES[previousStep].camPos;
-      const startLook = previousStep === null ? eagleViewLook : STAGES[previousStep].camLook;
+      const startPos = currentCamPos;
+      const startLook = currentCamLook;
 
-      camP = lerp3(startPos, eagleViewPos, easeVal);
+      const targetRotatablePos = updateCameraFromSpherical();
+      camP = lerp3(startPos, targetRotatablePos, easeVal);
       camL = lerp3(startLook, eagleViewLook, easeVal);
 
       if (progress >= 1.0) {
         cameraEaseStart = null;
+        currentCamPos = targetRotatablePos;
+        currentCamLook = eagleViewLook;
       }
     } else {
-      // Default: show eagle view
-      camP = eagleViewPos;
+      // Default: show eagle view with rotatable camera
+      camP = updateCameraFromSpherical();
       camL = eagleViewLook;
+      currentCamPos = camP;
+      currentCamLook = camL;
     }
 
     camera.position.set(camP[0], camP[1], camP[2]);
