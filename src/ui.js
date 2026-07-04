@@ -1631,7 +1631,6 @@ export function showLevel1InfoCard(onContinue) {
         height: 100%;
         background: rgba(0, 0, 0, 0.85);
         display: flex;
-        align-items: center;
         justify-content: center;
         z-index: 1500;
         animation: fadeIn 0.4s ease-out;
@@ -1648,6 +1647,7 @@ export function showLevel1InfoCard(onContinue) {
         backdrop-filter: blur(16px);
         color: #e0e8f0;
         text-align: center;
+        overflow-y: auto;
       }
 
       .level-info-card h2 {
@@ -1900,14 +1900,14 @@ function showLevelSelector(onSelect) {
   const overlay = document.createElement('div');
   overlay.style.cssText = `
     position:fixed;inset:0;background:rgba(0,0,0,0.85);
-    display:flex;align-items:center;justify-content:center;
+    display:flex;align-items:center;
     z-index:9998;flex-direction:column;gap:20px;padding:40px 20px;
     font-family:system-ui,sans-serif;color:#fff;
   `;
   const card = document.createElement('div');
   card.style.cssText = `
     background:linear-gradient(160deg,#0d1b2a,#091525);border:1px solid rgba(60,140,220,.35);
-    border-radius:18px;padding:32px 40px;text-align:center;max-width:600px;
+    border-radius:18px;padding:32px 40px;text-align:center;max-width:600px;overflow-y:auto;
   `;
   card.innerHTML = `
     <h2 style="margin:0 0 20px;font-size:24px;color:#a0d8ff">Pilih Level</h2>

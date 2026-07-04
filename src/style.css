@@ -201,6 +201,7 @@ body {
   align-items: center;
   justify-content: center;
   z-index: 100;
+  overflow-y: auto;
   background: linear-gradient(135deg, rgba(10,20,35,0.97) 0%, rgba(20,40,20,0.97) 100%);
 }
 
@@ -223,6 +224,7 @@ body {
   width: 90%;
   text-align: center;
   box-shadow: 0 8px 40px rgba(0,0,0,0.6);
+  overflow-y: auto;
 }
 
 .profile-card .logo {
@@ -1451,10 +1453,6 @@ body {
   #joystick-base   { width: 90px; height: 90px; }
   #joystick-knob   { width: 38px; height: 38px; }
   #btn-interact-mobile { bottom: 16px; right: 20px; width: 58px; height: 58px; font-size: 18px; }
-
-  .stage-panel {
-    max-height: calc(100vh - 44px - 140px);
-  }
 }
 
 /* ===== INTRO VIDEO SCREEN ===== */
@@ -1652,7 +1650,6 @@ body {
   inset: 0;
   background: rgba(0, 0, 0, 0.72);
   display: flex;
-  align-items: center;
   justify-content: center;
   z-index: 950;
   backdrop-filter: blur(4px);
@@ -1670,6 +1667,7 @@ body {
   flex-direction: column;
   gap: 14px;
   box-shadow: 0 0 60px rgba(240, 168, 48, 0.15), 0 8px 40px rgba(0,0,0,0.6);
+  overflow-y: auto;
 }
 #pause-menu-title {
   font-size: 1.3rem;
