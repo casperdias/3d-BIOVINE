@@ -1668,6 +1668,7 @@ body {
   gap: 14px;
   box-shadow: 0 0 60px rgba(240, 168, 48, 0.15), 0 8px 40px rgba(0,0,0,0.6);
   overflow-y: auto;
+  height: fit-content;
 }
 #pause-menu-title {
   font-size: 1.3rem;
