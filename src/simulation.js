@@ -83,64 +83,99 @@ function buildSimHTML() {
         </div>
       </div>
 
-      <!-- Step 1: Multi-glass drag-to-pour -->
+      <!-- Step 1: Multi-glass drag-to-pour (with mobile input option) -->
       <div class="sim-step" id="sim-step-1">
         <div class="step-title">
           <span class="step-num">1</span>
-          Tuangkan Vinasse ke dalam Beker — seret gelas ke beker
+          Tuangkan Vinasse ke dalam Beker
         </div>
-        <!-- Row of vinasse glasses (5 × 200 mL) -->
-        <div class="glasses-row-wrap">
-          <div class="glasses-row" id="glasses-row">
-            ${[0,1,2,3,4].map(i => `
-              <div class="vinasse-glass" id="vglass-${i}" data-idx="${i}">
-                <div class="vg-liquid" id="vglass-liq-${i}"></div>
-                <div class="vg-label">200 mL</div>
+        
+        <!-- Methods container with grid layout -->
+        <div class="methods-container">
+          <!-- Method A: Direct input option -->
+          <div class="step1-mobile-section hidden" id="step1-mobile-section">
+            <div class="method-label">📱 Metode 1: Masukkan Jumlah Langsung</div>
+            <div class="vinasse-input-group">
+              <label for="vinasse-input">Jumlah Vinasse (mL):</label>
+              <input type="number" id="vinasse-input" min="0" max="1000" value="0" step="100">
+              <div class="input-buttons">
+                <button class="input-btn" data-add="100">+100</button>
+                <button class="input-btn" data-add="200">+200</button>
+                <button class="input-btn" data-add="500">+500</button>
               </div>
-            `).join('')}
+              <button class="sim-btn" id="btn-confirm-pour" style="margin-top:8px; width:100%;">✓ Konfirmasi</button>
+            </div>
           </div>
-          <div class="glasses-hint">↙️ Seret gelas ke BEKER KANAN untuk menuangkan vinasse</div>
+
+          <!-- Method B: Drag glasses -->
+          <div class="step1-desktop-section" id="step1-desktop-section">
+            <div class="method-label">✋ Metode 2: Seret Gelas ke Beker</div>
+            <div class="glasses-row-wrap">
+              <div class="glasses-row" id="glasses-row">
+                ${[0,1,2,3,4].map(i => `
+                  <div class="vinasse-glass" id="vglass-${i}" data-idx="${i}">
+                    <div class="vg-liquid" id="vglass-liq-${i}"></div>
+                    <div class="vg-label">200 mL</div>
+                  </div>
+                `).join('')}
+              </div>
+              <div class="glasses-hint">↙️ Seret ke BEKER untuk menuang</div>
+            </div>
+          </div>
         </div>
+        
         <button class="sim-btn" id="btn-titrate" disabled>📏 Ukur Parameter →</button>
       </div>
 
-      <!-- Step 2: TDS/DO Meter dip -->
+      <!-- Step 2: TDS/DO Meter dip (with mobile button option) -->
       <div class="sim-step hidden" id="sim-step-2">
         <div class="step-title">
           <span class="step-num">2</span>
           Ukur Parameter — Celupkan TDS/DO Meter ke Beaker
         </div>
         <div class="meter-layout">
-          <!-- Instruction -->
-          <div class="meter-instruction" id="meter-instruction">
-            ⤵️ Seret probe sensor ke BEAKER untuk mengukur TDS · DO · pH · SAL
+          <!-- Display unit -->
+          <div class="meter-display-unit">
+            <div class="mdu-head">
+              <div class="mdu-brand">TDS · DO · pH · SAL</div>
+              <div class="mdu-screen">
+                <div class="mr-row"><span class="mr-lbl">DO</span><span class="mr-val" id="mr-do">—</span><span class="mr-unit">ppm</span></div>
+                <div class="mr-row"><span class="mr-lbl">TDS</span><span class="mr-val" id="mr-tds">—</span><span class="mr-unit">ppm</span></div>
+                <div class="mr-row"><span class="mr-lbl">pH</span><span class="mr-val" id="mr-ph">—</span></div>
+                <div class="mr-row"><span class="mr-lbl">SAL</span><span class="mr-val" id="mr-sal">—</span><span class="mr-unit">‰</span></div>
+              </div>
+            </div>
+            <div class="mdu-stick"></div>
           </div>
-          <!-- Instrument row: display unit + cable + probe (positioned to interact with persistent beaker) -->
-          <div class="meter-instrument-row-step2">
-            <!-- Display unit (left stick, static) -->
-            <div class="meter-display-unit">
-              <div class="mdu-head">
-                <div class="mdu-brand">TDS · DO · pH · SAL</div>
-                <div class="mdu-screen">
-                  <div class="mr-row"><span class="mr-lbl">DO</span><span class="mr-val" id="mr-do">—</span><span class="mr-unit">ppm</span></div>
-                  <div class="mr-row"><span class="mr-lbl">TDS</span><span class="mr-val" id="mr-tds">—</span><span class="mr-unit">ppm</span></div>
-                  <div class="mr-row"><span class="mr-lbl">pH</span><span class="mr-val" id="mr-ph">—</span></div>
-                  <div class="mr-row"><span class="mr-lbl">SAL</span><span class="mr-val" id="mr-sal">—</span><span class="mr-unit">‰</span></div>
+
+          <!-- Methods container with grid layout -->
+          <div class="methods-container">
+            <!-- Method A: Draggable probe option -->
+            <div class="meter-drag-section" id="meter-drag-section">
+              <div class="method-label">✋ Metode 1: Seret Probe Sensor</div>
+              <div class="meter-instruction" id="meter-instruction-drag">⤵️ Seret probe ke beaker untuk mengukur</div>
+              <div class="meter-instrument-row-step2">
+                <svg class="meter-cable-svg" viewBox="0 0 80 40" preserveAspectRatio="none">
+                  <path d="M0,20 C20,6 60,34 80,20" stroke="#3a7a9a" stroke-width="2.5" fill="none" stroke-dasharray="5,4"/>
+                </svg>
+                <div class="meter-probe-stick" id="meter-probe-stick" title="Seret ke dalam larutan">
+                  <div class="mps-handle">⊕</div>
+                  <div class="mps-shaft"></div>
+                  <div class="mps-tip"></div>
                 </div>
               </div>
-              <div class="mdu-stick"></div>
             </div>
-            <!-- Cable (decorative) -->
-            <svg class="meter-cable-svg" viewBox="0 0 80 40" preserveAspectRatio="none">
-              <path d="M0,20 C20,6 60,34 80,20" stroke="#3a7a9a" stroke-width="2.5" fill="none" stroke-dasharray="5,4"/>
-            </svg>
-            <!-- Probe stick only (beaker is the persistent one above) -->
-            <div class="meter-probe-stick" id="meter-probe-stick" title="Seret ke dalam larutan">
-              <div class="mps-handle">⊕</div>
-              <div class="mps-shaft"></div>
-              <div class="mps-tip"></div>
+
+            <!-- Method B: Button option -->
+            <div class="meter-button-section hidden" id="meter-button-section">
+              <div class="method-label">📱 Metode 2: Tekan Tombol Pengukur</div>
+              <div class="meter-instruction" id="meter-instruction-button">Ketuk tombol untuk mengukur semua parameter</div>
+              <div class="meter-buttons-group">
+                <button class="meter-measure-btn" id="btn-measure-all">📊 Ukur Semua</button>
+              </div>
             </div>
           </div>
+
           <!-- Results appear below after measurement -->
           <div class="meter-result-grid hidden" id="meter-result-grid"></div>
           <div class="meter-note hidden" id="meter-note"></div>
@@ -217,6 +252,20 @@ function wireSimulation(overlay, onDone) {
   let selectedHours = null;
   let aeratorOn     = false;
   let pourCleanup   = null;  // cleanup drag listeners when leaving step 1
+
+  // ── Detect mobile and set up appropriate UI ────────────────────
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // Show both options on desktop, show both on mobile too - let user choose!
+  const step1Mobile = $('step1-mobile-section');
+  const step1Desktop = $('step1-desktop-section');
+  const meterDrag = $('meter-drag-section');
+  const meterButton = $('meter-button-section');
+  
+  // Always show both options
+  if (step1Mobile) step1Mobile.classList.add('visible');
+  if (step1Desktop) step1Desktop.classList.add('visible');
+  if (meterDrag) meterDrag.classList.add('visible');
+  if (meterButton) meterButton.classList.add('visible');
 
   // ── Step 1: multi-glass drag-to-pour ──
   {
@@ -360,6 +409,30 @@ function wireSimulation(overlay, onDone) {
       const g = document.getElementById('vg-ghost');
       if (g) g.remove();
     };
+
+    // ── Input number handler for Step 1 (works on all devices) ────────────────────
+    const input = $('vinasse-input');
+    const confirmBtn = $('btn-confirm-pour');
+    const inputBtns = document.querySelectorAll('.input-btn');
+
+    inputBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const add = parseInt(btn.dataset.add);
+        const current = Math.max(0, parseInt(input.value) || 0);
+        const newVal = Math.min(1000, current + add);
+        input.value = newVal;
+      });
+    });
+
+    confirmBtn.addEventListener('click', () => {
+      const vol = Math.max(0, Math.min(1000, parseInt(input.value) || 0));
+      selectedVol = vol;
+      updateBeaker(vol);
+      updateDisplay();
+      glassVolumes.fill(0);  // Mark all glasses as empty
+      for (let i = 0; i < GLASS_COUNT; i++) updateGlassVisual(i);
+      $('btn-titrate').disabled = false;
+    });
   }
 
   // ── Step 1 → 2: Titrate (launches interactive titration) ──
@@ -532,7 +605,7 @@ function initMeterDip(vol, initialData) {
   }
 
   function triggerMeasurement() {
-    $('meter-instruction').textContent = 'Sensor mendeteksi parameter larutan…';
+    $('meter-instruction-button').textContent = 'Sensor mendeteksi parameter larutan…';
 
     setTimeout(() => {
       if (rippleEl) {
@@ -550,7 +623,7 @@ function initMeterDip(vol, initialData) {
     }, 500);
 
     setTimeout(() => {
-      $('meter-instruction').textContent = '✅ Pengukuran selesai — catat hasil parameter!';
+      $('meter-instruction-button').textContent = '✅ Pengukuran selesai — catat hasil parameter!';
 
       const grid = $('meter-result-grid');
       grid.innerHTML = [
@@ -584,6 +657,19 @@ function initMeterDip(vol, initialData) {
 
   probeEl.addEventListener('mousedown',  startDrag);
   probeEl.addEventListener('touchstart', startDrag, { passive: false });
+
+  // ── Button to trigger measurement for Step 2 (works on all devices) ────────────
+  const measureBtn = $('btn-measure-all');
+  if (measureBtn) {
+    measureBtn.addEventListener('click', () => {
+      if (!probeUsed) {
+        probeUsed = true;
+        probeEl.classList.add('probe-dipped');
+        triggerMeasurement();
+        measureBtn.disabled = true;
+      }
+    });
+  }
 }
 
 function countUpMeterVal(id, to, durationMs, decimals) {
@@ -1464,6 +1550,34 @@ function injectSimulationCSS() {
       50%  { transform:translateY(-20px) scaleY(1.3); opacity:0.5; }
       100% { transform:translateY(-50px) scaleY(0.4); opacity:0; }
     }
+
+    .step1-mobile-section, .step1-desktop-section,
+    .meter-drag-section, .meter-button-section {
+      display: none;
+      background: rgba(10, 20, 35, 0.8);
+      border: 1px solid rgba(80, 120, 160, 0.3);
+      border-radius: 12px;
+      padding: 14px;
+      transition: all 0.2s;
+    }
+
+    .step1-mobile-section.visible, .step1-desktop-section.visible,
+    .meter-drag-section.visible, .meter-button-section.visible {
+      display: block;
+    }
+
+    /* ── Responsive: Mobile-friendly stacking ────────────────────── */
+    @media (max-width: 600px) {
+      .step1-mobile-section { margin-bottom: 16px; }
+      .step1-desktop-section { margin-bottom: 16px; }
+      .vinasse-input-group { padding: 12px; }
+      .input-buttons { flex-wrap: wrap; }
+      .input-btn { font-size: 11px; padding: 6px 8px; }
+      .meter-measure-btn { width: 100%; }
+      .glasses-row { gap: 6px; }
+      .vinasse-glass { width: 35px; height: 50px; }
+    }
+
     /* keep titration CSS class names but hide unused elements gracefully */
     .titration-layout, .tit-apparatus, .tit-panel,
     .tit-burette, .tit-flask, .tit-valve-section { display: none; }

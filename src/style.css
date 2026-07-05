@@ -1668,7 +1668,7 @@ body {
   gap: 14px;
   box-shadow: 0 0 60px rgba(240, 168, 48, 0.15), 0 8px 40px rgba(0,0,0,0.6);
   overflow-y: auto;
-  height: fit-content;
+  height: fit
 }
 #pause-menu-title {
   font-size: 1.3rem;
@@ -2100,4 +2100,172 @@ body {
   .synopsis-photo {
     height: 58px;
   }
+}
+
+/* ===== SIMULATION METHODS CONTAINER ===== */
+.methods-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+/* Responsive: md breakpoint (768px) - 2 columns */
+@media (min-width: 768px) {
+  .methods-container {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* ===== METHOD LABELS & INPUT STYLING ===== */
+.step1-mobile-section, .step1-desktop-section,
+.meter-drag-section, .meter-button-section {
+  display: none;
+  background: rgba(10, 20, 35, 0.8);
+  border: 1px solid rgba(80, 120, 160, 0.3);
+  border-radius: 12px;
+  padding: 14px;
+  transition: all 0.2s;
+}
+
+.step1-mobile-section.visible, .step1-desktop-section.visible,
+.meter-drag-section.visible, .meter-button-section.visible {
+  display: block;
+}
+
+.method-label {
+  background: rgba(0, 170, 255, 0.15);
+  border-left: 3px solid #00aaff;
+  padding: 8px 12px;
+  color: #7ab0d8;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.vinasse-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vinasse-input-group label {
+  display: block;
+  font-size: 13px;
+  color: #a0d8ff;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.vinasse-input-group input[type="number"] {
+  width: 100%;
+  padding: 10px 12px;
+  background: rgba(10, 20, 40, 0.9);
+  border: 2px solid rgba(80, 120, 160, 0.4);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.vinasse-input-group input[type="number"]:focus {
+  outline: none;
+  border-color: #00d4ff;
+  background: rgba(10, 25, 50, 0.95);
+  box-shadow: 0 0 12px rgba(0, 170, 255, 0.4);
+}
+
+.input-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.input-btn {
+  padding: 10px 8px;
+  background: rgba(52, 152, 219, 0.25);
+  border: 2px solid rgba(52, 152, 219, 0.6);
+  border-radius: 8px;
+  color: #7ab0d8;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.input-btn:hover {
+  background: rgba(52, 152, 219, 0.45);
+  border-color: #3498db;
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+}
+
+.input-btn:active {
+  background: rgba(52, 152, 219, 0.6);
+  transform: translateY(0);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== METER INSTRUCTION & BUTTON STYLING ===== */
+.meter-instruction {
+  background: rgba(52, 152, 219, 0.15);
+  border-left: 3px solid #00aaff;
+  padding: 10px 12px;
+  color: #a0d8ff;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  line-height: 1.5;
+}
+
+.meter-buttons-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.meter-measure-btn {
+  padding: 12px 14px;
+  background: linear-gradient(135deg, rgba(46, 204, 113, 0.25), rgba(39, 174, 96, 0.25));
+  border: 2px solid rgba(46, 204, 113, 0.7);
+  border-radius: 8px;
+  color: #2ecc71;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.meter-measure-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(39, 174, 96, 0.4));
+  border-color: #2ecc71;
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.4);
+  transform: translateY(-2px);
+}
+
+.meter-measure-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.meter-measure-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ===== RESPONSIVE MOBILE OVERRIDES ===== */
+@media (max-width: 600px) {
+  .step1-mobile-section { margin-bottom: 16px; }
+  .step1-desktop-section { margin-bottom: 16px; }
+  .vinasse-input-group { padding: 12px; }
+  .input-buttons { flex-wrap: wrap; }
+  .input-btn { font-size: 11px; padding: 6px 8px; }
+  .meter-measure-btn { width: 100%; }
 }
