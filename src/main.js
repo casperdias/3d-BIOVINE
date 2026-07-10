@@ -632,11 +632,9 @@ showProfileScreen(
   name => {
     player.setName(name);
     showSynopsis(() => {
-      showYoutubeVideos(() => {
-        showIntroVideo(() => {
-          showInstructions(() => {
-            bootGame();
-          });
+      showIntroVideo(() => {
+        showInstructions(() => {
+          bootGame();
         });
       });
     });
