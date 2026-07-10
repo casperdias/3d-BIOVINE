@@ -176,7 +176,7 @@ export function showSynopsis(cb) {
 // ─────────────────────────────────────────────────────
 const YT_VIDEOS = [
   {
-    id: 'c4gsn1rkK1g',
+    id: 'uvrGTeHVYq4',
     title: 'Video Edukasi: Limbah Vinasse & Dampak Lingkungan',
     subtitle: 'Pelajari dampak pencemaran vinasse terhadap lingkungan sekitar',
   },
